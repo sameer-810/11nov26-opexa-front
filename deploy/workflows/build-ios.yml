@@ -1,0 +1,25 @@
+name: Build iPhone app
+# Needs an Apple Developer account linked in Expo (run "eas credentials" once on your computer first).
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Build profile
+        type: choice
+        options: [preview, production]
+        default: production
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - run: eas build --platform ios --profile ${{ inputs.profile }} --non-interactive --no-wait

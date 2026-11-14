@@ -1,0 +1,32 @@
+name: Push app update (no store release)
+# Sends JavaScript-only changes straight to installed phones.
+# One-time setup on your computer first: npx expo install expo-updates && npx eas update:configure
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Which installed apps get it
+        type: choice
+        options: [preview, production]
+        default: preview
+      message:
+        description: What changed
+        required: true
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - run: npx jest
+      - run: eas update --channel ${{ inputs.channel }} --message "${{ inputs.message }}" --non-interactive
+        env:
+          EXPO_PUBLIC_API_URL: https://opexa-api.onrender.com/api/v1

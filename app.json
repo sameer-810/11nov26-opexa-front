@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Opexa",
+    "slug": "opexa",
+    "version": "0.1.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "opexa",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.globalairtech.opexa"
+    },
+    "android": {
+      "package": "com.globalairtech.opexa",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Opexa uses your location to set a project's site position and to check you are at the site when you mark attendance."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0B5FFF"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Opexa uses the camera for the attendance selfie when you check in at a site.",
+          "photosPermission": false
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+name: Build Android app
+# Run from GitHub > Actions > "Build Android app" > Run workflow.
+# "preview" gives an APK to install directly on phones; "production" gives the Play Store bundle.
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Build profile
+        type: choice
+        options: [preview, production]
+        default: preview
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx jest
+      - run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive --no-wait
