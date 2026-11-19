@@ -2,7 +2,7 @@ import { Linking, Platform } from 'react-native';
 import { env } from '../../config/env';
 import { api } from '../../shared/api/apiClient';
 
-export type Basis = 'lots' | 'installed' | 'manual';
+export type Basis = 'lots' | 'installed' | 'manual' | 'measurement' | 'milestone';
 export type PreviewLine = { workOrderItemId: string; serialNo: string; description: string; unit: string; boqQty: number; rate: number; billedBefore: number; suggestedQty: number; overBoq: boolean };
 export type Preview = {
   project: { id: string; code: string; name: string; clientName: string; clientGstin: string; billingAddress: string; clientState: string; poNumber: string };
@@ -16,6 +16,8 @@ export type Invoice = {
   client: { name: string; gstin: string; address: string; state: string; poNumber: string };
   gstRate: number; interState: boolean; lines: InvoiceLine[]; taxable: number; cgst: number; sgst: number; igst: number; roundOff: number; total: number; totalInWords: string;
   notes: string; edits: { at: string; byName: string; reason: string; summary: string }[];
+  kind?: 'standard' | 'milestone' | 'measurement'; milestoneLine?: { description: string; percent: number; planAmount: number; amount: number } | null;
+  retentionPct?: number; retention?: number; received?: number; tds?: number; outstanding?: number; revisions?: { revision: number; at: string; reason: string }[];
   attachments: { id: string; name: string; contentType: string; size: number; url: string | null }[];
   issuedAt: string | null; cancelReason: string | null; createdAt: string;
 };

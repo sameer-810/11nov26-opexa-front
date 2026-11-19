@@ -6,7 +6,7 @@ import type { RootStackParamList } from '../../../navigation/types';
 import { routeForLink } from '../../../navigation/routeForLink';
 import { ApiError } from '../../../shared/api/apiClient';
 import { useAuth } from '../../../shared/store/useAuthStore';
-import { formatDateTime, formatMoney } from '../../../shared/format';
+import { formatDateTime, formatShortMoney } from '../../../shared/format';
 import { AppScreen } from '../../../shared/ui/AppScreen';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
@@ -14,8 +14,7 @@ import { overviewApi, type Overview } from '../api/overviewApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Overview'>;
 
-// Short Indian style: ₹1.25 Cr, ₹4.5 L, else full rupees.
-const short = (n: number) => (Math.abs(n) >= 1e7 ? `₹${(n / 1e7).toFixed(2)} Cr` : Math.abs(n) >= 1e5 ? `₹${(n / 1e5).toFixed(1)} L` : formatMoney(n));
+const short = formatShortMoney;
 
 export function OverviewScreen({ navigation }: Props) {
   const { user } = useAuth();

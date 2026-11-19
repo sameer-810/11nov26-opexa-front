@@ -15,6 +15,13 @@ export function routeForLink(link: string | null | undefined, user: User | null)
   if ((m = l.match(/^\/app\/returns\/([^/]+)$/))) return { name: 'ReturnDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/projects\/([^/]+)\/stock-counts\/([^/]+)$/))) return { name: 'StockCount', params: { id: m[1], countId: m[2] } };
   if ((m = l.match(/^\/app\/purchase-orders\/([^/]+)$/)) && can(user, PERMS.PURCHASE_MANAGE)) return { name: 'PurchaseOrderDetail', params: { id: m[1] } };
+  if ((m = l.match(/^\/app\/rfqs\/([a-f0-9]{24})$/)) && can(user, PERMS.PURCHASE_MANAGE)) return { name: 'RfqDetail', params: { id: m[1] } };
+  if ((m = l.match(/^\/app\/selections\/([a-f0-9]{24})$/)) && can(user, PERMS.PURCHASE_MANAGE)) return { name: 'SelectionDetail', params: { id: m[1] } };
+  if ((m = l.match(/^\/app\/supplier-invoices\/([a-f0-9]{24})$/)) && (can(user, PERMS.PURCHASE_MANAGE) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY))) return { name: 'SupplierInvoiceDetail', params: { id: m[1] } };
+  if (l.startsWith('/app/store') && (can(user, PERMS.STORE_MANAGE) || can(user, PERMS.PURCHASE_MANAGE) || can(user, PERMS.PROJECT_MANAGE))) return { name: 'Store', params: undefined };
+  if (l === '/app/subcontract') return { name: 'Subcontract', params: undefined };
+  if (l === '/app/commitments') return { name: 'Commitments', params: undefined };
+  if (l === '/app/procurement' && can(user, PERMS.PURCHASE_MANAGE)) return { name: 'Procurement', params: undefined };
   if ((m = l.match(/^\/app\/service\/([a-f0-9]{24})$/))) return { name: 'TicketDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/sales\/([a-f0-9]{24})$/)) && can(user, PERMS.SALES_MANAGE)) return { name: 'LeadDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/projects\/([a-f0-9]{24})$/))) return { name: 'ProjectDetail', params: { id: m[1] } };

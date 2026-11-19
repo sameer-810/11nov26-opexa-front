@@ -9,6 +9,8 @@ export type RequisitionLine = {
   boqQty: number;
   previouslyRequested: number;
   qtyRequested: number;
+  qtyApproved?: number;
+  specification?: string;
   overBy: number;
   overrideReason: string | null;
   ordered?: number;
@@ -27,7 +29,9 @@ export type Requisition = {
   raisedBy: { id: string; name: string | null };
   note: string;
   neededBy: string | null;
-  status: 'open' | 'cancelled';
+  status: 'pending_approval' | 'open' | 'rejected' | 'sent_back' | 'cancelled';
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  department?: string | null;
   cancelReason: string | null;
   createdAt: string;
   overBoq: boolean;
@@ -35,7 +39,7 @@ export type Requisition = {
   purchaseStatus?: 'to-order' | 'partly-ordered' | 'ordered' | 'received' | 'cancelled';
 };
 
-export type NewRequisition = { lines: { workOrderItemId: string; qty: number; reason?: string }[]; note?: string };
+export type NewRequisition = { lines: { workOrderItemId: string; qty: number; reason?: string; specification?: string }[]; note?: string; priority?: 'low' | 'normal' | 'high' | 'urgent'; department?: string };
 
 // One entry per line that would go past the BOQ (from the API's OVER_BOQ answer).
 export type OverBoqLine = { field: string; message: string; serialNo: string; boqQty: number; previouslyRequested: number; qtyRequested: number; overBy: number };

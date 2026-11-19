@@ -14,6 +14,7 @@ import { colors, radius, spacing } from '../../../shared/designSystem';
 import { requisitionApi } from '../api/requisitionApi';
 import type { BalanceRow, OverBoqLine, Requisition } from '../types';
 import { submitOrQueue } from '../../../shared/offline/outbox';
+import { PackageMaterialLines, packageLinesFor, type PackageLine } from '../../inventory/components/PackageMaterialLines';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NewRequisition'>;
 
@@ -30,6 +31,7 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [extras, setExtras] = useState<PackageLine[]>([]);
 
   useEffect(() => {
     requisitionApi
@@ -48,11 +50,12 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
   const send = async (withReason?: string) => {
     setError('');
     if (badQty) return setError('Quantities must be numbers above 0. Clear any box you do not need.');
-    if (!chosen.length) return setError('Enter a quantity for at least one item.');
+    const pkg = packageLinesFor(extras);
+    if (!chosen.length && !pkg.length) return setError('Enter a quantity for at least one item.');
     setBusy(true);
     try {
       const r = await submitOrQueue<Requisition>(`Material request (${chosen.length} item${chosen.length === 1 ? '' : 's'})`, 'POST', `/projects/${projectId}/requisitions`, {
-        lines: chosen.map((c) => ({ workOrderItemId: c.id, qty: c.qty, ...(withReason ? { reason: withReason } : {}) })),
+        lines: [...chosen.map((c) => ({ workOrderItemId: c.id, qty: c.qty, ...(withReason ? { reason: withReason } : {}) })), ...pkg],
         note: note.trim() || undefined,
       });
       if (r.queued) {
@@ -144,6 +147,7 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
         })}
       </View>
 
+      {rows.length ? <PackageMaterialLines boq={rows} value={extras} onChange={setExtras} /> : null}
       <TextField label="Note for the purchaser (optional)" value={note} onChangeText={setNote} testID="req-note" placeholder="e.g. Needed by Friday for floors 1-5" multiline />
       {error ? <ErrorBanner message={error} testID="req-error" /> : null}
       {!over ? (

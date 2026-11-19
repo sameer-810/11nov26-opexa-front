@@ -13,6 +13,7 @@ import { ErrorState } from '../../../shared/ui/ErrorState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { purchaseOrderApi } from '../api/purchaseOrderApi';
 import { DELIVERY_LABEL, type PurchaseOrder } from '../types';
+import { PoProcurementPanel } from '../../procurement/components/PoProcurementPanel';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PurchaseOrderDetail'>;
 const today = () => todayLocal();
@@ -168,6 +169,8 @@ export function PurchaseOrderDetailScreen({ navigation, route }: Props) {
           </View>
         </View>
       ) : null}
+
+      <PoProcurementPanel id={id} onChanged={load} />
 
       {mode === 'cancel' ? (
         <View style={styles.box}>

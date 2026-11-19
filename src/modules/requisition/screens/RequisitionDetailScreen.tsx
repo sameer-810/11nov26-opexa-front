@@ -112,7 +112,10 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
         </View>
       </ScrollView>
       {can(user, PERMS.PURCHASE_MANAGE) && req.status === 'open' && req.lines.some((l) => (l.toOrder ?? 0) > 0) ? (
-        <Button title="Create purchase order" onPress={() => navigation.navigate('NewPurchaseOrder', { requisitionId: req.id })} testID="create-po" style={styles.self} />
+        <View style={styles.actions}>
+          <Button title="Request quotations (RFQ)" onPress={() => navigation.navigate('NewRfq', { requisitionId: req.id })} testID="create-rfq" />
+          <Button title="Create purchase order" variant="outline" onPress={() => navigation.navigate('NewPurchaseOrder', { requisitionId: req.id })} testID="create-po" />
+        </View>
       ) : null}
 
       {error ? <ErrorBanner message={error} /> : null}
@@ -151,6 +154,7 @@ const styles = StyleSheet.create({
   over: { color: colors.danger, fontWeight: '700' },
   muted: { fontSize: 13, color: colors.textMuted },
   self: { alignSelf: 'flex-start' },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   cancelBox: { gap: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.md },
   danger: { backgroundColor: colors.danger },
 });

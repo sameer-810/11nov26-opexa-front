@@ -24,6 +24,7 @@ const DEFAULTS: Record<string, string[]> = {
   supervisor: ['receiving.record', 'attendance.self'],
   accounts: ['attendance.viewAll', 'payroll.manage', 'invoice.create', 'invoice.edit', 'reports.view', 'attendance.self'],
   staff: ['attendance.self'],
+  store_incharge: ['store.manage', 'receiving.record', 'attendance.self'],
 };
 type MockProject = {
   id: string; code: string; name: string; clientName: string; status: string; siteAddress: string | null;
@@ -45,6 +46,20 @@ export function installMockApi() {
   const vendors: any[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pos: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rfqs: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inventory: { materials: any[]; stock: any[]; tools: any[] } = { materials: [], stock: [], tools: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const finance: { financials: any; estimate: any; saved: any[] } = { financials: null, estimate: null, saved: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const subcontract: { subs: any[]; agreements: any[]; wos: any[]; progress: any[]; certs: any[] } = { subs: [], agreements: [], wos: [], progress: [], certs: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const billing: { plan: any; position: any; invoices: any[] } = { plan: null, position: null, invoices: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const commitments: { retention: any; bgs: any; posts: any[] } = { retention: null, bgs: null, posts: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handover: { current: any; decisions: any[] } = { current: null, decisions: [] };
   let lotCounter = 0;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const localPurchases: any[] = [];
@@ -182,8 +197,9 @@ export function installMockApi() {
     }
     const newReq = path.match(/^\/projects\/([^/]+)\/requisitions$/);
     if (newReq && method === 'POST') {
-      const lines = body.lines.map((l: { workOrderItemId: string; qty: number; reason?: string }) => {
+      const lines = body.lines.map((l: { workOrderItemId: string; qty: number; reason?: string; billable?: boolean; materialId?: string }) => {
         const item = boq.find((i) => i.id === l.workOrderItemId)!;
+        if (l.billable === false) return { id: `l${Math.random()}`, workOrderItemId: item.id, materialId: l.materialId, billable: false, serialNo: item.serialNo, description: 'package', unit: 'Rmt', boqQty: 0, previouslyRequested: 0, qtyRequested: l.qty, overBy: 0, overrideReason: null };
         const prev = reqs.filter((r) => r.status === 'open').flatMap((r) => r.lines).filter((x) => x.workOrderItemId === item.id).reduce((s, x) => s + x.qtyRequested, 0);
         const overBy = Math.min(l.qty, Math.max(0, prev + l.qty - item.quantity));
         return { id: `l${Math.random()}`, workOrderItemId: item.id, serialNo: item.serialNo, description: `Item ${item.serialNo}`, unit: 'Nos', boqQty: item.quantity, previouslyRequested: prev, qtyRequested: l.qty, overBy, overrideReason: overBy ? l.reason ?? null : null };
@@ -204,7 +220,7 @@ export function installMockApi() {
       if (!buyer) return fail(403, 'FORBIDDEN', 'You do not have access to this');
       if (method === 'GET') return ok(vendors);
       if (vendors.some((v) => v.name.toLowerCase() === body.name.toLowerCase())) return fail(409, 'DUPLICATE_VENDOR', 'A vendor with this name already exists', [{ field: 'name', message: 'Already added' }]);
-      const v = { id: `v${vendors.length + 1}`, name: body.name, phone: body.phone ?? null, gstin: null, address: '', isActive: true };
+      const v = { id: `v${vendors.length + 1}`, code: `SUP-000${vendors.length + 1}`, name: body.name, phone: body.phone ?? null, email: body.email ?? null, gstin: null, address: '', materials: body.materials ?? [], category: body.category ?? null, bank: null, isActive: true };
       vendors.push(v);
       return ok(v, 201);
     }
@@ -438,6 +454,89 @@ export function installMockApi() {
       }
       return ok(poDto(p));
     }
+    if (path.startsWith('/subcontract/')) {
+      const sc = subcontract;
+      if (path === '/subcontract/subcontractors') return ok(sc.subs);
+      if (path === '/subcontract/agreements') return ok(sc.agreements);
+      if (path === '/subcontract/work-orders') return ok(sc.wos);
+      if (path.startsWith('/subcontract/progress') && method === 'POST') { const p = { id: `pg${sc.progress.length + 1}`, status: 'submitted', verifiedQty: null, approvedQty: null, location: '', remarks: '', certificateId: null, ...body }; sc.progress.push(p); return ok(p, 201); }
+      if (path.startsWith('/subcontract/progress')) return ok(sc.progress.filter((p: { status: string }) => ['submitted', 'verified'].includes(p.status)));
+      if (path === '/subcontract/certificates' && method === 'POST') { const c = { id: `pc${sc.certs.length + 1}`, number: `PC-000${sc.certs.length + 1}`, workOrderId: body.workOrderId, status: 'approved', gross: 6000, retention: 300, advanceRecovery: 0, net: 5700, paid: 0, outstanding: 5700, createdAt: new Date().toISOString() }; sc.certs.push(c); return ok(c, 201); }
+      if (path === '/subcontract/certificates') return ok(sc.certs);
+      if (path === '/subcontract/summary') return ok({ rows: [], pendingReview: 0 });
+      return fail(404, 'NOT_FOUND', 'not found');
+    }
+    const hoM = path.match(/^\/projects\/([^/]+)\/handover(\/decision|\/submit)?$/);
+    if (hoM) {
+      if (hoM[2] === '/decision') { handover.decisions.push(body); handover.current.status = 'accepted'; return ok(handover.current); }
+      return ok(handover.current);
+    }
+    if (path === '/amc') return ok({ rows: [] });
+    if (path.startsWith('/commitments/')) {
+      if (path === '/commitments/retention') return ok(commitments.retention);
+      if (path === '/commitments/bank-guarantees' && method === 'GET') return ok(commitments.bgs);
+      commitments.posts.push({ path, body });
+      return ok({}, 201);
+    }
+    const billM = path.match(/^\/projects\/([^/]+)\/(billing-plan|billing-position|milestone-invoices|measurement-sheets|boq)$/);
+    if (billM && billM[2] !== 'boq') {
+      if (billM[2] === 'billing-plan') return ok(billing.plan);
+      if (billM[2] === 'billing-position') return ok(billing.position);
+      if (billM[2] === 'measurement-sheets') return ok([]);
+      billing.invoices.push(body);
+      return ok({ id: 'inv-new' }, 201);
+    }
+    const finM = path.match(/^\/projects\/([^/]+)\/(financials|estimate|boq-regularisation|boq-revisions)$/);
+    if (finM) {
+      if (finM[2] === 'financials') return ok(finance.financials);
+      if (finM[2] === 'estimate') { if (method === 'PUT') finance.saved.push(body); return ok(finance.estimate); }
+      if (finM[2] === 'boq-regularisation') return ok({ boqRevision: 0, summary: { excessLines: 0, excessValue: 0, additionalLines: 0, additionalValue: 0, unconfirmedAdditional: 0 }, rows: [] });
+      return ok([]);
+    }
+    if (path.startsWith('/inventory/')) {
+      if (path.startsWith('/inventory/materials')) {
+        if (method === 'POST') { const m = { id: `m${inventory.materials.length + 1}`, code: `MAT-0000${inventory.materials.length + 1}`, isActive: true, minStock: 0, category: null, ...body }; inventory.materials.push(m); return ok(m, 201); }
+        return ok(inventory.materials);
+      }
+      if (path === '/inventory/warehouses') return ok([{ id: 'w1', code: 'CS', name: 'Central Store', address: '', isCentral: true, managerIds: [], isActive: true }]);
+      if (path.startsWith('/inventory/stock')) return ok(inventory.stock);
+      if (path === '/inventory/reports/valuation') return ok({ locations: [], total: inventory.stock.reduce((a: number, r: { value: number }) => a + r.value, 0) });
+      if (path === '/inventory/reconciliation') return ok({ ok: true, checked: 1, mismatches: [], negatives: [] });
+      if (path === '/inventory/tools' && method === 'POST') { const t = { id: `t${inventory.tools.length + 1}`, code: `TL-000${inventory.tools.length + 1}`, serialNo: '', category: '', condition: 'good', status: 'available', holder: null, ...body }; inventory.tools.push(t); return ok(t, 201); }
+      if (path.startsWith('/inventory/tools') && method === 'GET') return ok(inventory.tools);
+      const ti = path.match(/^\/inventory\/tools\/([^/]+)\/issue$/);
+      if (ti) { const t = inventory.tools.find((x) => x.id === ti[1]); t.status = 'issued'; t.holder = { ...body.holder, projectId: null, issuedAt: new Date().toISOString(), expectedReturn: null, overdue: false }; return ok(t); }
+      return fail(404, 'NOT_FOUND', 'not found');
+    }
+    if (path.startsWith('/procurement/')) {
+      if (!buyer) return fail(403, 'FORBIDDEN', 'You do not have access to this');
+      if (path === '/procurement/rfqs' && method === 'POST') {
+        const r = reqs.find((x) => x.id === body.requisitionId);
+        if (r.status !== 'open') return fail(422, 'REQUEST_NOT_APPROVED', 'Choose an approved material request');
+        const rfq = {
+          id: `rfq${rfqs.length + 1}`, number: `RFQ-000${rfqs.length + 1}`, status: body.publish ? 'sent' : 'draft', requisitionId: r.id, requisitionNumber: r.number, projectId: r.projectId,
+          deadline: body.deadline, expectedDate: null, paymentTerms: body.paymentTerms ?? '', deliveryLocation: '', terms: body.terms ?? '', remarks: '', evaluationRemarks: '', deadlinePassed: false,
+          suppliers: body.vendorIds.map((id: string) => ({ vendorId: id, vendorName: vendors.find((v) => v.id === id)?.name, email: null, status: 'pending', sentAt: body.publish ? new Date().toISOString() : null, emailStatus: 'no_email', linkActive: Boolean(body.publish), declineReason: null })),
+          lines: (body.lines ?? []).map((l: { requisitionLineId: string; qty: number }) => { const rl = r.lines.find((x: { id: string }) => x.id === l.requisitionLineId); return { requisitionLineId: rl.id, serialNo: rl.serialNo, description: rl.description, specification: '', unit: rl.unit, qty: l.qty }; }),
+          quotations: [], history: [{ action: 'created', detail: '', by: me.name, at: new Date().toISOString() }],
+        };
+        rfqs.push(rfq);
+        const links = body.publish ? body.vendorIds.map((id: string) => ({ vendorId: id, vendorName: vendors.find((v) => v.id === id)?.name, email: null, phone: null, portalPath: `/public/rfq/token-${id}`, expiresAt: body.deadline })) : [];
+        return ok({ ...rfq, links }, 201);
+      }
+      const rfqM = path.match(/^\/procurement\/rfqs\/([^/]+)$/);
+      if (rfqM) return ok(rfqs.find((x) => x.id === rfqM[1]));
+      const poM = path.match(/^\/procurement\/purchase-orders\/([^/]+)$/);
+      if (poM) {
+        const p = poDto(pos.find((x) => x.id === poM[1]));
+        return ok({
+          ...p, revision: 0, pendingRevisionId: null, receiptStatus: 'not-received', overdue: false, rfqNumber: null, requisitionNumbers: ['MR-0001'], paymentTerms: '', terms: '', deliveryAddress: '',
+          freight: 0, otherCharges: 0, taxable: p.total, gst: 0, cgst: 0, sgst: 0, igst: 0, revisions: [], followUps: [], history: [],
+          lines: p.lines.map((l: { qty: number; dispatched: number }) => ({ ...l, discount: 0, taxPercent: 0, cancelledQty: 0, delivery: { ordered: l.qty, sent: l.dispatched, inTransit: l.dispatched, accepted: 0, damaged: 0, short: 0, pending: l.qty } })),
+        });
+      }
+      return fail(404, 'NOT_FOUND', 'not found');
+    }
     if (path.startsWith('/projects')) {
       const manage = perms(me).includes('project.manage');
       const editBoq = manage || perms(me).includes('boq.edit');
@@ -502,5 +601,5 @@ export function installMockApi() {
   };
 
   (globalThis as unknown as { fetch: unknown }).fetch = fetchMock;
-  return { fetchMock, net, users, addUser, byEmail: (e: string) => users.get(e.toLowerCase()), projects, boq, reqs, vendors, pos, localPurchases, materialRows, returns, usage, counts, overview, attendance, payroll, service, sales };
+  return { fetchMock, net, users, addUser, byEmail: (e: string) => users.get(e.toLowerCase()), projects, boq, reqs, vendors, pos, rfqs, inventory, finance, subcontract, billing, commitments, handover, localPurchases, materialRows, returns, usage, counts, overview, attendance, payroll, service, sales };
 }

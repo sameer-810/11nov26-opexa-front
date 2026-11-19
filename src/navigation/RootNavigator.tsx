@@ -22,8 +22,27 @@ import { RequisitionsScreen } from '../modules/requisition/screens/RequisitionsS
 import { NewRequisitionScreen } from '../modules/requisition/screens/NewRequisitionScreen';
 import { RequisitionDetailScreen } from '../modules/requisition/screens/RequisitionDetailScreen';
 import { NotificationsScreen } from '../modules/notification/screens/NotificationsScreen';
+import { ApprovalsScreen } from '../modules/approval/screens/ApprovalsScreen';
 import { VendorsScreen } from '../modules/vendor/screens/VendorsScreen';
 import { PurchaseOrdersScreen } from '../modules/purchaseOrder/screens/PurchaseOrdersScreen';
+import { ProcurementDashboardScreen } from '../modules/procurement/screens/ProcurementDashboardScreen';
+import { PendingQuantitiesScreen } from '../modules/procurement/screens/PendingQuantitiesScreen';
+import { RfqsScreen } from '../modules/procurement/screens/RfqsScreen';
+import { NewRfqScreen } from '../modules/procurement/screens/NewRfqScreen';
+import { RfqDetailScreen } from '../modules/procurement/screens/RfqDetailScreen';
+import { RfqComparisonScreen } from '../modules/procurement/screens/RfqComparisonScreen';
+import { SelectionDetailScreen } from '../modules/procurement/screens/SelectionDetailScreen';
+import { FollowUpsScreen } from '../modules/procurement/screens/FollowUpsScreen';
+import { SupplierInvoicesScreen } from '../modules/procurement/screens/SupplierInvoicesScreen';
+import { SupplierInvoiceDetailScreen } from '../modules/procurement/screens/SupplierInvoiceDetailScreen';
+import { StoreScreen } from '../modules/inventory/screens/StoreScreen';
+import { ProjectFinanceScreen } from '../modules/projectFinance/ProjectFinanceScreen';
+import { SubcontractScreen } from '../modules/subcontract/SubcontractScreen';
+import { ProjectBillingScreen } from '../modules/billing/ProjectBillingScreen';
+import { CommitmentsScreen } from '../modules/commitments/CommitmentsScreen';
+import { ProjectDocumentsScreen } from '../modules/documents/ProjectDocumentsScreen';
+import { HandoverAmcScreen } from '../modules/service/screens/HandoverAmcScreen';
+import { TallyScreen } from '../modules/tally/TallyScreen';
 import { NewPurchaseOrderScreen } from '../modules/purchaseOrder/screens/NewPurchaseOrderScreen';
 import { PurchaseOrderDetailScreen } from '../modules/purchaseOrder/screens/PurchaseOrderDetailScreen';
 import { ProjectLotsScreen } from '../modules/purchaseOrder/screens/ProjectLotsScreen';
@@ -60,11 +79,12 @@ import { RedirectToSignIn } from './RedirectToSignIn';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const screenOptions = { headerShown: false, contentStyle: { backgroundColor: colors.surface } };
+const glassOptions = { headerShown: false, contentStyle: { backgroundColor: 'transparent' } };
 
 // Signed out: landing (web only) -> sign in / sign up. Any /app/... link redirects to sign in.
 // Signed in with a temporary password: only "Set your password".
 // Signed in: the app; screens the user has no permission for are not registered at all.
-export function RootNavigator({ showLanding = Platform.OS === 'web' }: { showLanding?: boolean }) {
+export function RootNavigator({ showLanding = Platform.OS === 'web', transparent = false }: { showLanding?: boolean; transparent?: boolean }) {
   const { isSignedIn, user } = useAuth();
 
   if (isSignedIn && user?.mustChangePassword) {
@@ -80,7 +100,7 @@ export function RootNavigator({ showLanding = Platform.OS === 'web' }: { showLan
     const manageProjects = can(user, PERMS.PROJECT_MANAGE);
     const editBoq = canEditBoq(user);
     return (
-      <Stack.Navigator initialRouteName="Dashboard" screenOptions={screenOptions}>
+      <Stack.Navigator initialRouteName="Dashboard" screenOptions={transparent ? glassOptions : screenOptions}>
         <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Opexa - Dashboard' }} />
         {manageTeam && <Stack.Screen name="Team" component={TeamScreen} options={{ title: 'Opexa - Team' }} />}
         {manageTeam && <Stack.Screen name="AddMember" component={AddMemberScreen} options={{ title: 'Opexa - Add member' }} />}
@@ -96,6 +116,7 @@ export function RootNavigator({ showLanding = Platform.OS === 'web' }: { showLan
         {can(user, PERMS.REQUISITION_CREATE) && <Stack.Screen name="NewRequisition" component={NewRequisitionScreen} options={{ title: 'Opexa - New material request' }} />}
         <Stack.Screen name="RequisitionDetail" component={RequisitionDetailScreen} options={{ title: 'Opexa - Material request' }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Opexa - Notifications' }} />
+        {can(user, PERMS.APPROVAL_ACT) && <Stack.Screen name="Approvals" component={ApprovalsScreen} options={{ title: 'Opexa - My approvals' }} />}
         <Stack.Screen name="ProjectLots" component={ProjectLotsScreen} options={{ title: 'Opexa - Deliveries' }} />
         <Stack.Screen name="LotDetail" component={LotDetailScreen} options={{ title: 'Opexa - Lot' }} />
         <Stack.Screen name="MaterialStatus" component={MaterialStatusScreen} options={{ title: 'Opexa - Material status' }} />
@@ -131,6 +152,24 @@ export function RootNavigator({ showLanding = Platform.OS === 'web' }: { showLan
         {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="PurchaseOrders" component={PurchaseOrdersScreen} options={{ title: 'Opexa - Purchase orders' }} />}
         {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="NewPurchaseOrder" component={NewPurchaseOrderScreen} options={{ title: 'Opexa - New purchase order' }} />}
         {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="PurchaseOrderDetail" component={PurchaseOrderDetailScreen} options={{ title: 'Opexa - Purchase order' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="Procurement" component={ProcurementDashboardScreen} options={{ title: 'Opexa - Procurement' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="PendingQuantities" component={PendingQuantitiesScreen} options={{ title: 'Opexa - Pending quantities' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="Rfqs" component={RfqsScreen} options={{ title: 'Opexa - RFQs' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="NewRfq" component={NewRfqScreen} options={{ title: 'Opexa - Request quotations' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="RfqDetail" component={RfqDetailScreen} options={{ title: 'Opexa - RFQ' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="RfqComparison" component={RfqComparisonScreen} options={{ title: 'Opexa - Comparative statement' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="SelectionDetail" component={SelectionDetailScreen} options={{ title: 'Opexa - Supplier selection' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="FollowUps" component={FollowUpsScreen} options={{ title: 'Opexa - Pending deliveries' }} />}
+        {(can(user, PERMS.PURCHASE_MANAGE) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY)) && <Stack.Screen name="SupplierInvoices" component={SupplierInvoicesScreen} options={{ title: 'Opexa - Supplier invoices' }} />}
+        {[PERMS.PROJECT_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.SUPPLIER_INVOICE_VERIFY, PERMS.RECEIVING_RECORD, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Subcontract" component={SubcontractScreen} options={{ title: 'Opexa - Subcontractors' }} />}
+        {(can(user, PERMS.INVOICE_EDIT) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY)) && <Stack.Screen name="Tally" component={TallyScreen} options={{ title: 'Opexa - Tally export' }} />}
+        <Stack.Screen name="ProjectDocuments" component={ProjectDocumentsScreen} options={{ title: 'Opexa - Project documents' }} />
+        {(can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.SERVICE_MANAGE)) && <Stack.Screen name="HandoverAmc" component={HandoverAmcScreen} options={{ title: 'Opexa - Handover & AMC' }} />}
+        {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Commitments" component={CommitmentsScreen} options={{ title: 'Opexa - Retention & guarantees' }} />}
+        {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.RECEIVING_RECORD].some((p) => can(user, p)) && <Stack.Screen name="ProjectBilling" component={ProjectBillingScreen} options={{ title: 'Opexa - Client billing' }} />}
+        {(can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.REPORTS_VIEW)) && <Stack.Screen name="ProjectFinance" component={ProjectFinanceScreen} options={{ title: 'Opexa - Estimate & profit' }} />}
+        {(can(user, PERMS.STORE_MANAGE) || can(user, PERMS.PURCHASE_MANAGE) || can(user, PERMS.PROJECT_MANAGE)) && <Stack.Screen name="Store" component={StoreScreen} options={{ title: 'Opexa - Store' }} />}
+        {(can(user, PERMS.PURCHASE_MANAGE) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY)) && <Stack.Screen name="SupplierInvoiceDetail" component={SupplierInvoiceDetailScreen} options={{ title: 'Opexa - Supplier invoice' }} />}
       </Stack.Navigator>
     );
   }

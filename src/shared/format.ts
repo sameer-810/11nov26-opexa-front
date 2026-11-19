@@ -5,6 +5,10 @@ export const formatNumber = (n: number, maxDecimals = 3) =>
 export const formatMoney = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n);
 
+// Short Indian style: ₹1.25 Cr, ₹4.5 L, else full rupees.
+export const formatShortMoney = (n: number) =>
+  Math.abs(n) >= 1e7 ? `₹${(n / 1e7).toFixed(2)} Cr` : Math.abs(n) >= 1e5 ? `₹${(n / 1e5).toFixed(1)} L` : formatMoney(n);
+
 export const parseNumber = (s: string): number | null => {
   const t = s.replace(/[,\s₹]/g, '');
   if (t === '') return null;

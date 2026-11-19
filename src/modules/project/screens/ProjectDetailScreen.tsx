@@ -88,6 +88,10 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
         {can(user, PERMS.REQUISITION_CREATE) && project.status !== 'closed' && items.length > 0 ? (
           <Button title="New material request" variant="outline" onPress={() => navigation.navigate('NewRequisition', { projectId: id })} testID="project-new-requisition" />
         ) : null}
+        {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.RECEIVING_RECORD].some((p) => can(user, p)) ? <Button title="Client billing" variant="outline" onPress={() => navigation.navigate('ProjectBilling', { id })} testID="project-billing" /> : null}
+        <Button title="Documents" variant="outline" onPress={() => navigation.navigate('ProjectDocuments', { id })} testID="project-documents" />
+        {can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.SERVICE_MANAGE) ? <Button title="Handover & AMC" variant="outline" onPress={() => navigation.navigate('HandoverAmc', { id })} testID="project-handover" /> : null}
+        {can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.REPORTS_VIEW) ? <Button title="Estimate & profit" variant="outline" onPress={() => navigation.navigate('ProjectFinance', { id })} testID="project-finance" /> : null}
         {manage ? <Button title="Manage project team" variant="outline" onPress={() => navigation.navigate('ProjectTeam', { id })} testID="manage-team" /> : null}
       </View>
 

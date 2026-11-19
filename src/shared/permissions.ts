@@ -16,6 +16,10 @@ export const PERMS = {
   REPORTS_VIEW: 'reports.view',
   SERVICE_MANAGE: 'service.manage',
   SALES_MANAGE: 'sales.manage',
+  APPROVAL_MANAGE: 'approval.manage',
+  APPROVAL_ACT: 'approval.act',
+  SUPPLIER_INVOICE_VERIFY: 'supplierInvoice.verify',
+  STORE_MANAGE: 'store.manage',
 } as const;
 
 export const can = (user: User | null | undefined, permission: string) => Boolean(user?.permissions?.includes(permission));

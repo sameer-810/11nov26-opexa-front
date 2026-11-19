@@ -88,6 +88,10 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
         {inv.roundOff ? <View style={styles.sum}><Text style={styles.muted}>Round off</Text><Text style={styles.muted}>{formatMoney(inv.roundOff)}</Text></View> : null}
         <View style={styles.sum}><Text style={styles.bold}>Total</Text><Text style={styles.bold} testID="inv-total">{formatMoney(inv.total)}</Text></View>
         <Text style={styles.muted}>{inv.totalInWords}</Text>
+        {inv.milestoneLine ? <Text style={styles.text} testID="inv-slab">Payment-term slab: {inv.milestoneLine.description} · billed {formatMoney(inv.milestoneLine.amount)} of {formatMoney(inv.milestoneLine.planAmount)}</Text> : null}
+        {inv.retention ? <Text style={styles.muted}>Retention {inv.retentionPct}%: {formatMoney(inv.retention)} held by the client</Text> : null}
+        {inv.status === 'issued' ? <Text style={styles.muted} testID="inv-outstanding">Received {formatMoney(inv.received ?? 0)} · TDS {formatMoney(inv.tds ?? 0)} · outstanding {formatMoney(inv.outstanding ?? 0)}</Text> : null}
+        {inv.revisions?.length ? <Text style={styles.muted}>{inv.revisions.length} earlier version(s) kept</Text> : null}
       </View>
 
       <View style={styles.box}>

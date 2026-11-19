@@ -11,6 +11,11 @@ export type Overview = {
   month: { purchaseValue: number; purchaseOrders: number; localPurchaseValue: number; localPurchases: number };
   material: { requestsAwaitingPo: number; requestsOverBoq: number; lotsInTransit: number; lotsLate: number; returnsPending: number; stockShortValue30d: number };
   totals: { boqValue: number; suppliedValue: number; installedValue: number };
+  billing: {
+    months: { month: string; billed: number; received: number }[];
+    outstanding: number;
+    recent: { id: string; number: string; date: string; client: string; project: string; total: number; status: 'paid' | 'part' | 'unpaid' }[];
+  };
   projectRows: OverviewProject[];
   attention: { kind: string; title: string; link: string }[];
 };
