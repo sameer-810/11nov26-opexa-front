@@ -60,6 +60,7 @@ export const amcApi = {
   history: (id: string) => api<AmcHistory>(`/amc/${id}/history`),
   bill: (id: string, scheduleId: string) => api<{ invoiceId: string }>(`/amc/${id}/schedule/${scheduleId}/invoice`, { method: 'POST' }),
   expense: (id: string, body: { date: string; category: 'parts'; amount: number }) => api<Amc>(`/amc/${id}/expenses`, { method: 'POST', body }),
+  renew: (id: string, body: { endDate: string; contractValue: number }) => api<Amc>(`/amc/${id}/renew`, { method: 'POST', body }),
 };
 
 export const customerApi = {

@@ -57,6 +57,13 @@ export function AmcPanel({ projectId, handover, service, canBill }: Props) {
                 ))}
               </View>
             ) : null}
+            {service && (live || c.status === 'expired') ? (
+              <View style={s.row}>
+                <View style={s.cell}><TextField label="Renew to (YYYY-MM-DD)" value={f[`ne-${c.id}`] ?? ''} onChangeText={set(`ne-${c.id}`)} testID={`amc-renew-end-${c.number}`} /></View>
+                <View style={s.cell}><TextField label="New contract value ₹" value={f[`nv-${c.id}`] ?? ''} onChangeText={set(`nv-${c.id}`)} keyboardType="decimal-pad" testID={`amc-renew-value-${c.number}`} /></View>
+                <Button title="Renew AMC" variant="outline" onPress={() => run(`n-${c.id}`, () => amcApi.renew(c.id, { endDate: (f[`ne-${c.id}`] ?? '').trim(), contractValue: parseNumber(f[`nv-${c.id}`] ?? '') ?? 0 }))} disabled={!(f[`ne-${c.id}`] ?? '').trim() || !(parseNumber(f[`nv-${c.id}`] ?? '') ?? 0)} loading={busy === `n-${c.id}`} testID={`amc-renew-${c.number}`} />
+              </View>
+            ) : null}
             {service && live ? (
               <View style={s.list}>
                 <View style={s.row}>

@@ -32,7 +32,7 @@ export function installMockApi() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const commitments: { retention: any; bgs: any; posts: any[] } = { retention: null, bgs: null, posts: [] };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handover: { current: any; decisions: any[] } = { current: null, decisions: [] };
+  const handover: { current: any; decisions: any[]; amcs: any[]; renewals: { id: string; body: any }[] } = { current: null, decisions: [], amcs: [], renewals: [] };
   let lotCounter = 0;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const localPurchases: any[] = [];
@@ -376,7 +376,9 @@ export function installMockApi() {
       if (hoM[2] === '/decision') { handover.decisions.push(body); handover.current.status = 'accepted'; return ok(handover.current); }
       return ok(handover.current);
     }
-    if (path === '/amc') return ok({ rows: [] });
+    if (path === '/amc') return ok({ rows: handover.amcs });
+    const amcRenew = path.match(/^\/amc\/([^/]+)\/renew$/);
+    if (amcRenew) { handover.renewals.push({ id: amcRenew[1], body }); return ok({}, 201); }
     if (path.startsWith('/commitments/')) {
       if (path === '/commitments/retention') return ok(commitments.retention);
       if (path === '/commitments/bank-guarantees' && method === 'GET') return ok(commitments.bgs);
