@@ -18,3 +18,17 @@ export const FLAG_LABEL: Record<string, string> = {
   corrected: 'Corrected by manager',
   manual: 'Added by manager',
 };
+
+// 1H: attendance report for a date range (rows per employee) and the daily muster (P / L / A per date).
+export type ReportRow = {
+  user: { id: string; name: string; role: string; department: string | null };
+  daysPresent: number; daysAbsent: number; lateDays: number; totalMinutes: number; hours: number;
+  outsideAttempts: number; checkoutOutside: number; corrections: number; missedCheckouts: number;
+};
+export type MusterCode = 'P' | 'L' | 'A';
+export type AttendanceReport = {
+  from: string; to: string; lateAfter: string; dates: string[]; rows: ReportRow[];
+  muster: { userId: string; name: string; cells: { date: string; code: MusterCode; minutes: number }[] }[];
+  totals: { people: number; daysPresent: number; lateDays: number; hours: number; outsideAttempts: number; corrections: number };
+};
+export type ReportFilters = { from: string; to: string; userId?: string; projectId?: string; departmentId?: string; lateAfter?: string };

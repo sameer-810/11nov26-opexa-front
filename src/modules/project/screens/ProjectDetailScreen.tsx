@@ -74,7 +74,9 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
         <Fact label="Site" value={project.siteAddress || '—'} />
         <Fact label="Client PO" value={project.clientPoNumber || '—'} />
         <Fact label="Site location" value={project.location ? `${project.location.lat.toFixed(5)}, ${project.location.lng.toFixed(5)} (${project.geofenceRadiusM} m)` : 'Not set'} testID="fact-location" />
+        <Fact label="Project manager" value={project.projectManager?.name ?? 'Not set'} testID="fact-pm" />
         <Fact label="Team" value={`${project.memberIds.length} member${project.memberIds.length === 1 ? '' : 's'}`} />
+        <Fact label="Schedule" value={project.milestones?.total ? `${project.milestones.progressPct}% (${project.milestones.done} of ${project.milestones.total} milestones)${project.milestones.delayed ? `, ${project.milestones.delayed} delayed` : ''}` : 'No milestones'} testID="fact-schedule" />
         <Fact label="BOQ value" value={formatMoney(project.boqValue)} testID="fact-boq-value" />
       </View>
       <View style={styles.row}>
@@ -92,6 +94,8 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
         ) : null}
         {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.RECEIVING_RECORD].some((p) => can(user, p)) ? <Button title="Client billing" variant="outline" onPress={() => navigation.navigate('ProjectBilling', { id })} testID="project-billing" /> : null}
         <Button title="Documents" variant="outline" onPress={() => navigation.navigate('ProjectDocuments', { id })} testID="project-documents" />
+        <Button title="Schedule" variant="outline" onPress={() => navigation.navigate('ProjectMilestones', { id })} testID="project-milestones" />
+        <Button title="Activity" variant="outline" onPress={() => navigation.navigate('ProjectActivity', { id })} testID="project-activity" />
         {can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.SERVICE_MANAGE) ? <Button title="Handover & AMC" variant="outline" onPress={() => navigation.navigate('HandoverAmc', { id })} testID="project-handover" /> : null}
         {can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.REPORTS_VIEW) ? <Button title="Estimate & profit" variant="outline" onPress={() => navigation.navigate('ProjectFinance', { id })} testID="project-finance" /> : null}
         {manage ? <Button title="Manage project team" variant="outline" onPress={() => navigation.navigate('ProjectTeam', { id })} testID="manage-team" /> : null}

@@ -1,5 +1,5 @@
 import { api, apiBlob } from '../../../shared/api/apiClient';
-import type { AssignableUser, BoqItem, BoqItemInput, ImportResult, Project, ProjectInput } from '../types';
+import type { AssignableUser, BoqItem, BoqItemInput, ImportResult, MilestoneInput, MilestoneList, Project, ProjectInput } from '../types';
 
 export const projectApi = {
   list: () => api<Project[]>('/projects'),
@@ -16,4 +16,9 @@ export const projectApi = {
   importBoq: (id: string, form: FormData, dryRun: boolean) =>
     api<ImportResult>(`/projects/${id}/boq/import${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', body: form }),
   template: () => apiBlob('/projects/boq-template'),
+
+  milestones: (id: string) => api<MilestoneList>(`/projects/${id}/milestones`),
+  addMilestone: (id: string, body: MilestoneInput) => api<MilestoneList>(`/projects/${id}/milestones`, { method: 'POST', body }),
+  updateMilestone: (id: string, mid: string, body: Partial<MilestoneInput>) => api<MilestoneList>(`/projects/${id}/milestones/${mid}`, { method: 'PATCH', body }),
+  removeMilestone: (id: string, mid: string) => api<MilestoneList>(`/projects/${id}/milestones/${mid}`, { method: 'DELETE' }),
 };

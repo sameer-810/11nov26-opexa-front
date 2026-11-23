@@ -28,6 +28,7 @@ export function routeForLink(link: string | null | undefined, user: User | null)
   if ((m = l.match(/^\/app\/service\/([a-f0-9]{24})$/))) return { name: 'TicketDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/sales\/([a-f0-9]{24})$/)) && can(user, PERMS.SALES_MANAGE)) return { name: 'LeadDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/projects\/([a-f0-9]{24})$/))) return { name: 'ProjectDetail', params: { id: m[1] } };
+  if ((m = l.match(/^\/app\/projects\/([a-f0-9]{24})\/milestones$/))) return { name: 'ProjectMilestones', params: { id: m[1] } };
   if (l === '/app/service') return { name: 'Service', params: undefined };
   if (l === '/app/expenses/to-pay' && canPayExpenses(user)) return { name: 'ExpensesToPay', params: undefined };
   if ((m = l.match(/^\/app\/expenses\/([a-f0-9]{24})$/))) return { name: 'ExpenseForm', params: { id: m[1] } };

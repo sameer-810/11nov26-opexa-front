@@ -12,7 +12,7 @@ import { ChoiceChips } from '../../../shared/ui/ChoiceChips';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { colors, spacing } from '../../../shared/designSystem';
 import { projectApi } from '../api/projectApi';
-import { STATUS_LABEL, type ProjectStatus } from '../types';
+import { STATUS_LABEL, type AssignableUser, type ProjectStatus } from '../types';
 import { validateProjectForm, type ProjectForm, type ProjectFormErrors } from '../project.validation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NewProject' | 'EditProject'>;
@@ -23,11 +23,18 @@ export function ProjectFormScreen({ navigation, route }: Props) {
   const id = (route.params as { id?: string } | undefined)?.id;
   const [form, setForm] = useState<ProjectForm>(empty);
   const [status, setStatus] = useState<ProjectStatus>('active');
+  // 1A.2: the project manager, chosen from people who can manage projects ('' = none).
+  const [managerId, setManagerId] = useState('');
+  const [managers, setManagers] = useState<AssignableUser[]>([]);
   const [errors, setErrors] = useState<ProjectFormErrors>({});
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(Boolean(id));
   const [busy, setBusy] = useState(false);
   const [locating, setLocating] = useState(false);
+
+  useEffect(() => {
+    projectApi.assignableUsers().then((u) => setManagers(u.filter((x) => x.canManage))).catch(() => setManagers([]));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -44,6 +51,7 @@ export function ProjectFormScreen({ navigation, route }: Props) {
           geofenceRadiusM: String(p.geofenceRadiusM),
         });
         setStatus(p.status);
+        setManagerId(p.projectManagerId ?? '');
       })
       .catch((e) => setFormError(e instanceof ApiError ? e.message : 'Could not load'))
       .finally(() => setLoading(false));
@@ -84,6 +92,7 @@ export function ProjectFormScreen({ navigation, route }: Props) {
       clientPoNumber: form.clientPoNumber.trim(),
       location: lat !== null && lng !== null ? { lat, lng } : null,
       geofenceRadiusM: parseNumber(form.geofenceRadiusM) ?? 200,
+      projectManagerId: managerId || null,
     };
     setBusy(true);
     try {
@@ -93,7 +102,7 @@ export function ProjectFormScreen({ navigation, route }: Props) {
       if (e instanceof ApiError) {
         const fe: ProjectFormErrors = {};
         e.details.forEach((d) => {
-          fe[d.field as keyof ProjectForm] = d.message;
+          fe[d.field as keyof ProjectFormErrors] = d.message;
         });
         setErrors(fe);
         // e.g. "Finish open material work before closing: 1 lot(s) not checked in"
@@ -113,6 +122,14 @@ export function ProjectFormScreen({ navigation, route }: Props) {
         <TextField label="Client name" testID="pf-client" value={form.clientName} onChangeText={set('clientName')} error={errors.clientName} />
         <TextField label="Site address" testID="pf-address" value={form.siteAddress} onChangeText={set('siteAddress')} />
         <TextField label="Client PO number" testID="pf-po" value={form.clientPoNumber} onChangeText={set('clientPoNumber')} />
+        <ChoiceChips
+          label="Project manager"
+          testID="pf-pm"
+          value={managerId}
+          onChange={setManagerId}
+          error={errors.projectManagerId}
+          options={[{ value: '', label: 'Not set' }, ...managers.map((m) => ({ value: m.id, label: m.name }))]}
+        />
         {id ? (
           <ChoiceChips
             label="Status"

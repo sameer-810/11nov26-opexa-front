@@ -97,7 +97,7 @@ export function TeamAttendanceScreen({ navigation, route }: Props) {
   );
 
   return (
-    <AppScreen title="Team attendance" subtitle="Who checked in where, with GPS and selfie" onBack={() => navigation.navigate('Dashboard')} testID="team-attendance-screen">
+    <AppScreen title="Team attendance" subtitle="Who checked in where, with GPS and selfie" onBack={() => navigation.navigate('Dashboard')} right={<Button title="Report" variant="outline" onPress={() => navigation.navigate('AttendanceReport')} testID="open-attendance-report" />} testID="team-attendance-screen">
       <ChoiceChips label="View" value={mode} onChange={setMode} testID="att-mode" options={[{ value: 'day', label: 'Day' }, { value: 'month', label: 'Month total' }]} />
       <View style={styles.nav}>
         <Button title="‹" variant="outline" onPress={() => setDate(mode === 'day' ? shift(date, -1) : `${shift(`${date.slice(0, 7)}-01`, -1).slice(0, 7)}-01`)} testID="att-prev" />

@@ -1,7 +1,7 @@
 import { parseNumber } from '../../shared/format';
 
 export type ProjectForm = { name: string; clientName: string; siteAddress: string; clientPoNumber: string; lat: string; lng: string; geofenceRadiusM: string };
-export type ProjectFormErrors = Partial<Record<keyof ProjectForm, string>>;
+export type ProjectFormErrors = Partial<Record<keyof ProjectForm | 'projectManagerId', string>>;
 
 export function validateProjectForm(f: ProjectForm): ProjectFormErrors {
   const e: ProjectFormErrors = {};

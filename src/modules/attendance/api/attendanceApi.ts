@@ -1,5 +1,5 @@
-import { api } from '../../../shared/api/apiClient';
-import type { AttendanceRecord, Mine, Office, TeamDay, TeamMonth, Today } from '../types';
+import { api, apiBlob } from '../../../shared/api/apiClient';
+import type { AttendanceRecord, AttendanceReport, Mine, Office, ReportFilters, TeamDay, TeamMonth, Today } from '../types';
 
 export type PunchInput = { place: 'project' | 'office'; projectId?: string | null; lat: number; lng: number; accuracy: number; mocked: boolean };
 
@@ -18,7 +18,11 @@ function form(p: PunchInput, selfie: Blob | { uri: string; name: string; type: s
   return f;
 }
 
+const reportQs = (f: ReportFilters) => `?${Object.entries(f).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')}`;
+
 export const attendanceApi = {
+  report: (f: ReportFilters) => api<AttendanceReport>(`/attendance/report${reportQs(f)}`),
+  reportExcel: (f: ReportFilters) => apiBlob(`/attendance/report.xlsx${reportQs(f)}`),
   today: () => api<Today>('/attendance/today'),
   checkIn: (p: PunchInput, selfie: Parameters<typeof form>[1]) => api<AttendanceRecord>('/attendance/check-in', { method: 'POST', body: form(p, selfie) }),
   checkOut: (p: PunchInput, selfie: Parameters<typeof form>[1]) => api<AttendanceRecord>('/attendance/check-out', { method: 'POST', body: form(p, selfie) }),

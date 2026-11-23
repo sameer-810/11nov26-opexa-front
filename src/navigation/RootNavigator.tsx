@@ -49,6 +49,11 @@ import { MyExpensesScreen } from '../modules/expense/screens/MyExpensesScreen';
 import { ExpenseFormScreen } from '../modules/expense/screens/ExpenseFormScreen';
 import { ExpensesToPayScreen } from '../modules/expense/screens/ExpensesToPayScreen';
 import { ExpenseReportScreen } from '../modules/expense/screens/ExpenseReportScreen';
+import { ProjectMilestonesScreen } from '../modules/project/screens/ProjectMilestonesScreen';
+import { ProjectActivityScreen } from '../modules/activity/ProjectActivityScreen';
+import { ActivityLogScreen } from '../modules/activity/ActivityLogScreen';
+import { canSeeActivityLog } from '../modules/activity/activityApi';
+import { AttendanceReportScreen } from '../modules/attendance/screens/AttendanceReportScreen';
 import { ExpenseCategoriesScreen } from '../modules/expense/screens/ExpenseCategoriesScreen';
 import { canPayExpenses, canSeeExpenseReport } from '../modules/expense/expenseApi';
 import { NewPurchaseOrderScreen } from '../modules/purchaseOrder/screens/NewPurchaseOrderScreen';
@@ -164,6 +169,10 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {can(user, PERMS.PAYROLL_MANAGE) && <Stack.Screen name="PayrollRun" component={PayrollRunScreen} options={{ title: 'Opexa - Payroll' }} />}
         {can(user, PERMS.PAYROLL_MANAGE) && <Stack.Screen name="PayrollPeople" component={PayrollPeopleScreen} options={{ title: 'Opexa - Pay rates' }} />}
         {can(user, PERMS.ATTENDANCE_VIEW) && <Stack.Screen name="TeamAttendance" component={TeamAttendanceScreen} options={{ title: 'Opexa - Team attendance' }} />}
+        {can(user, PERMS.ATTENDANCE_VIEW) && <Stack.Screen name="AttendanceReport" component={AttendanceReportScreen} options={{ title: 'Opexa - Attendance report' }} />}
+        <Stack.Screen name="ProjectMilestones" component={ProjectMilestonesScreen} options={{ title: 'Opexa - Schedule' }} />
+        <Stack.Screen name="ProjectActivity" component={ProjectActivityScreen} options={{ title: 'Opexa - Project activity' }} />
+        {canSeeActivityLog(user) && <Stack.Screen name="ActivityLog" component={ActivityLogScreen} options={{ title: 'Opexa - Activity log' }} />}
         {can(user, PERMS.PROJECT_MANAGE) && <Stack.Screen name="Overview" component={OverviewScreen} options={{ title: 'Opexa - Business overview' }} />}
         {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="Vendors" component={VendorsScreen} options={{ title: 'Opexa - Vendors' }} />}
         {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="PurchaseOrders" component={PurchaseOrdersScreen} options={{ title: 'Opexa - Purchase orders' }} />}

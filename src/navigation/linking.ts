@@ -49,6 +49,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Outbox: 'app/outbox',
       Attendance: 'app/attendance',
       TeamAttendance: 'app/attendance/team',
+      AttendanceReport: 'app/attendance/report',
       Payroll: 'app/payroll',
       PayrollRun: 'app/payroll/:id',
       PayrollPeople: 'app/payroll-people',
@@ -90,6 +91,9 @@ export const linking: LinkingOptions<RootStackParamList> = {
       ExpenseReport: 'app/expenses/report',
       ExpenseCategories: 'app/expenses/categories',
       ExpenseForm: 'app/expenses/:id',
+      ProjectMilestones: 'app/projects/:id/milestones',
+      ProjectActivity: 'app/projects/:id/activity',
+      ActivityLog: 'app/activity',
     },
   },
 };
