@@ -52,8 +52,8 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!editing) projectApi.list().then((p) => setProjects(p.filter((x) => x.status !== 'closed'))).catch(() => setProjects([]));
-  }, [editing]);
+    projectApi.list().then((p) => setProjects(p.filter((x) => x.status !== 'closed'))).catch(() => setProjects([]));
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -80,6 +80,7 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
   const chosen = Object.entries(boq).map(([id, v]) => ({ id, qty: parseNumber(v.qty), specification: v.specification.trim() })).filter((x): x is { id: string; qty: number; specification: string } => x.qty !== null && x.qty > 0);
   const badQty = Object.values(boq).some((v) => v.qty.trim() !== '' && (parseNumber(v.qty) ?? 0) <= 0);
   const visible = (rows ?? []).filter((r) => !search.trim() || `${r.serialNo} ${r.description}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const current = projects.find((p) => p.id === projectId);
   const count = chosen.length + packageLinesFor(extras).length + extraLinesFor(others).length;
 
   const chooseProject = (id: string) => {
@@ -167,6 +168,8 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
     <AppScreen title={title} subtitle="Project, delivery, items, date, remarks and attachments" onBack={back} testID="new-requisition-screen">
       {!editing && projects.length > 1 ? (
         <ChoiceChips label="1. Project" options={projects.map((p) => ({ value: p.id, label: `${p.code} · ${p.name}` }))} value={projectId} onChange={chooseProject} testID="req-project" />
+      ) : current ? (
+        <Text style={styles.section} testID="req-project-fixed">1. Project: {current.code} · {current.name}</Text>
       ) : null}
       <TextField label="2. Delivery address" value={address} onChangeText={setAddress} placeholder="Site address, gate, floor…" maxLength={300} multiline testID="req-address" />
 

@@ -6,10 +6,13 @@ import { Button } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { ErrorBanner } from '../../shared/ui/Banner';
 import { errText, s } from '../inventory/ui';
-import { activityApi, actionLabel, entityLabel, type ActivityEntry, type ActivityFilters, type AuditValue } from './activityApi';
+import { ROLE_LABEL } from '../team/types';
+import type { Role } from '../auth/types';
+import { activityApi, actionLabel, entityLabel, fieldLabel, type ActivityEntry, type ActivityFilters, type AuditValue } from './activityApi';
 
-const show = (v: AuditValue) => (v === null || v === '' ? '—' : String(v));
-const roleText = (r: string | null) => (r ? ` (${r.replace(/_/g, ' ')})` : '');
+const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+const show = (v: AuditValue) => (v === null || v === '' ? '—' : typeof v === 'string' && ISO_TIME.test(v) ? formatDateTime(v) : String(v));
+const roleText = (r: string | null) => (r ? ` (${ROLE_LABEL[r as Role] ?? r.replace(/_/g, ' ')})` : '');
 
 // Who did what, when, in which role, and what changed (old -> new).
 export function ActivityTimeline({ entries, showProject = false }: { entries: ActivityEntry[]; showProject?: boolean }) {
@@ -27,7 +30,7 @@ export function ActivityTimeline({ entries, showProject = false }: { entries: Ac
           </Text>
           {e.changes.map((c, i) => (
             <Text key={`${c.field}-${i}`} style={styles.change} testID={`activity-${e.id}-change-${i}`}>
-              {c.field}: {show(c.old)} → {show(c.new)}
+              {fieldLabel(c.field)}: {show(c.old)} → {show(c.new)}
             </Text>
           ))}
           {e.remarks ? <Text style={s.muted}>{e.remarks}</Text> : null}

@@ -38,14 +38,17 @@ async function openAs(email: string, password: string, go: RouteTarget) {
 describe('1A.6 / X2 - Activity', () => {
   test('a project member reads the project timeline: who, role, when, old -> new; filters and pages', async () => {
     const { mock } = setup();
-    mock.activity.push(entry(0, { entityType: 'invoice', entityNumber: 'GAT/26-27/0001', action: 'revised', user: { id: 'u4', name: 'Meena', role: 'accounts' }, changes: [{ field: 'lines', old: 'S.No 2: 2 × 51000', new: 'S.No 2: 3 × 51000' }], remarks: 'Client certified 3 units' }));
+    mock.activity.push(entry(0, { entityType: 'invoice', entityNumber: 'GAT/26-27/0001', action: 'revised', user: { id: 'u4', name: 'Meena', role: 'accounts' }, changes: [{ field: 'lines', old: 'S.No 2: 2 × 51000', new: 'S.No 2: 3 × 51000' }, { field: 'projectManagerId', old: null, new: 'Vikram Singh' }, { field: 'startedAt', old: null, new: '2026-11-23T12:25:30.839Z' }], remarks: 'Client certified 3 units' }));
     for (let i = 1; i <= 34; i += 1) mock.activity.push(entry(i));
     await openAs('ravi@airtech.in', 'Ravi12345', { name: 'ProjectActivity', params: { id: 'p1' } });
 
     expect(await screen.findByTestId('activity-count')).toHaveTextContent('Showing 30 of 35');
     expect(screen.getByTestId('activity-a0')).toHaveTextContent(/Invoice GAT\/26-27\/0001/);
-    expect(screen.getByTestId('activity-a0')).toHaveTextContent(/Meena \(accounts\)/);
-    expect(screen.getByTestId('activity-a0-change-0')).toHaveTextContent('lines: S.No 2: 2 × 51000 → S.No 2: 3 × 51000');
+    expect(screen.getByTestId('activity-a0')).toHaveTextContent(/Meena \(HR \/ Accounts\)/);
+    expect(screen.getByTestId('activity-a0-change-0')).toHaveTextContent('Lines: S.No 2: 2 × 51000 → S.No 2: 3 × 51000');
+    // Field names and times are shown as people read them.
+    expect(screen.getByTestId('activity-a0-change-1')).toHaveTextContent('Project manager: — → Vikram Singh');
+    expect(screen.getByTestId('activity-a0-change-2')).toHaveTextContent(/^Started: — → 23 Nov/);
     expect(screen.getByTestId('activity-a0')).toHaveTextContent(/Client certified 3 units/);
     expect(mock.activityQueries[0]).toContain('projectId=p1');
 
@@ -76,7 +79,7 @@ describe('1A.6 / X2 - Activity', () => {
 
     await openAs('audit@airtech.in', 'Audit12345', { name: 'ActivityLog', params: undefined });
     expect(await screen.findByTestId('activity-log-screen')).toBeTruthy();
-    expect(await screen.findByTestId('activity-a2-change-0')).toHaveTextContent('role: engineer → supervisor');
+    expect(await screen.findByTestId('activity-a2-change-0')).toHaveTextContent('Role: engineer → supervisor');
     expect(screen.getByTestId('activity-a1')).toHaveTextContent(/P-001/);
     expect(mock.activityQueries[0]).toMatch(/from=\d{4}-\d{2}-01/);
 

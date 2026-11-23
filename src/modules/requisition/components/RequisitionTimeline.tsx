@@ -4,6 +4,8 @@ import { formatDateTime } from '../../../shared/format';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { requisitionApi } from '../api/requisitionApi';
 import type { TimelineEvent } from '../types';
+import { ROLE_LABEL } from '../../team/types';
+import type { Role } from '../../auth/types';
 
 const LABEL: Record<TimelineEvent['type'], string> = {
   created: 'Request raised',
@@ -21,7 +23,7 @@ const LABEL: Record<TimelineEvent['type'], string> = {
   challan_cancelled: 'Delivery challan cancelled',
 };
 const TONE: Partial<Record<TimelineEvent['type'], string>> = { approved: colors.success, received: colors.success, challan: colors.success, challan_cancelled: colors.danger, rejected: colors.danger, cancelled: colors.danger, sent_back: '#B45309' };
-const role = (r: string | null | undefined) => (r ? r.replace(/_/g, ' ') : '');
+const role = (r: string | null | undefined) => (r ? ROLE_LABEL[r as Role] ?? r.replace(/_/g, ' ') : '');
 
 // Who did what and when on a material request, oldest first. `version` reloads it after a change.
 export function RequisitionTimeline({ requisitionId, version }: { requisitionId: string; version: string }) {

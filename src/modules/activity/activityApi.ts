@@ -37,6 +37,12 @@ export const actionLabel = (a: string) => {
   return t.charAt(0).toUpperCase() + t.slice(1);
 };
 
+// Stored field names (projectManagerId, plannedDate…) as people read them: "Project manager", "Planned date".
+export const fieldLabel = (f: string) => {
+  const t = f.replace(/Id$/, '').replace(/At$/, '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};
+
 // The company-wide log is for people with audit.view; project members read their project's activity.
 export const canSeeActivityLog = (u: User | null | undefined) => can(u, PERMS.AUDIT_VIEW);
 

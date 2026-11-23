@@ -25,7 +25,7 @@ export type ReportRow = {
   daysPresent: number; daysAbsent: number; lateDays: number; totalMinutes: number; hours: number;
   outsideAttempts: number; checkoutOutside: number; corrections: number; missedCheckouts: number;
 };
-export type MusterCode = 'P' | 'L' | 'A';
+export type MusterCode = 'P' | 'L' | 'A' | 'W';
 export type AttendanceReport = {
   from: string; to: string; lateAfter: string; dates: string[]; rows: ReportRow[];
   muster: { userId: string; name: string; cells: { date: string; code: MusterCode; minutes: number }[] }[];

@@ -20,7 +20,7 @@ import { hm, type AttendanceReport, type MusterCode, type ReportFilters } from '
 type Props = NativeStackScreenProps<RootStackParamList, 'AttendanceReport'>;
 type Option = { value: string; label: string };
 const ALL = '';
-const CODE_COLOR: Record<MusterCode, string> = { P: '#166534', L: '#B45309', A: colors.danger };
+const CODE_COLOR: Record<MusterCode, string> = { P: '#166534', L: '#B45309', A: colors.danger, W: colors.textMuted };
 
 // 1H: attendance by date range, employee, site and department, with the daily muster and an Excel download.
 export function AttendanceReportScreen({ navigation }: Props) {
@@ -79,7 +79,7 @@ export function AttendanceReportScreen({ navigation }: Props) {
               </View>
             ))}
           </View>
-          <Text style={s.title}>Daily muster (P present, L late, A absent)</Text>
+          <Text style={s.title}>Daily muster (P present, L late, A absent, W weekly off)</Text>
           <ScrollView horizontal testID="ar-muster">
             <View>
               <View style={styles.line}>

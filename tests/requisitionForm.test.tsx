@@ -33,6 +33,8 @@ describe('1B - Material request form', () => {
     await openProject();
     await fireEvent.press(await screen.findByTestId('project-new-requisition'));
     await waitFor(() => expect(screen.getByTestId('req-address').props.value).toBe('Worli Sea Face, Mumbai'));
+    // One project only: the project is still shown first (1B.1 field order).
+    expect(await screen.findByTestId('req-project-fixed')).toHaveTextContent(/1\. Project: P-001 · Worli/);
 
     await fireEvent.changeText(screen.getByTestId('req-qty-1'), '2');
     await fireEvent.changeText(screen.getByTestId('req-spec-1'), 'Inverter, 5 star');
@@ -80,7 +82,7 @@ describe('1B - Material request form', () => {
     await openProject();
     await fireEvent.press(await screen.findByTestId('project-requisitions'));
     await fireEvent.press(await screen.findByTestId('req-MR-0001'));
-    expect(await screen.findByTestId('req-timeline')).toHaveTextContent(/Sent back for changes.*level 1 \(project manager\).*Reduce to 4 for now/);
+    expect(await screen.findByTestId('req-timeline')).toHaveTextContent(/Sent back for changes.*level 1 \(Project Manager\).*Reduce to 4 for now/);
 
     await fireEvent.press(screen.getByTestId('req-resubmit'));
     await waitFor(() => expect(screen.getByTestId('req-qty-1').props.value).toBe('5'));
