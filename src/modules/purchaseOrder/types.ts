@@ -1,4 +1,4 @@
-export type PoLine = { id: string; requisitionId: string; requisitionLineId: string; serialNo: string; description: string; unit: string; qty: number; rate: number; amount: number; dispatched: number; pending: number };
+export type PoLine = { id: string; requisitionId: string; requisitionLineId: string; serialNo: string; description: string; unit: string; qty: number; rate: number; amount: number; dispatched: number; pending: number; delivery?: { sent: number; accepted: number } };
 export type Lot = { id: string; lotNo: number; challanNo: string; dispatchDate: string; vehicleNo: string | null; lines: { poLineId: string; serialNo: string; description: string; unit: string; qty: number }[] };
 
 export type PurchaseOrder = {

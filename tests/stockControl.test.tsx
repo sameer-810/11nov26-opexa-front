@@ -121,6 +121,7 @@ describe('2G - Tools', () => {
     await fireEvent.press(screen.getByTestId('tool-repair-TL-0001'));
     await fireEvent.changeText(screen.getByTestId('tool-vendor'), 'Hilti service centre');
     await fireEvent.press(screen.getByTestId('tool-repair-save'));
+    expect(await screen.findByTestId('tool-status-TL-0001')).toHaveTextContent('In repair');
     await fireEvent.press(await screen.findByTestId('tool-repaired-TL-0001'));
     await fireEvent.changeText(screen.getByTestId('tool-amount'), '3500');
     await fireEvent.press(screen.getByTestId('tool-project-p1'));

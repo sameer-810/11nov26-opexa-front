@@ -46,7 +46,8 @@ export const AGEING_LABEL: Record<keyof Ageing, string> = { notDue: 'Not due', d
 
 // Same rules as the API: accounts (supplier invoice verifiers) write; buyers read.
 export const canPaySuppliers = (u: User | null | undefined) => can(u, PERMS.SUPPLIER_INVOICE_VERIFY);
-export const canSeePayables = (u: User | null | undefined) => canPaySuppliers(u) || can(u, PERMS.PURCHASE_MANAGE);
+// Directors (reports + every project) read payables, view-only (Q28).
+export const canSeePayables = (u: User | null | undefined) => canPaySuppliers(u) || can(u, PERMS.PURCHASE_MANAGE) || (can(u, PERMS.REPORTS_VIEW) && can(u, PERMS.PROJECT_VIEW));
 
 const qs = (q: Record<string, string | undefined>) => {
   const p = Object.entries(q).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');

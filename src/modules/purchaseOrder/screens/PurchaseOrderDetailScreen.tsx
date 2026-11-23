@@ -109,7 +109,7 @@ export function PurchaseOrderDetailScreen({ navigation, route }: Props) {
       <ScrollView horizontal>
         <View style={styles.table}>
           <View style={[styles.tr, styles.head]}>
-            {['S.No', 'Item', 'Unit', 'Ordered', 'Rate', 'Dispatched', 'Pending'].map((h, i) => (
+            {['S.No', 'Item', 'Unit', 'Ordered', 'Rate', 'Sent', 'Received', 'Pending'].map((h, i) => (
               <Text key={h} style={[styles.th, { width: W[i] }, i > 2 && styles.right]}>{h}</Text>
             ))}
           </View>
@@ -120,8 +120,10 @@ export function PurchaseOrderDetailScreen({ navigation, route }: Props) {
               <Text style={[styles.td, { width: W[2] }]}>{l.unit}</Text>
               <Text style={[styles.td, styles.right, { width: W[3] }]}>{formatNumber(l.qty)}</Text>
               <Text style={[styles.td, styles.right, { width: W[4] }]}>{formatMoney(l.rate)}</Text>
-              <Text style={[styles.td, styles.right, { width: W[5] }]}>{formatNumber(l.dispatched)}</Text>
-              <Text style={[styles.td, styles.right, { width: W[6] }, l.pending > 0 && styles.pending]}>{formatNumber(l.pending)}</Text>
+              {/* Sent by the supplier vs received at site: they differ after a short or an approved over-receipt. */}
+              <Text style={[styles.td, styles.right, { width: W[5] }]} testID={`po-sent-${l.serialNo}`}>{formatNumber(l.delivery?.sent ?? l.dispatched)}</Text>
+              <Text style={[styles.td, styles.right, { width: W[6] }]} testID={`po-received-${l.serialNo}`}>{l.delivery ? formatNumber(l.delivery.accepted) : '-'}</Text>
+              <Text style={[styles.td, styles.right, { width: W[7] }, l.pending > 0 && styles.pending]}>{formatNumber(l.pending)}</Text>
             </View>
           ))}
         </View>
@@ -187,7 +189,7 @@ export function PurchaseOrderDetailScreen({ navigation, route }: Props) {
   );
 }
 
-const W = [50, 240, 60, 80, 100, 90, 80];
+const W = [50, 240, 60, 80, 100, 80, 80, 80];
 
 const styles = StyleSheet.create({
   ok: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0', borderWidth: 1, borderRadius: radius.md, padding: spacing.md },

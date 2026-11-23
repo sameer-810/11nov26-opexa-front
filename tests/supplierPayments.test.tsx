@@ -80,3 +80,11 @@ describe('4X - Supplier payables and payments', () => {
     expect(screen.getByTestId('spay-advance-chip')).toHaveTextContent(/Advance ₹1,100(\.00)? not adjusted/);
   });
 });
+
+test('Q28 - a director reads supplier payables (the dashboard drill) but does not pay', () => {
+  const { canSeePayables, canPaySuppliers } = jest.requireActual('../src/modules/supplierPayment/supplierPaymentApi');
+  const director = { id: 'd1', name: 'Anil', email: 'anil@x.in', role: 'director', permissions: ['reports.view', 'project.view', 'approval.act'] };
+  expect(canSeePayables(director)).toBe(true);
+  expect(canPaySuppliers(director)).toBe(false);
+  expect(canSeePayables({ ...director, role: 'hod', permissions: ['reports.view', 'approval.act'] })).toBe(false);
+});

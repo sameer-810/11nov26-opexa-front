@@ -43,8 +43,7 @@ export const invoiceApi = {
   attach: (id: string, file: Blob | { uri: string; name: string; type: string }, name: string) => {
     const f = new FormData();
     if (typeof Blob !== 'undefined' && file instanceof Blob) f.append('file', file, name);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    else f.append('file', file as any);
+    else f.append('file', file as unknown as Blob);
     return api<Invoice>(`/invoices/${id}/attachments`, { method: 'POST', body: f });
   },
   removeAttachment: (id: string, attId: string) => api<Invoice>(`/invoices/${id}/attachments/${attId}`, { method: 'DELETE' }),

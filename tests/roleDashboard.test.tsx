@@ -63,3 +63,10 @@ test('5E - no dashboard for this user: nothing is shown', async () => {
   await render(<RoleDashboard onDrill={jest.fn()} />);
   await waitFor(() => expect(screen.queryByTestId('role-dashboard')).toBeNull());
 });
+
+test('short money puts the minus before the rupee sign', () => {
+  const { formatShortMoney } = jest.requireActual('../src/shared/format');
+  expect(formatShortMoney(-220000)).toBe('-₹2.2 L');
+  expect(formatShortMoney(-31000000)).toBe('-₹3.10 Cr');
+  expect(formatShortMoney(450000)).toBe('₹4.5 L');
+});

@@ -6,8 +6,12 @@ export const formatMoney = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n);
 
 // Short Indian style: ₹1.25 Cr, ₹4.5 L, else full rupees.
-export const formatShortMoney = (n: number) =>
-  Math.abs(n) >= 1e7 ? `₹${(n / 1e7).toFixed(2)} Cr` : Math.abs(n) >= 1e5 ? `₹${(n / 1e5).toFixed(1)} L` : formatMoney(n);
+// The minus goes before the rupee sign, as formatMoney writes it: -₹2.2 L.
+export const formatShortMoney = (n: number): string => {
+  const a = Math.abs(n);
+  if (a < 1e5) return formatMoney(n);
+  return `${n < 0 ? '-' : ''}₹${a >= 1e7 ? `${(a / 1e7).toFixed(2)} Cr` : `${(a / 1e5).toFixed(1)} L`}`;
+};
 
 export const parseNumber = (s: string): number | null => {
   const t = s.replace(/[,\s₹]/g, '');

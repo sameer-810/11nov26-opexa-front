@@ -47,6 +47,8 @@ describe('Phase 5 - Purchase orders and dispatch lots (buyer)', () => {
     expect(screen.getByTestId('po-error')).toHaveTextContent(/more than what is left/);
     expect(api.pos).toHaveLength(0);
 
+    expect(screen.getByLabelText(/^Quantity to order for 1\. /)).toBe(screen.getByTestId('po-qty-1'));
+    expect(screen.getByLabelText(/^Rate in rupees for 1\. /)).toBe(screen.getByTestId('po-rate-1'));
     await fireEvent.changeText(screen.getByTestId('po-qty-1'), '6');
     await fireEvent.press(screen.getByTestId('po-submit'));
     await screen.findByTestId('po-detail-screen');
@@ -61,6 +63,7 @@ describe('Phase 5 - Purchase orders and dispatch lots (buyer)', () => {
     expect(await screen.findByTestId('lot-1')).toHaveTextContent(/CH-77/);
     expect(screen.getByTestId('po-status')).toHaveTextContent(/Partly dispatched/);
     expect(api.pos[0].lines[0].dispatched).toBe(4);
+    expect(screen.getByTestId('po-sent-1')).toHaveTextContent('4');
   });
 
   test('cannot dispatch more than is pending on the PO', async () => {

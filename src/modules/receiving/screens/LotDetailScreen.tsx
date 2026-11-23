@@ -113,15 +113,15 @@ export function LotDetailScreen({ navigation, route }: Props) {
             <View style={styles.inputs}>
               <View style={styles.field}>
                 <Text style={styles.small}>Good ({x.unit})</Text>
-                <TextInput value={rows[x.id]?.good ?? ''} onChangeText={set(x.id, 'good')} keyboardType="decimal-pad" inputMode="decimal" style={styles.input} testID={`rcv-good-${x.serialNo}`} />
+                <TextInput value={rows[x.id]?.good ?? ''} onChangeText={set(x.id, 'good')} keyboardType="decimal-pad" inputMode="decimal" style={styles.input} accessibilityLabel={`Good quantity received for ${x.serialNo}. ${x.description}, in ${x.unit}`} testID={`rcv-good-${x.serialNo}`} />
               </View>
               <View style={styles.field}>
                 <Text style={styles.small}>Damaged</Text>
-                <TextInput value={rows[x.id]?.damaged ?? ''} onChangeText={set(x.id, 'damaged')} keyboardType="decimal-pad" inputMode="decimal" style={styles.input} placeholder="0" testID={`rcv-damaged-${x.serialNo}`} />
+                <TextInput value={rows[x.id]?.damaged ?? ''} onChangeText={set(x.id, 'damaged')} keyboardType="decimal-pad" inputMode="decimal" style={styles.input} placeholder="0" accessibilityLabel={`Damaged quantity for ${x.serialNo}. ${x.description}`} testID={`rcv-damaged-${x.serialNo}`} />
               </View>
               <View style={[styles.field, styles.grow]}>
                 <Text style={styles.small}>Remark</Text>
-                <TextInput value={rows[x.id]?.remark ?? ''} onChangeText={set(x.id, 'remark')} style={styles.input} placeholder="e.g. box crushed" testID={`rcv-remark-${x.serialNo}`} />
+                <TextInput value={rows[x.id]?.remark ?? ''} onChangeText={set(x.id, 'remark')} style={styles.input} placeholder="e.g. box crushed" accessibilityLabel={`Remark for ${x.serialNo}. ${x.description}`} testID={`rcv-remark-${x.serialNo}`} />
               </View>
             </View>
           ) : null}

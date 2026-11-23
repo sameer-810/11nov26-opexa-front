@@ -24,7 +24,9 @@ const ACTIONS: Record<Tool['status'], { mode: ToolMode; title: string }[]> = {
   missing: [],
   scrapped: [],
 };
-const label = (v: string) => v.replace(/_/g, ' ');
+// Status and condition chips as people say them.
+const LABELS: Record<string, string> = { available: 'Available', issued: 'Issued', in_repair: 'In repair', missing: 'Missing', scrapped: 'Scrapped', good: 'Good', fair: 'Fair', needs_repair: 'Needs repair', damaged: 'Damaged' };
+const label = (v: string) => LABELS[v] ?? v.replace(/_/g, ' ');
 
 // Tools and equipment register: issue with condition, return with its date, repair and service records, history.
 export function ToolsTab() {
@@ -55,11 +57,11 @@ export function ToolsTab() {
         <View key={t.id} style={s.card} testID={`tool-${t.code}`}>
           <View style={s.row}>
             <Text style={s.title}>{t.code} · {t.name}{t.serialNo ? ` · S/N ${t.serialNo}` : ''}</Text>
-            <StatusChip label={label(t.status)} tone={STATUS_TONE[t.status]} />
+            <StatusChip label={label(t.status)} tone={STATUS_TONE[t.status]} testID={`tool-status-${t.code}`} />
             {t.condition !== 'good' ? <StatusChip label={label(t.condition)} tone="warning" /> : null}
             {t.serviceDue ? <StatusChip label={`Service due ${formatDate(t.nextServiceDue ?? null)}`} tone="warning" testID={`tool-due-${t.code}`} /> : null}
           </View>
-          {t.holder ? <Text style={t.holder.overdue ? s.danger : s.muted}>With {t.holder.name} ({t.holder.kind}) since {formatDate(t.holder.issuedAt)}{t.holder.conditionAtIssue ? `, issued ${label(t.holder.conditionAtIssue)}` : ''}{t.holder.expectedReturn ? ` · due back ${formatDate(t.holder.expectedReturn)}` : ''}</Text> : null}
+          {t.holder ? <Text style={t.holder.overdue ? s.danger : s.muted}>With {t.holder.name} ({t.holder.kind}) since {formatDate(t.holder.issuedAt)}{t.holder.conditionAtIssue ? `, issued ${label(t.holder.conditionAtIssue).toLowerCase()}` : ''}{t.holder.expectedReturn ? ` · due back ${formatDate(t.holder.expectedReturn)}` : ''}</Text> : null}
           <View style={s.row}>
             {ACTIONS[t.status].filter((a) => !(a.mode === 'issue' && t.condition === 'damaged')).map((a) => (
               <Button key={a.mode} title={a.title} variant={['issue', 'return', 'repaired'].includes(a.mode) ? 'outline' : 'ghost'} onPress={() => toggle(t.id, a.mode)} testID={`tool-${a.mode}-${t.code}`} />

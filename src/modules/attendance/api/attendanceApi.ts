@@ -13,8 +13,7 @@ function form(p: PunchInput, selfie: Blob | { uri: string; name: string; type: s
   f.append('mocked', String(p.mocked));
   // Web sends a Blob with a file name; phones send React Native's { uri, name, type } file object.
   if (selfie && typeof Blob !== 'undefined' && selfie instanceof Blob) f.append('selfie', selfie, 'selfie.jpg');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  else if (selfie) f.append('selfie', selfie as any);
+  else if (selfie) f.append('selfie', selfie as unknown as Blob);
   return f;
 }
 

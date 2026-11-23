@@ -111,11 +111,11 @@ export function NewPurchaseOrderScreen({ navigation, route }: Props) {
           <View style={styles.inputs}>
             <View>
               <Text style={styles.small}>Qty ({l.unit})</Text>
-              <TextInput value={qtys[l.id] ?? ''} onChangeText={(v) => setQtys((q) => ({ ...q, [l.id]: v }))} keyboardType="decimal-pad" inputMode="decimal" style={styles.input} testID={`po-qty-${l.serialNo}`} />
+              <TextInput value={qtys[l.id] ?? ''} onChangeText={(v) => setQtys((q) => ({ ...q, [l.id]: v }))} keyboardType="decimal-pad" inputMode="decimal" style={styles.input} accessibilityLabel={`Quantity to order for ${l.serialNo}. ${l.description}, in ${l.unit}`} testID={`po-qty-${l.serialNo}`} />
             </View>
             <View>
               <Text style={styles.small}>Rate ₹</Text>
-              <TextInput value={rates[l.id] ?? ''} onChangeText={(v) => setRates((r) => ({ ...r, [l.id]: v }))} placeholder="BOQ" keyboardType="decimal-pad" inputMode="decimal" style={styles.input} testID={`po-rate-${l.serialNo}`} />
+              <TextInput value={rates[l.id] ?? ''} onChangeText={(v) => setRates((r) => ({ ...r, [l.id]: v }))} placeholder="BOQ" keyboardType="decimal-pad" inputMode="decimal" style={styles.input} accessibilityLabel={`Rate in rupees for ${l.serialNo}. ${l.description}`} testID={`po-rate-${l.serialNo}`} />
             </View>
           </View>
         </View>

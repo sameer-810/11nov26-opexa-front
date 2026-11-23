@@ -35,6 +35,8 @@ describe('Phase 6 - Site receiving (supervisor)', () => {
     await fireEvent.press(screen.getByTestId('project-lot-1'));
     await screen.findByTestId('lot-detail-screen');
     expect(await screen.findByTestId('rcv-good-1')).toHaveProp('value', '6'); // starts with "all arrived"
+    expect(screen.getByLabelText(/^Good quantity received for 1\. /)).toBe(screen.getByTestId('rcv-good-1'));
+    expect(screen.getByLabelText(/^Damaged quantity for 1\. /)).toBe(screen.getByTestId('rcv-damaged-1'));
 
     // Too many is caught before sending.
     await fireEvent.changeText(screen.getByTestId('rcv-good-1'), '6');
