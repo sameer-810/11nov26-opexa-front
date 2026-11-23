@@ -16,6 +16,7 @@ import { ErrorBanner } from '../../../shared/ui/Banner';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { invoiceApi, openPrint, STATUS_LABEL, STATUS_TONE, lineGroups, type Invoice } from '../invoiceApi';
+import { GstSummary, SlabAmountEditor, SlabNotes } from '../components/InvoiceBilling';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'InvoiceDetail'>;
 
@@ -67,7 +68,10 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
       <View style={styles.row}>
         <StatusChip label={STATUS_LABEL[inv.status]} tone={STATUS_TONE[inv.status]} testID="inv-status" />
         <Text style={styles.muted}>Date {formatDate(inv.invoiceDate)} · {inv.basis === 'lots' ? `lots billed: ${inv.lotIds.length}` : inv.basis === 'installed' ? 'installed work' : 'entered by hand'}</Text>
+        {inv.invoiceType ? <StatusChip label={inv.invoiceType === 'advance' ? 'Advance invoice' : 'Progress invoice'} tone="neutral" testID="inv-type" /> : null}
+        {inv.raLabel ? <StatusChip label={inv.raLabel} tone="neutral" testID="inv-ra" /> : null}
       </View>
+      <SlabNotes inv={inv} />
       {inv.status === 'cancelled' ? <Text style={styles.bad}>Cancelled: {inv.cancelReason}</Text> : null}
 
       <View style={styles.box}>
@@ -77,7 +81,7 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
             {g.lines.map((l) => (
               <View key={l.id} style={styles.line} testID={`inv-detail-line-${l.serialNo}`}>
                 <Text style={styles.text}>{l.serialNo}. {l.description}</Text>
-                <Text style={styles.muted}>{formatNumber(l.qty)} {l.unit} × {formatMoney(l.rate)} = {formatMoney(l.amount)}</Text>
+                <Text style={styles.muted}>{formatNumber(l.qty)} {l.unit} × {formatMoney(l.rate)} = {formatMoney(l.amount)}{inv.gstMode === 'line' ? ` · ${l.hsnSac ? `HSN/SAC ${l.hsnSac} · ` : ''}GST ${l.gstRate}%` : ''}</Text>
                 {l.overBoq ? <Text style={styles.warn}>Beyond BOQ ({formatNumber(l.boqQty)}, billed before {formatNumber(l.billedBefore)}) - billed {l.overBoqChoice === 'boq' ? 'as per BOQ' : 'actual'}</Text> : null}
               </View>
             ))}
@@ -85,7 +89,7 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
           </View>
         ))}
         <View style={styles.sum}><Text style={styles.text}>Taxable</Text><Text style={styles.text}>{formatMoney(inv.taxable)}</Text></View>
-        {inv.interState ? <View style={styles.sum}><Text style={styles.text}>IGST {inv.gstRate}%</Text><Text style={styles.text}>{formatMoney(inv.igst)}</Text></View> : (
+        {inv.gstMode === 'line' ? <GstSummary inv={inv} /> : inv.interState ? <View style={styles.sum}><Text style={styles.text}>IGST {inv.gstRate}%</Text><Text style={styles.text}>{formatMoney(inv.igst)}</Text></View> : (
           <>
             <View style={styles.sum}><Text style={styles.text}>CGST {inv.gstRate / 2}%</Text><Text style={styles.text}>{formatMoney(inv.cgst)}</Text></View>
             <View style={styles.sum}><Text style={styles.text}>SGST {inv.gstRate / 2}%</Text><Text style={styles.text}>{formatMoney(inv.sgst)}</Text></View>
@@ -98,6 +102,7 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
         {inv.retention ? <Text style={styles.muted}>Retention {inv.retentionPct}%: {formatMoney(inv.retention)} held by the client</Text> : null}
         {inv.status === 'issued' ? <Text style={styles.muted} testID="inv-outstanding">Received {formatMoney(inv.received ?? 0)} · TDS {formatMoney(inv.tds ?? 0)} · outstanding {formatMoney(inv.outstanding ?? 0)}</Text> : null}
         {inv.revisions?.length ? <Text style={styles.muted}>{inv.revisions.length} earlier version(s) kept</Text> : null}
+        {inv.kind === 'milestone' && md && inv.status !== 'cancelled' ? <SlabAmountEditor inv={inv} busy={busy === 'slab'} onSave={(milestoneAmount, editReason) => act('slab', () => invoiceApi.update(id, { milestoneAmount, editReason: editReason || undefined }))} /> : null}
       </View>
 
       <View style={styles.box}>
@@ -114,8 +119,9 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
       {error ? <ErrorBanner message={error} testID="inv-detail-error" /> : null}
       <View style={styles.row}>
         <Button title="Print bundle (invoice + lot reports + photos)" onPress={() => act('print', async () => openPrint((await invoiceApi.printLink(id)).url))} loading={busy === 'print'} testID="inv-print" />
+        <Button title="Print RA bill (cover + abstract + back sheets)" variant="outline" onPress={() => act('ra', async () => { const l = await invoiceApi.printLink(id); await openPrint(l.raUrl ?? l.url); })} loading={busy === 'ra'} testID="inv-print-ra" />
         {inv.status === 'draft' ? <Button title="Issue invoice" onPress={() => act('issue', () => invoiceApi.issue(id))} loading={busy === 'issue'} testID="inv-issue" /> : null}
-        {canChange ? <Button title={inv.status === 'issued' ? 'Change (MD/accountant)' : 'Edit'} variant="outline" onPress={() => navigation.navigate('InvoiceForm', { projectId: inv.project.id, invoiceId: inv.id })} testID="inv-edit" /> : null}
+        {canChange && inv.kind !== 'milestone' ? <Button title={inv.status === 'issued' ? 'Change (MD/accountant)' : 'Edit'} variant="outline" onPress={() => navigation.navigate('InvoiceForm', { projectId: inv.project.id, invoiceId: inv.id })} testID="inv-edit" /> : null}
         {md && inv.status !== 'cancelled' ? <Button title="Cancel invoice" variant="ghost" onPress={() => setShowCancel(true)} testID="inv-cancel" /> : null}
       </View>
       {showCancel ? (

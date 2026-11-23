@@ -46,6 +46,7 @@ function Details({ d }: { d: ApprovalDetail['details'] }) {
     </View>
   );
   if (d.kind === 'supplier_payment') return <SupplierPaymentApprovalDetails d={d} />;
+  if (d.kind === 'early_billing') return <View style={styles.gap} testID="approval-early-billing"><Text style={styles.text}>{d.projectCode} {d.projectName} · {d.label}: {d.slab}</Text><Text style={styles.text}>Billing {formatMoney(d.amount ?? 0)} of the {formatMoney(d.planAmount ?? 0)} slab before it is marked complete. Reason: {d.reason}</Text></View>;
   if (d.kind === 'po_revision') return <View style={styles.gap}><Text style={styles.text}>Reason: {d.reason}</Text>{d.changes?.map((c, i) => <Text key={i} style={styles.text}>{c.field}: {String(c.from ?? '—').slice(0, 10)} → {String(c.to ?? '—').slice(0, 10)}</Text>)}</View>;
   return (
     <View style={styles.gap}>

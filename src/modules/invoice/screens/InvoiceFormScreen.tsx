@@ -15,7 +15,8 @@ import { colors, radius, spacing } from '../../../shared/designSystem';
 import { invoiceApi, type Basis, type Invoice, type Preview } from '../invoiceApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'InvoiceForm'>;
-type Row = { qty: string; rate: string; choice?: 'boq' | 'actual' };
+// Q27: HSN/SAC and GST % per line (GST defaults to the invoice rate below).
+type Row = { qty: string; rate: string; hsn?: string; gst?: string; choice?: 'boq' | 'actual' };
 type Question = { field: string; serialNo: string; boqQty: number; billedBefore: number; qty: number; boqLimitQty: number; message: string };
 const today = () => todayLocal();
 
@@ -51,7 +52,7 @@ export function InvoiceFormScreen({ navigation, route }: Props) {
       setInter(inv.interState ? 'other' : 'same');
       setClient({ gstin: inv.client.gstin, state: inv.client.state, address: inv.client.address });
       setNotes(inv.notes);
-      setRows(Object.fromEntries(inv.lines.map((l) => [l.workOrderItemId, { qty: String(l.qty), rate: String(l.rate), choice: l.overBoqChoice ?? undefined }])));
+      setRows(Object.fromEntries(inv.lines.map((l) => [l.workOrderItemId, { qty: String(l.qty), rate: String(l.rate), hsn: l.hsnSac ?? '', gst: inv.gstMode === 'line' ? String(l.gstRate ?? inv.gstRate) : '', choice: l.overBoqChoice ?? undefined }])));
     }).catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load'));
   }, [invoiceId]);
 
@@ -60,7 +61,7 @@ export function InvoiceFormScreen({ navigation, route }: Props) {
       const p = await invoiceApi.preview(projectId, basis, lotIds);
       setPreview(p);
       if (!invoiceId) {
-        setRows(Object.fromEntries(p.lines.map((l) => [l.workOrderItemId, { qty: l.suggestedQty ? String(l.suggestedQty) : '', rate: String(l.rate) }])));
+        setRows(Object.fromEntries(p.lines.map((l) => [l.workOrderItemId, { qty: l.suggestedQty ? String(l.suggestedQty) : '', rate: String(l.rate), hsn: l.hsnSac ?? '', gst: '' }])));
         setClient((c) => ({ gstin: c.gstin || p.project.clientGstin, state: c.state || p.project.clientState, address: c.address || p.project.billingAddress }));
       }
     } catch (e) {
@@ -73,7 +74,10 @@ export function InvoiceFormScreen({ navigation, route }: Props) {
 
   const set = (id: string, k: keyof Row, v: string) => setRows((r) => ({ ...r, [id]: { ...r[id], [k]: v } }));
   const lines = useMemo(() => (preview?.lines ?? []).filter((l) => (parseNumber(rows[l.workOrderItemId]?.qty ?? '') ?? 0) > 0), [preview, rows]);
-  const taxable = lines.reduce((s, l) => s + (parseNumber(rows[l.workOrderItemId]?.qty ?? '') ?? 0) * (parseNumber(rows[l.workOrderItemId]?.rate ?? '') ?? l.rate), 0);
+  const amountOf = (l: { workOrderItemId: string; rate: number }) => (parseNumber(rows[l.workOrderItemId]?.qty ?? '') ?? 0) * (parseNumber(rows[l.workOrderItemId]?.rate ?? '') ?? l.rate);
+  const gstOf = (id: string) => parseNumber(rows[id]?.gst ?? '') ?? Number(gst);
+  const taxable = lines.reduce((s, l) => s + amountOf(l), 0);
+  const tax = lines.reduce((s, l) => s + (amountOf(l) * gstOf(l.workOrderItemId)) / 100, 0);
 
   const save = async () => {
     setError('');
@@ -87,7 +91,8 @@ export function InvoiceFormScreen({ navigation, route }: Props) {
       lines: lines.map((l) => {
         const r = rows[l.workOrderItemId];
         const rate = parseNumber(r.rate);
-        return { workOrderItemId: l.workOrderItemId, qty: parseNumber(r.qty)!, ...(mayRate && rate !== null && rate !== l.rate ? { rate } : {}), ...(r.choice ? { overBoqChoice: r.choice } : {}) };
+        const lineGst = parseNumber(r.gst ?? '');
+        return { workOrderItemId: l.workOrderItemId, qty: parseNumber(r.qty)!, ...(mayRate && rate !== null && rate !== l.rate ? { rate } : {}), hsnSac: (r.hsn ?? '').trim(), ...(lineGst !== null ? { gstRate: lineGst } : {}), ...(r.choice ? { overBoqChoice: r.choice } : {}) };
       }),
     };
     try {
@@ -144,6 +149,8 @@ export function InvoiceFormScreen({ navigation, route }: Props) {
                 <TextInput value={r.qty} onChangeText={(v) => { set(l.workOrderItemId, 'qty', v); set(l.workOrderItemId, 'choice', ''); }} placeholder="Qty" keyboardType="decimal-pad" inputMode="decimal" style={styles.input} testID={`inv-qty-${l.serialNo}`} />
                 <Text style={styles.muted}>× ₹</Text>
                 <TextInput value={r.rate} editable={mayRate} onChangeText={(v) => set(l.workOrderItemId, 'rate', v)} keyboardType="decimal-pad" inputMode="decimal" style={[styles.input, !mayRate && styles.locked]} testID={`inv-rate-${l.serialNo}`} />
+                <TextInput value={r.hsn ?? ''} onChangeText={(v) => set(l.workOrderItemId, 'hsn', v)} placeholder="HSN/SAC" keyboardType="number-pad" inputMode="numeric" accessibilityLabel={`HSN/SAC for S.No ${l.serialNo}`} style={styles.input} testID={`inv-hsn-${l.serialNo}`} />
+                <TextInput value={r.gst ?? ''} onChangeText={(v) => set(l.workOrderItemId, 'gst', v)} placeholder={`GST ${gst}%`} keyboardType="decimal-pad" inputMode="decimal" accessibilityLabel={`GST % for S.No ${l.serialNo}`} style={styles.input} testID={`inv-line-gst-${l.serialNo}`} />
               </View>
               {r.choice ? <Text style={styles.chosen} testID={`inv-choice-${l.serialNo}`}>Beyond BOQ - billing {r.choice === 'boq' ? 'as per BOQ' : 'actual quantity'}</Text> : null}
               {qn ? (
@@ -164,8 +171,9 @@ export function InvoiceFormScreen({ navigation, route }: Props) {
       <View style={styles.box}>
         <View style={styles.row}>
           <View style={styles.cell}><TextField label="Invoice date (YYYY-MM-DD)" value={date} onChangeText={setDate} testID="inv-date" /></View>
-          <View style={styles.cell}><ChoiceChips label="GST %" value={gst} onChange={setGst} testID="inv-gst" options={['18', '12', '5', '28', '0'].map((g) => ({ value: g, label: `${g}%` }))} /></View>
+          <View style={styles.cell}><ChoiceChips label="GST % (lines without their own)" value={gst} onChange={setGst} testID="inv-gst" options={['18', '12', '5', '28', '0'].map((g) => ({ value: g, label: `${g}%` }))} /></View>
         </View>
+        <Text style={styles.muted}>CGST + SGST or IGST is worked out from your company's and the client's GSTIN / state; this choice is used only when either is unknown.</Text>
         <ChoiceChips label="Client is in" value={inter} onChange={setInter} testID="inv-inter" options={[{ value: 'same', label: 'Same state (CGST + SGST)' }, { value: 'other', label: 'Other state (IGST)' }]} />
         <View style={styles.row}>
           <View style={styles.cell}><TextField label="Client GSTIN" value={client.gstin} onChangeText={(v) => setClient({ ...client, gstin: v.toUpperCase() })} testID="inv-gstin" /></View>
@@ -175,7 +183,7 @@ export function InvoiceFormScreen({ navigation, route }: Props) {
         <TextField label="Notes (optional)" value={notes} onChangeText={setNotes} testID="inv-notes" />
         {existing?.status === 'issued' ? <TextField label="Reason for change (kept in the log)" value={reason} onChangeText={setReason} testID="inv-reason" /> : null}
       </View>
-      <Text style={styles.total} testID="inv-estimate">Taxable {formatMoney(taxable)} + GST {gst}% ≈ {formatMoney(taxable * (1 + Number(gst) / 100))}</Text>
+      <Text style={styles.total} testID="inv-estimate">Taxable {formatMoney(taxable)} + GST {formatMoney(tax)} ≈ {formatMoney(taxable + tax)}</Text>
       {questions.length ? <ErrorBanner message="Some items go beyond the BOQ. Choose what to bill for each, then save again." testID="inv-questions" /> : null}
       {error ? <ErrorBanner message={error} testID="inv-error" /> : null}
       <Button title={existing ? 'Save changes' : 'Save draft'} onPress={save} loading={busy} testID="inv-save" style={styles.self} />

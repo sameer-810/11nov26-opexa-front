@@ -19,7 +19,7 @@ export type LineDecision = { lineId: string; qtyApproved?: number; reject?: bool
 export type ApprovalDetail = PendingApproval & {
   history: HistoryEntry[];
   details: null | {
-    kind: 'requisition' | 'supplier_selection' | 'po_revision' | 'expense' | 'over_receipt' | 'supplier_payment';
+    kind: 'requisition' | 'supplier_selection' | 'po_revision' | 'expense' | 'over_receipt' | 'supplier_payment' | 'early_billing';
     expenseId?: string; number?: string | null; amount?: number; category?: string; date?: string; billNo?: string;
     projectName?: string | null; projectCode?: string | null; employee?: { id: string | null; name: string | null } | null;
     priority?: string; department?: string | null; note?: string; lines?: ApprovalLine[];
@@ -31,12 +31,14 @@ export type ApprovalDetail = PendingApproval & {
     excess?: { serialNo: string; description: string; unit: string; qty: number; rate: number; ordered: number | null }[];
     // Supplier payment (Q5): who is paid, how, and which invoices it settles.
     supplierPaymentId?: string; vendor?: { id: string; name: string } | null; mode?: string; reference?: string; tds?: number; onAccount?: number;
+    // Early billing of a payment-term slab (Q24).
+    slab?: string; planAmount?: number; label?: string;
     invoices?: { supplierInvoiceId: string; invoiceNumber: string | null; invoiceDate: string | null; amount: number }[]; isAdvance?: boolean; remarks?: string;
   };
 };
 export type ApprovalAction = 'approve' | 'reject' | 'send_back';
 
-export const TRANSACTION_TYPES = ['requisition', 'purchase_order', 'transfer', 'supplier_selection', 'po_revision', 'boq_revision', 'additional_work', 'work_order', 'work_certificate', 'billing', 'expense', 'over_receipt', 'supplier_payment', 'retention_release'] as const;
+export const TRANSACTION_TYPES = ['requisition', 'purchase_order', 'transfer', 'supplier_selection', 'po_revision', 'boq_revision', 'additional_work', 'work_order', 'work_certificate', 'billing', 'expense', 'over_receipt', 'supplier_payment', 'retention_release', 'early_billing'] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 export type WorkflowLevel = { sequence: number; approverRole?: string | null; approverUserId?: string | null };
 export type Workflow = {

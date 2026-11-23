@@ -3,13 +3,14 @@ import { env } from '../../config/env';
 import { api } from '../../shared/api/apiClient';
 
 export type Basis = 'lots' | 'installed' | 'manual' | 'measurement' | 'milestone';
-export type PreviewLine = { workOrderItemId: string; serialNo: string; description: string; unit: string; boqQty: number; rate: number; billedBefore: number; suggestedQty: number; overBoq: boolean };
+export type PreviewLine = { workOrderItemId: string; serialNo: string; description: string; unit: string; boqQty: number; rate: number; hsnSac?: string; gstRate?: number; billedBefore: number; suggestedQty: number; overBoq: boolean };
 export type Preview = {
   project: { id: string; code: string; name: string; clientName: string; clientGstin: string; billingAddress: string; clientState: string; poNumber: string };
   lots: { id: string; lotNo: number; challanNo: string; dispatchDate: string; received: boolean; billedOn: string | null }[];
   lines: PreviewLine[];
 };
-export type InvoiceLine = { id: string; workOrderItemId: string; serialNo: string; description: string; unit: string; boqQty: number; billedBefore: number; qty: number; rate: number; amount: number; overBoq: boolean; overBoqChoice: 'boq' | 'actual' | null; additional?: boolean };
+export type InvoiceLine = { id: string; workOrderItemId: string; serialNo: string; description: string; unit: string; boqQty: number; billedBefore: number; qty: number; rate: number; amount: number; hsnSac?: string; gstRate?: number; overBoq: boolean; overBoqChoice: 'boq' | 'actual' | null; additional?: boolean };
+export type GstRow = { rate: number; taxable: number; cgst: number; sgst: number; igst: number };
 export type Invoice = {
   id: string; number: string | null; draftNo: number; label: string; status: 'draft' | 'issued' | 'cancelled'; basis: Basis;
   project: { id: string; code?: string; name?: string }; lotIds: string[]; invoiceDate: string;
@@ -17,11 +18,15 @@ export type Invoice = {
   gstRate: number; interState: boolean; lines: InvoiceLine[]; additionalTaxable?: number; taxable: number; cgst: number; sgst: number; igst: number; roundOff: number; total: number; totalInWords: string;
   notes: string; edits: { at: string; byName: string; reason: string; summary: string }[];
   kind?: 'standard' | 'milestone' | 'measurement'; milestoneLine?: { description: string; percent: number; planAmount: number; amount: number } | null;
-  retentionPct?: number; retention?: number; received?: number; tds?: number; outstanding?: number; revisions?: { revision: number; at: string; reason: string }[];
+  retentionPct?: number; retention?: number; received?: number; tds?: number; outstanding?: number; revisions?: { revision: number; at: string; reason: string; snapshot?: { total?: number } }[];
+  // Q27 / 4A-4C: 'line' = GST per line (older invoices: one rate); advance / progress slab invoices; RA number; early billing and amount overrides.
+  gstMode?: 'invoice' | 'line'; gstSummary?: GstRow[]; invoiceType?: 'advance' | 'progress' | null; raNo?: number | null; raLabel?: string | null;
+  earlyBilling?: { status: 'pending' | 'approved' | 'rejected' | 'sent_back'; reason: string; at: string; approvalRequestId: string | null } | null;
+  overrides?: { amount: number; computedAmount: number; reason: string; byName: string; at: string }[];
   attachments: { id: string; name: string; contentType: string; size: number; url: string | null }[];
   issuedAt: string | null; cancelReason: string | null; createdAt: string;
 };
-export type LineIn = { workOrderItemId: string; qty: number; rate?: number; overBoqChoice?: 'boq' | 'actual' };
+export type LineIn = { workOrderItemId: string; qty: number; rate?: number; hsnSac?: string; gstRate?: number; overBoqChoice?: 'boq' | 'actual' };
 export type InvoiceIn = { projectId: string; basis: Basis; lotIds?: string[]; invoiceDate: string; gstRate: number; interState: boolean; client?: { gstin?: string; address?: string; state?: string }; notes?: string; lines: LineIn[] };
 export type Billing = { legalName: string; address: string; gstin: string; state: string; email: string; bankName: string; bankAccount: string; ifsc: string; invoicePrefix: string; terms: string };
 
@@ -30,7 +35,7 @@ export const invoiceApi = {
   preview: (projectId: string, basis: Basis, lotIds: string[] = []) => api<Preview>(`/invoices/preview/${projectId}?basis=${basis}&lotIds=${lotIds.join(',')}`),
   create: (body: InvoiceIn) => api<Invoice>('/invoices', { method: 'POST', body }),
   get: (id: string) => api<Invoice>(`/invoices/${id}`),
-  update: (id: string, body: Partial<InvoiceIn> & { editReason?: string }) => api<Invoice>(`/invoices/${id}`, { method: 'PATCH', body }),
+  update: (id: string, body: Partial<InvoiceIn> & { editReason?: string; milestoneAmount?: number }) => api<Invoice>(`/invoices/${id}`, { method: 'PATCH', body }),
   issue: (id: string) => api<Invoice>(`/invoices/${id}/issue`, { method: 'POST' }),
   cancel: (id: string, reason: string) => api<Invoice>(`/invoices/${id}/cancel`, { method: 'POST', body: { reason } }),
   attach: (id: string, file: Blob | { uri: string; name: string; type: string }, name: string) => {
@@ -41,7 +46,7 @@ export const invoiceApi = {
     return api<Invoice>(`/invoices/${id}/attachments`, { method: 'POST', body: f });
   },
   removeAttachment: (id: string, attId: string) => api<Invoice>(`/invoices/${id}/attachments/${attId}`, { method: 'DELETE' }),
-  printLink: (id: string) => api<{ url: string }>(`/invoices/${id}/print-link`),
+  printLink: (id: string) => api<{ url: string; raUrl?: string }>(`/invoices/${id}/print-link`),
   lotPrintLink: (projectId: string, lotId: string) => api<{ url: string }>(`/projects/${projectId}/lots/${lotId}/print-link`),
   billing: () => api<Billing>('/invoices/billing-details'),
   setBilling: (body: Billing) => api<Billing>('/invoices/billing-details', { method: 'PUT', body }),
