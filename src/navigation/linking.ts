@@ -84,6 +84,12 @@ export const linking: LinkingOptions<RootStackParamList> = {
       ProjectDocuments: 'app/projects/:id/documents',
       HandoverAmc: 'app/projects/:id/handover',
       Tally: 'app/tally',
+      MyExpenses: 'app/expenses',
+      NewExpense: 'app/expenses/new',
+      ExpensesToPay: 'app/expenses/to-pay',
+      ExpenseReport: 'app/expenses/report',
+      ExpenseCategories: 'app/expenses/categories',
+      ExpenseForm: 'app/expenses/:id',
     },
   },
 };

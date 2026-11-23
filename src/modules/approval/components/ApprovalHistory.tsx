@@ -6,7 +6,7 @@ import type { Role } from '../../auth/types';
 import type { HistoryEntry } from '../api/approvalApi';
 
 const DECISION: Record<HistoryEntry['action'], string> = {
-  submitted: 'Sent for approval', resubmitted: 'Resubmitted', approved: 'Approved', rejected: 'Rejected', sent_back: 'Sent back', skipped: 'Skipped',
+  submitted: 'Sent for approval', resubmitted: 'Resubmitted', approved: 'Approved', rejected: 'Rejected', sent_back: 'Sent back', skipped: 'Skipped', escalated: 'Escalated',
 };
 const TONE: Partial<Record<HistoryEntry['action'], string>> = { approved: colors.success, rejected: colors.danger, sent_back: '#B45309' };
 export const roleName = (r: string | null | undefined) => (r ? ROLE_LABEL[r as Role] ?? r.replace(/_/g, ' ') : '');

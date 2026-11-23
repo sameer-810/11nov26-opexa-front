@@ -12,7 +12,7 @@ import { roleName } from './ApprovalHistory';
 
 // Roles that can be an approval level (anyone in the role can act, or their delegate).
 export const APPROVER_ROLES = ['purchaser', 'project_manager', 'hod', 'director', 'accounts', 'admin', 'store_incharge'] as const;
-export const typeLabel = (t: string) => ({ requisition: 'Material request', purchase_order: 'Purchase order', po_revision: 'PO revision', supplier_selection: 'Supplier selection', boq_revision: 'BOQ revision', additional_work: 'Additional work', work_order: 'Subcontract work order', work_certificate: 'Work certificate', transfer: 'Stock transfer', billing: 'Billing' }[t] ?? t);
+export const typeLabel = (t: string) => ({ requisition: 'Material request', purchase_order: 'Purchase order', po_revision: 'PO revision', supplier_selection: 'Supplier selection', boq_revision: 'BOQ revision', additional_work: 'Additional work', work_order: 'Subcontract work order', work_certificate: 'Work certificate', transfer: 'Stock transfer', billing: 'Billing', expense: 'Expense voucher' }[t] ?? t);
 
 type LevelDraft = { by: 'role' | 'user'; value: string };
 type Props = { workflow: Workflow | null; people: Person[]; projects: { id: string; code: string; name: string }[]; onSave: (input: WorkflowInput) => Promise<void>; onCancel: () => void };
@@ -53,14 +53,14 @@ export function WorkflowForm({ workflow, people, projects, onSave, onCancel }: P
   return (
     <View style={styles.card} testID="workflow-form">
       <TextField label="Name" value={name} onChangeText={setName} maxLength={120} testID="wf-name" />
-      {locked ? <Text style={styles.muted}>Default chain: used for every material request no other workflow matches. You can change its levels{workflow?.defaultKey === 'high' ? ' and the amount it starts at' : ''}.</Text> : (
+      {locked ? <Text style={styles.muted}>Default chain: used for every {workflow?.transactionType === 'expense' ? `${workflow.defaultKey === 'expense_office' ? 'office' : 'project'} expense voucher` : 'material request'} no other workflow matches. You can change its levels{workflow?.defaultKey === 'high' ? ' and the amount it starts at' : ''}.</Text> : (
         <>
           <ChoiceChips label="Applies to" value={type} onChange={(v) => setType(v as TransactionType)} options={TRANSACTION_TYPES.map((t) => ({ value: t, label: typeLabel(t) }))} testID="wf-type" />
           <ChoiceChips label="Project" value={projectId} onChange={setProjectId} options={[{ value: 'any', label: 'Any project' }, ...projects.map((p) => ({ value: p.id, label: `${p.code} · ${p.name}` }))]} testID="wf-project" />
           <DepartmentPicker label="Department" value={departmentId} onChange={setDepartmentId} testID="wf-department" />
         </>
       )}
-      {workflow?.defaultKey !== 'low' ? (
+      {!workflow?.defaultKey || workflow.defaultKey === 'high' ? (
         <View style={styles.row}>
           <TextField label="From amount (₹)" value={min} onChangeText={setMin} keyboardType="decimal-pad" style={styles.flex} testID="wf-min" />
           {locked ? null : <TextField label="Up to amount (₹, optional)" value={max} onChangeText={setMax} keyboardType="decimal-pad" style={styles.flex} testID="wf-max" />}

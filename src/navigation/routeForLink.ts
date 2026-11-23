@@ -1,6 +1,7 @@
 import type { User } from '../modules/auth/types';
 import { can, canSeeApprovals, PERMS } from '../shared/permissions';
 import type { RootStackParamList } from './types';
+import { canPayExpenses } from '../modules/expense/expenseApi';
 
 export type RouteTarget = { [K in keyof RootStackParamList]: { name: K; params: RootStackParamList[K] } }[keyof RootStackParamList];
 
@@ -28,6 +29,8 @@ export function routeForLink(link: string | null | undefined, user: User | null)
   if ((m = l.match(/^\/app\/sales\/([a-f0-9]{24})$/)) && can(user, PERMS.SALES_MANAGE)) return { name: 'LeadDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/projects\/([a-f0-9]{24})$/))) return { name: 'ProjectDetail', params: { id: m[1] } };
   if (l === '/app/service') return { name: 'Service', params: undefined };
+  if (l === '/app/expenses/to-pay' && canPayExpenses(user)) return { name: 'ExpensesToPay', params: undefined };
+  if ((m = l.match(/^\/app\/expenses\/([a-f0-9]{24})$/))) return { name: 'ExpenseForm', params: { id: m[1] } };
   if (l === '/app/payslips') return { name: 'Payslips', params: undefined };
   if (l === '/app/attendance' && can(user, PERMS.ATTENDANCE_SELF)) return { name: 'Attendance', params: undefined };
   if ((m = l.match(/^\/app\/attendance\/team(?:\?date=(\d{4}-\d{2}-\d{2}))?$/)) && can(user, PERMS.ATTENDANCE_VIEW)) return { name: 'TeamAttendance', params: m[1] ? { date: m[1] } : undefined };

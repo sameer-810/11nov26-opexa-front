@@ -2,6 +2,7 @@ import type { User } from '../modules/auth/types';
 import { can, canSeeApprovals, PERMS } from '../shared/permissions';
 import type { IconName } from '../shared/ui/Icon';
 import type { RootStackParamList } from './types';
+import { canPayExpenses, canSeeExpenseReport } from '../modules/expense/expenseApi';
 
 export type NavItem = { route: keyof RootStackParamList; label: string; icon: IconName; show: (u: User | null) => boolean; also?: (keyof RootStackParamList)[] };
 
@@ -23,6 +24,9 @@ export const NAV_ITEMS: NavItem[] = [
   { route: 'Subcontract', label: 'Subcontractors', icon: 'hardhat', show: (u) => any(u, [PERMS.PROJECT_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.SUPPLIER_INVOICE_VERIFY, PERMS.RECEIVING_RECORD, PERMS.REPORTS_VIEW]) },
   { route: 'Service', label: 'Service & AMC', icon: 'tool', show: always, also: ['TicketDetail', 'NewTicket', 'ServiceAssets', 'HandoverAmc'] },
   { route: 'Sales', label: 'Sales', icon: 'trend', show: (u) => can(u, PERMS.SALES_MANAGE), also: ['NewLead', 'LeadDetail', 'QuoteForm'] },
+  { route: 'MyExpenses', label: 'My expenses', icon: 'wallet', show: always, also: ['NewExpense', 'ExpenseForm', 'ExpenseCategories'] },
+  { route: 'ExpensesToPay', label: 'Expenses to pay', icon: 'rupee', show: canPayExpenses },
+  { route: 'ExpenseReport', label: 'Expense report', icon: 'funnel', show: canSeeExpenseReport },
   { route: 'Costing', label: 'Costing', icon: 'pie', show: (u) => any(u, [PERMS.PROJECT_MANAGE, PERMS.REPORTS_VIEW]), also: ['ProjectCost'] },
   { route: 'Overview', label: 'Analytics', icon: 'chart', show: (u) => can(u, PERMS.PROJECT_MANAGE) },
   { route: 'Team', label: 'Team', icon: 'users', show: (u) => can(u, PERMS.TEAM_MANAGE), also: ['AddMember', 'MemberDetail'] },

@@ -45,6 +45,12 @@ import { CommitmentsScreen } from '../modules/commitments/CommitmentsScreen';
 import { ProjectDocumentsScreen } from '../modules/documents/ProjectDocumentsScreen';
 import { HandoverAmcScreen } from '../modules/service/screens/HandoverAmcScreen';
 import { TallyScreen } from '../modules/tally/TallyScreen';
+import { MyExpensesScreen } from '../modules/expense/screens/MyExpensesScreen';
+import { ExpenseFormScreen } from '../modules/expense/screens/ExpenseFormScreen';
+import { ExpensesToPayScreen } from '../modules/expense/screens/ExpensesToPayScreen';
+import { ExpenseReportScreen } from '../modules/expense/screens/ExpenseReportScreen';
+import { ExpenseCategoriesScreen } from '../modules/expense/screens/ExpenseCategoriesScreen';
+import { canPayExpenses, canSeeExpenseReport } from '../modules/expense/expenseApi';
 import { NewPurchaseOrderScreen } from '../modules/purchaseOrder/screens/NewPurchaseOrderScreen';
 import { PurchaseOrderDetailScreen } from '../modules/purchaseOrder/screens/PurchaseOrderDetailScreen';
 import { ProjectLotsScreen } from '../modules/purchaseOrder/screens/ProjectLotsScreen';
@@ -174,6 +180,12 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {(can(user, PERMS.PURCHASE_MANAGE) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY)) && <Stack.Screen name="SupplierInvoices" component={SupplierInvoicesScreen} options={{ title: 'Opexa - Supplier invoices' }} />}
         {[PERMS.PROJECT_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.SUPPLIER_INVOICE_VERIFY, PERMS.RECEIVING_RECORD, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Subcontract" component={SubcontractScreen} options={{ title: 'Opexa - Subcontractors' }} />}
         {(can(user, PERMS.INVOICE_EDIT) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY)) && <Stack.Screen name="Tally" component={TallyScreen} options={{ title: 'Opexa - Tally export' }} />}
+        <Stack.Screen name="MyExpenses" component={MyExpensesScreen} options={{ title: 'Opexa - My expenses' }} />
+        <Stack.Screen name="NewExpense" component={ExpenseFormScreen} options={{ title: 'Opexa - New expense' }} />
+        <Stack.Screen name="ExpenseForm" component={ExpenseFormScreen} options={{ title: 'Opexa - Expense' }} />
+        {canPayExpenses(user) && <Stack.Screen name="ExpensesToPay" component={ExpensesToPayScreen} options={{ title: 'Opexa - Expenses to pay' }} />}
+        {canSeeExpenseReport(user) && <Stack.Screen name="ExpenseReport" component={ExpenseReportScreen} options={{ title: 'Opexa - Expense report' }} />}
+        {can(user, PERMS.SETTINGS_MANAGE) && <Stack.Screen name="ExpenseCategories" component={ExpenseCategoriesScreen} options={{ title: 'Opexa - Expense categories' }} />}
         <Stack.Screen name="ProjectDocuments" component={ProjectDocumentsScreen} options={{ title: 'Opexa - Project documents' }} />
         {(can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.SERVICE_MANAGE)) && <Stack.Screen name="HandoverAmc" component={HandoverAmcScreen} options={{ title: 'Opexa - Handover & AMC' }} />}
         {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Commitments" component={CommitmentsScreen} options={{ title: 'Opexa - Retention & guarantees' }} />}

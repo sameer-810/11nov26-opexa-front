@@ -16,6 +16,7 @@ import { approvalApi, type ApprovalAction, type ApprovalDetail, type PendingAppr
 import { decisionsFor, draftsFor, RequisitionLineDecisions, type LineDraft } from '../components/RequisitionLineDecisions';
 import { AttachmentList } from '../../requisition/components/Attachments';
 import { requisitionApi } from '../../requisition/api/requisitionApi';
+import { expenseApi } from '../../expense/expenseApi';
 import { ChoiceChips } from '../../../shared/ui/ChoiceChips';
 import { useAuth } from '../../../shared/store/useAuthStore';
 import { can, PERMS } from '../../../shared/permissions';
@@ -27,6 +28,14 @@ const message = (e: unknown, fallback: string) => (e instanceof ApiError ? e.mes
 function Details({ d }: { d: ApprovalDetail['details'] }) {
   if (!d) return null;
   if (d.kind === 'supplier_selection') return <View style={styles.gap}><Text style={styles.text}>Why: {d.justification}</Text>{d.allocations?.map((a, i) => <Text key={i} style={styles.text}>S.No {a.serialNo} {a.description}: {formatNumber(a.qty)} {a.unit} from {a.vendorName} @ {formatMoney(a.rate)} = {formatMoney(a.amount)}{a.lowest ? '' : ' (not the lowest)'}</Text>)}</View>;
+  if (d.kind === 'expense') return (
+    <View style={styles.gap} testID="approval-expense">
+      <Text style={styles.text}>{d.employee?.name} · {d.category} · {formatMoney(d.amount ?? 0)}</Text>
+      <Text style={styles.text}>{formatDate(d.date)} · {d.projectCode ? `${d.projectCode} ${d.projectName}` : 'Office expense'}{d.billNo ? ` · bill ${d.billNo}` : ''}</Text>
+      {d.note ? <Text style={styles.text}>{d.note}</Text> : null}
+      {d.attachments?.length ? null : <Text style={styles.text}>No receipt attached (category needs none)</Text>}
+    </View>
+  );
   if (d.kind === 'po_revision') return <View style={styles.gap}><Text style={styles.text}>Reason: {d.reason}</Text>{d.changes?.map((c, i) => <Text key={i} style={styles.text}>{c.field}: {String(c.from ?? '—').slice(0, 10)} → {String(c.to ?? '—').slice(0, 10)}</Text>)}</View>;
   return (
     <View style={styles.gap}>
@@ -99,6 +108,7 @@ export function ApprovalsScreen({ navigation }: Props) {
                 <Details d={open.details} />
                 {open.details?.lines ? <RequisitionLineDecisions lines={open.details.lines} drafts={drafts} onChange={(lineId, d) => setDrafts((x) => ({ ...x, [lineId]: d }))} /> : null}
                 {open.details?.requisitionId && open.details.attachments?.length ? <AttachmentList items={open.details.attachments} onError={setProblem} fetchFile={(a) => requisitionApi.downloadAttachment(open.details?.requisitionId ?? '', a)} /> : null}
+                {open.details?.expenseId && open.details.attachments?.length ? <AttachmentList items={open.details.attachments} onError={setProblem} fetchFile={(a) => expenseApi.downloadAttachment(open.details?.expenseId ?? '', a)} /> : null}
                 <TextField label="Comment (required to reject or send back)" value={comment} onChangeText={setComment} testID="approval-comment" />
                 <View style={styles.row}>
                   <Button title="Approve" onPress={() => act(item.id, 'approve')} loading={acting === `${item.id}:approve`} testID={`approve-${item.id}`} />

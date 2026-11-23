@@ -27,6 +27,7 @@ export function ProjectCostScreen({ navigation, route }: Props) {
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [voiding, setVoiding] = useState<{ id: string; reason: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoadError('');
@@ -50,6 +51,13 @@ export function ProjectCostScreen({ navigation, route }: Props) {
       setError(e instanceof ApiError ? [e.message, ...e.details.map((d) => d.message)].join(' - ') : 'Something went wrong');
     }
     setBusy(false);
+  };
+
+  const voidExpense = async () => {
+    if (!voiding) return;
+    if (voiding.reason.trim().length < 3) return setError('Give the reason for voiding');
+    setError('');
+    try { setC(await costingApi.voidExpense(id, voiding.id, voiding.reason.trim())); setVoiding(null); } catch (e) { setError(e instanceof ApiError ? e.message : 'Could not void'); }
   };
 
   if (!c) return <AppScreen title="Costing" onBack={() => navigation.goBack()}>{loadError ? <ErrorState message={loadError} onRetry={load} /> : <ActivityIndicator />}</AppScreen>;
@@ -90,12 +98,23 @@ export function ProjectCostScreen({ navigation, route }: Props) {
       {c.labour?.length ? c.labour.map((l) => <Text key={l.userId} style={styles.text}>{l.name}: {l.hours} h · {formatMoney(l.cost)}{l.hasRate ? '' : ' (no pay rate set)'}</Text>) : <Text style={styles.muted}>No attendance at this site yet.</Text>}
 
       <Text style={styles.h2}>Other site expenses</Text>
+      <Text style={styles.muted}>Paid expense vouchers and direct entries. Vouchers waiting for approval or payment are not counted yet.</Text>
+      {c.expenseByCategory?.length ? <Text style={styles.text} testID="pc-exp-by-category">{c.expenseByCategory.map((x) => `${CATEGORY_LABEL[x.category] ?? x.category} ${formatMoney(x.amount)}`).join(' · ')}</Text> : null}
       {c.expenses?.map((e) => (
         <View key={e.id} style={styles.exp} testID={`pc-exp-${e.id}`}>
-          <Text style={styles.text}>{formatDate(e.date)} · {CATEGORY_LABEL[e.category] ?? e.category} · {formatMoney(e.amount)}{e.note ? ` · ${e.note}` : ''}{e.billNo ? ` (bill ${e.billNo})` : ''}</Text>
-          {mayAdd ? <Text style={styles.link} onPress={async () => setC(await costingApi.removeExpense(id, e.id))}>Remove</Text> : null}
+          <Text style={styles.text}>{e.number ? `${e.number} · ` : ''}{formatDate(e.date)} · {CATEGORY_LABEL[e.category] ?? e.category} · {formatMoney(e.amount)}{e.note ? ` · ${e.note}` : ''}{e.billNo ? ` (bill ${e.billNo})` : ''}</Text>
+          {mayAdd ? <Text style={styles.link} onPress={() => setVoiding({ id: e.id, reason: '' })} testID={`pc-void-${e.id}`}>Void</Text> : null}
         </View>
       ))}
+      {voiding ? (
+        <View style={styles.box}>
+          <TextField label="Reason for voiding (kept in history)" value={voiding.reason} onChangeText={(v) => setVoiding({ ...voiding, reason: v })} testID="pc-void-reason" />
+          <View style={styles.row}>
+            <Button title="Void expense" variant="outline" onPress={voidExpense} testID="pc-void-confirm" />
+            <Button title="Cancel" variant="ghost" onPress={() => setVoiding(null)} />
+          </View>
+        </View>
+      ) : null}
       {mayAdd ? (
         <View style={styles.box}>
           <ChoiceChips label="Type" value={form.category} onChange={(v) => setForm({ ...form, category: v })} testID="pc-cat" options={Object.entries(CATEGORY_LABEL).map(([value, label]) => ({ value, label }))} />
