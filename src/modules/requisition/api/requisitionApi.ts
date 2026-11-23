@@ -1,9 +1,13 @@
-import { api } from '../../../shared/api/apiClient';
-import type { BalanceRow, NewRequisition, Requisition } from '../types';
+import { api, apiBlob } from '../../../shared/api/apiClient';
+import type { Attachment, BalanceRow, NewRequisition, Requisition, TimelineEvent } from '../types';
+
+// A file picked on the phone ({ uri, name, type }) or in the browser (Blob).
+export type PickedFile = { name: string; file: Blob | { uri: string; name: string; type: string } };
 
 export const requisitionApi = {
   balance: (projectId: string) => api<BalanceRow[]>(`/projects/${projectId}/boq-balance`),
   create: (projectId: string, body: NewRequisition) => api<Requisition>(`/projects/${projectId}/requisitions`, { method: 'POST', body }),
+  resubmit: (id: string, body: NewRequisition) => api<Requisition>(`/requisitions/${id}`, { method: 'PUT', body }),
   list: (q: { projectId?: string; overBoq?: boolean } = {}) => {
     const params = new URLSearchParams();
     if (q.projectId) params.set('projectId', q.projectId);
@@ -12,5 +16,15 @@ export const requisitionApi = {
     return api<Requisition[]>(`/requisitions${s ? `?${s}` : ''}`);
   },
   get: (id: string) => api<Requisition>(`/requisitions/${id}`),
+  timeline: (id: string) => api<TimelineEvent[]>(`/requisitions/${id}/timeline`),
   cancel: (id: string, reason: string) => api<Requisition>(`/requisitions/${id}/cancel`, { method: 'POST', body: { reason } }),
+  addAttachment: (id: string, picked: PickedFile) => {
+    const f = new FormData();
+    if (typeof Blob !== 'undefined' && picked.file instanceof Blob) f.append('file', picked.file, picked.name);
+    // React Native's FormData takes { uri, name, type } for a file on the phone.
+    else f.append('file', picked.file as unknown as Blob);
+    return api<Requisition>(`/requisitions/${id}/attachments`, { method: 'POST', body: f });
+  },
+  removeAttachment: (id: string, attachmentId: string) => api<Requisition>(`/requisitions/${id}/attachments/${attachmentId}`, { method: 'DELETE' }),
+  downloadAttachment: (id: string, a: Pick<Attachment, 'id'>) => apiBlob(`/requisitions/${id}/attachments/${a.id}`),
 };

@@ -11,8 +11,10 @@ import { ErrorBanner } from '../../../shared/ui/Banner';
 import { TextField } from '../../../shared/ui/TextField';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { ApiError } from '../../../shared/api/apiClient';
-import { formatMoney, formatNumber, parseNumber } from '../../../shared/format';
+import { formatDate, formatMoney, formatNumber } from '../../../shared/format';
 import { approvalApi, type ApprovalAction, type ApprovalDetail, type PendingApproval } from '../api/approvalApi';
+import { decisionsFor, draftsFor, RequisitionLineDecisions, type LineDraft } from '../components/RequisitionLineDecisions';
+import { AttachmentList } from '../../requisition/components/Attachments';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approvals'>;
 const message = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
@@ -21,14 +23,20 @@ function Details({ d }: { d: ApprovalDetail['details'] }) {
   if (!d) return null;
   if (d.kind === 'supplier_selection') return <View style={styles.gap}><Text style={styles.text}>Why: {d.justification}</Text>{d.allocations?.map((a, i) => <Text key={i} style={styles.text}>S.No {a.serialNo} {a.description}: {formatNumber(a.qty)} {a.unit} from {a.vendorName} @ {formatMoney(a.rate)} = {formatMoney(a.amount)}{a.lowest ? '' : ' (not the lowest)'}</Text>)}</View>;
   if (d.kind === 'po_revision') return <View style={styles.gap}><Text style={styles.text}>Reason: {d.reason}</Text>{d.changes?.map((c, i) => <Text key={i} style={styles.text}>{c.field}: {String(c.from ?? '—').slice(0, 10)} → {String(c.to ?? '—').slice(0, 10)}</Text>)}</View>;
-  return <Text style={styles.text}>{[d.priority && `Priority ${d.priority}`, d.department, d.note].filter(Boolean).join(' · ')}</Text>;
+  return (
+    <View style={styles.gap}>
+      <Text style={styles.text}>{[d.priority && `Priority ${d.priority}`, d.department, d.neededBy && `Required by ${formatDate(d.neededBy)}`].filter(Boolean).join(' · ')}</Text>
+      {d.deliveryAddress ? <Text style={styles.text}>Deliver to: {d.deliveryAddress}</Text> : null}
+      {d.note ? <Text style={styles.text}>Remarks: {d.note}</Text> : null}
+    </View>
+  );
 }
 
 export function ApprovalsScreen({ navigation }: Props) {
   const [items, setItems] = useState<PendingApproval[] | null>(null);
   const [error, setError] = useState('');
   const [open, setOpen] = useState<ApprovalDetail | null>(null);
-  const [qtys, setQtys] = useState<Record<string, string>>({});
+  const [drafts, setDrafts] = useState<Record<string, LineDraft>>({});
   const [comment, setComment] = useState('');
   const [problem, setProblem] = useState('');
   const [acting, setActing] = useState('');
@@ -40,12 +48,13 @@ export function ApprovalsScreen({ navigation }: Props) {
     try {
       const d = await approvalApi.get(id);
       setOpen(d);
-      setQtys(Object.fromEntries((d.details?.lines ?? []).map((l) => [l.id, String(l.qtyApproved)])));
+      setDrafts(draftsFor(d.details?.lines ?? []));
     } catch (e) { setProblem(message(e, 'Could not open')); }
   };
   const act = async (id: string, action: ApprovalAction) => {
     if (action !== 'approve' && comment.trim().length < 1) return setProblem('Give a reason for rejecting or sending back');
-    const lines = open?.id === id ? (open.details?.lines ?? []).map((l) => ({ lineId: l.id, qtyApproved: parseNumber(qtys[l.id] ?? '') ?? l.qtyApproved })).filter((x, i) => x.qtyApproved !== open?.details?.lines?.[i].qtyApproved) : [];
+    const lines = open?.id === id && action === 'approve' ? decisionsFor(open.details?.lines ?? [], drafts) : [];
+    if (typeof lines === 'string') return setProblem(lines);
     setActing(`${id}:${action}`); setProblem('');
     try { await approvalApi.act(id, action, comment.trim() || undefined, lines.length ? lines : undefined); setOpen(null); await load(); } catch (e) { setProblem(message(e, 'Try again')); } finally { setActing(''); }
   };
@@ -64,12 +73,8 @@ export function ApprovalsScreen({ navigation }: Props) {
             {open?.id === item.id ? (
               <View style={styles.gap}>
                 <Details d={open.details} />
-                {open.details?.lines?.map((l) => (
-                  <View key={l.id} style={styles.row}>
-                    <Text style={[styles.text, styles.flex]}>S.No {l.serialNo} {l.description}: requested {formatNumber(l.qtyRequested)} {l.unit}{l.overBy ? ` (over BOQ by ${formatNumber(l.overBy)})` : ''}</Text>
-                    <TextField label="Approve qty" value={qtys[l.id] ?? ''} onChangeText={(v) => setQtys((q) => ({ ...q, [l.id]: v }))} keyboardType="decimal-pad" testID={`approve-qty-${l.serialNo}`} />
-                  </View>
-                ))}
+                {open.details?.lines ? <RequisitionLineDecisions lines={open.details.lines} drafts={drafts} onChange={(lineId, d) => setDrafts((x) => ({ ...x, [lineId]: d }))} /> : null}
+                {open.details?.requisitionId && open.details.attachments?.length ? <AttachmentList requisitionId={open.details.requisitionId} items={open.details.attachments} onError={setProblem} /> : null}
                 <TextField label="Comment (required to reject or send back)" value={comment} onChangeText={setComment} testID="approval-comment" />
                 <View style={styles.row}>
                   <Button title="Approve" onPress={() => act(item.id, 'approve')} loading={acting === `${item.id}:approve`} testID={`approve-${item.id}`} />

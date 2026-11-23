@@ -1,5 +1,5 @@
 import { api } from '../../../shared/api/apiClient';
-import type { Adjustment, Issue, LedgerRow, Material, StockRow, Tool, Transfer, Warehouse } from '../types';
+import type { Adjustment, Issue, LedgerRow, Material, MaterialInput, StockRow, Tool, Transfer, Warehouse } from '../types';
 
 const qs = (q: Record<string, string | undefined>) => {
   const p = new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][]).toString();
@@ -9,8 +9,11 @@ type Loc = { kind: 'warehouse' | 'site'; id: string };
 type LineIn = { materialId?: string; workOrderItemId?: string; billable?: boolean; qty: number };
 
 export const inventoryApi = {
-  materials: (q: { q?: string } = {}) => api<Material[]>(`/inventory/materials${qs(q)}`),
-  createMaterial: (body: { name: string; unit: string; category?: string; minStock?: number }) => api<Material>('/inventory/materials', { method: 'POST', body }),
+  materials: (q: { q?: string; verification?: 'pending' } = {}) => api<Material[]>(`/inventory/materials${qs(q)}`),
+  // Without store/purchase rights the material is saved as "new – verify" for the purchaser.
+  createMaterial: (body: MaterialInput) => api<Material>('/inventory/materials', { method: 'POST', body }),
+  verifyMaterial: (id: string, body: Partial<Pick<MaterialInput, 'name' | 'unit' | 'category'>> = {}) => api<Material>(`/inventory/materials/${id}/verify`, { method: 'POST', body }),
+  mergeMaterial: (id: string, intoId: string) => api<Material>(`/inventory/materials/${id}/merge`, { method: 'POST', body: { intoId } }),
   updateMaterial: (id: string, body: Partial<Material>) => api<Material>(`/inventory/materials/${id}`, { method: 'PATCH', body }),
   warehouses: () => api<Warehouse[]>('/inventory/warehouses'),
   createWarehouse: (body: { name: string; address?: string }) => api<Warehouse>('/inventory/warehouses', { method: 'POST', body }),

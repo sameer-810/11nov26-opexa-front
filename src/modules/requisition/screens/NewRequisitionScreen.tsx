@@ -1,75 +1,143 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import { ApiError } from '../../../shared/api/apiClient';
 import { formatNumber, parseNumber } from '../../../shared/format';
 import { AppScreen } from '../../../shared/ui/AppScreen';
 import { Button } from '../../../shared/ui/Button';
+import { ChoiceChips } from '../../../shared/ui/ChoiceChips';
 import { TextField } from '../../../shared/ui/TextField';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
-import { requisitionApi } from '../api/requisitionApi';
-import type { BalanceRow, OverBoqLine, Requisition } from '../types';
+import { requisitionApi, type PickedFile } from '../api/requisitionApi';
+import type { Attachment, BalanceRow, NewRequisition, OverBoqLine, Requisition } from '../types';
 import { submitOrQueue } from '../../../shared/offline/outbox';
+import { projectApi } from '../../project/api/projectApi';
+import type { Project } from '../../project/types';
 import { PackageMaterialLines, packageLinesFor, type PackageLine } from '../../inventory/components/PackageMaterialLines';
+import { BoqLines, type BoqEntry } from '../components/BoqLines';
+import { ExtraMaterialLines, extraLinesFor, type ExtraLine } from '../components/ExtraMaterialLines';
+import { AttachmentPicker } from '../components/Attachments';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NewRequisition'>;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const message = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong');
 
+// New material request, or a sent-back one being corrected and resubmitted (requisitionId).
+// Field order (1B.1): project, delivery address, material lines with quantity, required date, remarks, attachments.
 export function NewRequisitionScreen({ navigation, route }: Props) {
-  const { projectId } = route.params;
+  const { requisitionId } = route.params;
+  const editing = Boolean(requisitionId);
+  const [projectId, setProjectId] = useState(route.params.projectId);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [rows, setRows] = useState<BalanceRow[] | null>(null);
   const [loadError, setLoadError] = useState('');
-  const [qtys, setQtys] = useState<Record<string, string>>({});
+  const [boq, setBoq] = useState<Record<string, BoqEntry>>({});
   const [search, setSearch] = useState('');
-  const [note, setNote] = useState('');
+  const [extras, setExtras] = useState<PackageLine[]>([]);
+  const [others, setOthers] = useState<ExtraLine[]>([]);
+  const [address, setAddress] = useState('');
+  const [neededBy, setNeededBy] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [picked, setPicked] = useState<PickedFile[]>([]);
+  const [existing, setExisting] = useState<Attachment[]>([]);
   const [queued, setQueued] = useState(false);
   const [error, setError] = useState('');
   const [over, setOver] = useState<OverBoqLine[] | null>(null);
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [extras, setExtras] = useState<PackageLine[]>([]);
 
   useEffect(() => {
-    requisitionApi
-      .balance(projectId)
-      .then(setRows)
-      .catch((e) => setLoadError(e instanceof ApiError ? e.message : 'Could not load the BOQ'));
-  }, [projectId]);
+    if (!editing) projectApi.list().then((p) => setProjects(p.filter((x) => x.status !== 'closed'))).catch(() => setProjects([]));
+  }, [editing]);
 
-  const chosen = useMemo(
-    () => Object.entries(qtys).map(([id, v]) => ({ id, qty: parseNumber(v) })).filter((x) => x.qty !== null && x.qty > 0) as { id: string; qty: number }[],
-    [qtys],
-  );
-  const badQty = Object.values(qtys).some((v) => v.trim() !== '' && (parseNumber(v) === null || (parseNumber(v) ?? 0) <= 0));
+  useEffect(() => {
+    let live = true;
+    setRows(null);
+    requisitionApi.balance(projectId).then((r) => { if (live) setRows(r); }).catch((e) => { if (live) setLoadError(e instanceof ApiError ? e.message : 'Could not load the BOQ'); });
+    // Delivery address starts as the project's site address; the user may change it.
+    if (!editing) projectApi.get(projectId).then((p) => { if (live) setAddress(p.siteAddress ?? ''); }).catch(() => undefined);
+    return () => { live = false; };
+  }, [projectId, editing]);
+
+  useEffect(() => {
+    if (!requisitionId) return;
+    requisitionApi.get(requisitionId).then((r: Requisition) => {
+      setAddress(r.deliveryAddress ?? '');
+      setNeededBy(r.neededBy ? r.neededBy.slice(0, 10) : '');
+      setRemarks(r.remarks ?? r.note ?? '');
+      setExisting(r.attachments ?? []);
+      setBoq(Object.fromEntries(r.lines.filter((l) => l.workOrderItemId && l.billable !== false).map((l) => [l.workOrderItemId as string, { qty: String(l.qtyRequested), specification: l.specification ?? '' }])));
+      setExtras(r.lines.filter((l) => l.workOrderItemId && l.billable === false && l.materialId).map((l) => ({ workOrderItemId: l.workOrderItemId as string, materialId: l.materialId as string, label: `${l.description} (${l.unit}) for S.No ${l.serialNo}`, qty: String(l.qtyRequested) })));
+      setOthers(r.lines.filter((l) => !l.workOrderItemId && l.materialId).map((l) => ({ materialId: l.materialId as string, label: `${l.serialNo} · ${l.description}`, unit: l.unit, qty: String(l.qtyRequested), specification: l.specification ?? '', isNew: Boolean(l.newMaterial) })));
+    }).catch((e) => setLoadError(message(e)));
+  }, [requisitionId]);
+
+  const chosen = Object.entries(boq).map(([id, v]) => ({ id, qty: parseNumber(v.qty), specification: v.specification.trim() })).filter((x): x is { id: string; qty: number; specification: string } => x.qty !== null && x.qty > 0);
+  const badQty = Object.values(boq).some((v) => v.qty.trim() !== '' && (parseNumber(v.qty) ?? 0) <= 0);
   const visible = (rows ?? []).filter((r) => !search.trim() || `${r.serialNo} ${r.description}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const count = chosen.length + packageLinesFor(extras).length + extraLinesFor(others).length;
+
+  const chooseProject = (id: string) => {
+    if (id === projectId) return;
+    setProjectId(id);
+    setBoq({});
+    setExtras([]);
+    setOver(null);
+  };
+
+  const upload = async (id: string) => {
+    let failed = 0;
+    for (const f of picked) {
+      try { await requisitionApi.addAttachment(id, f); } catch { failed += 1; }
+    }
+    return failed;
+  };
 
   const send = async (withReason?: string) => {
     setError('');
     if (badQty) return setError('Quantities must be numbers above 0. Clear any box you do not need.');
-    const pkg = packageLinesFor(extras);
-    if (!chosen.length && !pkg.length) return setError('Enter a quantity for at least one item.');
+    if (!count) return setError('Enter a quantity for at least one item.');
+    if (neededBy.trim() && !DATE.test(neededBy.trim())) return setError('Required date must be YYYY-MM-DD');
+    const body: NewRequisition = {
+      lines: [
+        ...chosen.map((c) => ({ workOrderItemId: c.id, qty: c.qty, ...(c.specification ? { specification: c.specification } : {}), ...(withReason ? { reason: withReason } : {}) })),
+        ...packageLinesFor(extras),
+        ...extraLinesFor(others),
+      ],
+      deliveryAddress: address.trim(),
+      remarks: remarks.trim(),
+      ...(neededBy.trim() ? { neededBy: neededBy.trim() } : {}),
+    };
     setBusy(true);
     try {
-      const r = await submitOrQueue<Requisition>(`Material request (${chosen.length} item${chosen.length === 1 ? '' : 's'})`, 'POST', `/projects/${projectId}/requisitions`, {
-        lines: [...chosen.map((c) => ({ workOrderItemId: c.id, qty: c.qty, ...(withReason ? { reason: withReason } : {}) })), ...pkg],
-        note: note.trim() || undefined,
-      });
-      if (r.queued) {
-        setQueued(true);
-        setBusy(false);
-        return;
+      let saved: Requisition;
+      if (requisitionId) saved = await requisitionApi.resubmit(requisitionId, body);
+      else {
+        const r = await submitOrQueue<Requisition>(`Material request (${count} item${count === 1 ? '' : 's'})`, 'POST', `/projects/${projectId}/requisitions`, body);
+        if (r.queued) {
+          setQueued(true);
+          setBusy(false);
+          return;
+        }
+        saved = r.data;
       }
-      navigation.replace('RequisitionDetail', { id: r.data.id, justCreated: true });
+      const attachFailed = await upload(saved.id);
+      navigation.replace('RequisitionDetail', { id: saved.id, justCreated: true, ...(attachFailed ? { attachFailed } : {}) });
     } catch (e) {
-      if (e instanceof ApiError && e.code === 'OVER_BOQ') {
-        setOver(e.details as unknown as OverBoqLine[]);
-      } else setError(e instanceof ApiError ? e.message : 'Something went wrong');
+      if (e instanceof ApiError && e.code === 'OVER_BOQ') setOver(e.details as unknown as OverBoqLine[]);
+      else setError(message(e));
       setBusy(false);
     }
+  };
+
+  const removeExisting = async (a: Attachment) => {
+    if (!requisitionId) return;
+    try { setExisting((await requisitionApi.removeAttachment(requisitionId, a.id)).attachments ?? []); } catch (e) { setError(message(e)); }
   };
 
   const confirmOver = () => {
@@ -78,23 +146,32 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
     send(reason.trim());
   };
 
-  const back = () => navigation.navigate('ProjectDetail', { id: projectId });
-  if (loadError) return <AppScreen title="New material request" onBack={back}><ErrorState message={loadError} /></AppScreen>;
-  if (!rows) return <AppScreen title="New material request" onBack={back}><ActivityIndicator /></AppScreen>;
+  const title = editing ? 'Change and resubmit request' : 'New material request';
+  const back = () => (requisitionId ? navigation.navigate('RequisitionDetail', { id: requisitionId }) : navigation.navigate('ProjectDetail', { id: projectId }));
+  if (loadError) return <AppScreen title={title} onBack={back}><ErrorState message={loadError} /></AppScreen>;
+  if (!rows) return <AppScreen title={title} onBack={back}><ActivityIndicator /></AppScreen>;
 
   if (queued) {
     return (
-      <AppScreen title="New material request" onBack={back} testID="new-requisition-screen">
-        <Text style={styles.queued} testID="req-queued">No network. Your request is saved on this phone and will be sent automatically when you are back online. You will see it in the request list after that.</Text>
+      <AppScreen title={title} onBack={back} testID="new-requisition-screen">
+        <Text style={styles.queued} testID="req-queued">
+          No network. Your request is saved on this phone and will be sent automatically when you are back online. You will see it in the request list after that.
+          {picked.length ? ' Attachments are not saved offline: add them to the request once it is sent.' : ''}
+        </Text>
         <Button title="Back to project" onPress={back} testID="req-queued-back" />
       </AppScreen>
     );
   }
 
   return (
-    <AppScreen title="New material request" subtitle="Enter the quantity you need now for each item" onBack={back} testID="new-requisition-screen">
-      {rows.length === 0 ? <EmptyState title="No BOQ items" body="The office needs to load this project's work order first." /> : null}
+    <AppScreen title={title} subtitle="Project, delivery, items, date, remarks and attachments" onBack={back} testID="new-requisition-screen">
+      {!editing && projects.length > 1 ? (
+        <ChoiceChips label="1. Project" options={projects.map((p) => ({ value: p.id, label: `${p.code} · ${p.name}` }))} value={projectId} onChange={chooseProject} testID="req-project" />
+      ) : null}
+      <TextField label="2. Delivery address" value={address} onChangeText={setAddress} placeholder="Site address, gate, floor…" maxLength={300} multiline testID="req-address" />
 
+      <Text style={styles.section}>3. Material and quantity</Text>
+      {rows.length === 0 ? <EmptyState title="No BOQ items" body="Add material not in the BOQ below, or ask the office to load this project's work order." /> : null}
       {over ? (
         <View style={styles.warn} testID="over-boq-warning">
           <Text style={styles.warnTitle}>This goes beyond the work order (BOQ)</Text>
@@ -112,46 +189,18 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
           </View>
         </View>
       ) : null}
-
       {rows.length > 5 ? <TextField label="Search items" value={search} onChangeText={setSearch} placeholder="S.No or description" testID="req-search" /> : null}
-      <View style={styles.list}>
-        {visible.map((r) => {
-          const val = qtys[r.workOrderItemId] ?? '';
-          const n = parseNumber(val) ?? 0;
-          const willExceed = n > 0 && n > r.balance;
-          return (
-            <View key={r.workOrderItemId} style={[styles.item, n > 0 && styles.itemOn]} testID={`req-item-${r.serialNo}`}>
-              <View style={styles.flex}>
-                <Text style={styles.itemTitle}>{r.serialNo}. {r.description}</Text>
-                <Text style={styles.muted}>
-                  BOQ {formatNumber(r.boqQty)} {r.unit} · requested {formatNumber(r.requested)} ·{' '}
-                  <Text style={r.balance <= 0 ? styles.extra : styles.balance}>balance {formatNumber(r.balance)}</Text>
-                </Text>
-                {willExceed ? <Text style={styles.extra}>More than the balance: {formatNumber(n - Math.max(r.balance, 0))} extra</Text> : null}
-              </View>
-              <View style={styles.qtyBox}>
-                <TextInput
-                  value={val}
-                  onChangeText={(v) => { setQtys((q) => ({ ...q, [r.workOrderItemId]: v })); setOver(null); }}
-                  keyboardType="decimal-pad"
-                  inputMode="decimal"
-                  placeholder="0"
-                  style={[styles.qtyInput, willExceed && styles.qtyWarn]}
-                  accessibilityLabel={`Quantity for ${r.description}`}
-                  testID={`req-qty-${r.serialNo}`}
-                />
-                <Text style={styles.unit}>{r.unit}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-
+      <BoqLines rows={visible} value={boq} onChange={(id, entry) => { setBoq((b) => ({ ...b, [id]: entry })); setOver(null); }} />
       {rows.length ? <PackageMaterialLines boq={rows} value={extras} onChange={setExtras} /> : null}
-      <TextField label="Note for the purchaser (optional)" value={note} onChangeText={setNote} testID="req-note" placeholder="e.g. Needed by Friday for floors 1-5" multiline />
+      <ExtraMaterialLines value={others} onChange={setOthers} />
+
+      <TextField label="4. Required date (YYYY-MM-DD, optional)" value={neededBy} onChangeText={setNeededBy} placeholder="2026-12-01" maxLength={10} testID="req-needed-by" />
+      <TextField label="5. Remarks (optional)" value={remarks} onChangeText={setRemarks} testID="req-note" placeholder="e.g. Needed for floors 1-5" maxLength={500} multiline />
+      <AttachmentPicker picked={picked} onPick={setPicked} existing={existing} onRemoveExisting={editing ? removeExisting : undefined} />
+
       {error ? <ErrorBanner message={error} testID="req-error" /> : null}
       {!over ? (
-        <Button title={`Send request (${chosen.length} item${chosen.length === 1 ? '' : 's'})`} onPress={() => send()} loading={busy} testID="req-submit" style={styles.self} />
+        <Button title={`${editing ? 'Resubmit' : 'Send'} request (${count} item${count === 1 ? '' : 's'})`} onPress={() => send()} loading={busy} testID="req-submit" style={styles.self} />
       ) : null}
     </AppScreen>
   );
@@ -159,18 +208,8 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   queued: { fontSize: 15, color: colors.text, lineHeight: 22 },
-  list: { gap: spacing.sm },
-  item: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg },
-  itemOn: { borderColor: colors.primary, backgroundColor: '#F8FAFF' },
-  flex: { flex: 1, gap: 2 },
-  itemTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  muted: { fontSize: 13, color: colors.textMuted },
-  balance: { color: colors.success, fontWeight: '700' },
+  section: { fontSize: 15, fontWeight: '700', color: colors.text },
   extra: { color: colors.danger, fontWeight: '700' },
-  qtyBox: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  qtyInput: { width: 90, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 10, fontSize: 16, textAlign: 'right', color: colors.text },
-  qtyWarn: { borderColor: colors.danger },
-  unit: { width: 44, fontSize: 13, color: colors.textMuted },
   warn: { borderWidth: 1, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2', borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
   warnTitle: { fontSize: 17, fontWeight: '800', color: colors.danger },
   warnLine: { fontSize: 14, color: colors.text },

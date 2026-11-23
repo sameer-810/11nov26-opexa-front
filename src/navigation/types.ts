@@ -15,8 +15,8 @@ export type RootStackParamList = {
   ProjectTeam: { id: string };
   BoqImport: { id: string };
   Requisitions: { projectId?: string; overBoq?: string } | undefined;
-  NewRequisition: { projectId: string };
-  RequisitionDetail: { id: string; justCreated?: boolean };
+  NewRequisition: { projectId: string; requisitionId?: string };
+  RequisitionDetail: { id: string; justCreated?: boolean; attachFailed?: number };
   Notifications: undefined;
   Approvals: undefined;
   Vendors: undefined;

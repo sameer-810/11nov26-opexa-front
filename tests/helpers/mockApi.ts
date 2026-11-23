@@ -42,6 +42,9 @@ export function installMockApi() {
   const boq: { id: string; projectId: string; serialNo: string; quantity: number; rate: number; amount: number }[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const reqs: any[] = [];
+  // Approval requests are seeded by tests; POST /action stores what was sent in `acted`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const approvals: any[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vendors: any[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -196,22 +199,41 @@ export function installMockApi() {
       }));
     }
     const newReq = path.match(/^\/projects\/([^/]+)\/requisitions$/);
-    if (newReq && method === 'POST') {
-      const lines = body.lines.map((l: { workOrderItemId: string; qty: number; reason?: string; billable?: boolean; materialId?: string }) => {
+    const editReq = path.match(/^\/requisitions\/([^/]+)$/);
+    if ((newReq && method === 'POST') || (editReq && method === 'PUT')) {
+      const lines = body.lines.map((l: { workOrderItemId?: string; qty: number; reason?: string; billable?: boolean; materialId?: string; specification?: string }) => {
+        if (!l.workOrderItemId) {
+          const m = inventory.materials.find((x) => x.id === l.materialId);
+          return { id: `l${Math.random()}`, workOrderItemId: null, materialId: m.id, billable: false, serialNo: m.code, description: m.name, unit: m.unit, boqQty: 0, previouslyRequested: 0, qtyRequested: l.qty, overBy: 0, overrideReason: null, specification: l.specification ?? '', newMaterial: m.verification === 'pending' };
+        }
         const item = boq.find((i) => i.id === l.workOrderItemId)!;
         if (l.billable === false) return { id: `l${Math.random()}`, workOrderItemId: item.id, materialId: l.materialId, billable: false, serialNo: item.serialNo, description: 'package', unit: 'Rmt', boqQty: 0, previouslyRequested: 0, qtyRequested: l.qty, overBy: 0, overrideReason: null };
         const prev = reqs.filter((r) => r.status === 'open').flatMap((r) => r.lines).filter((x) => x.workOrderItemId === item.id).reduce((s, x) => s + x.qtyRequested, 0);
         const overBy = Math.min(l.qty, Math.max(0, prev + l.qty - item.quantity));
-        return { id: `l${Math.random()}`, workOrderItemId: item.id, serialNo: item.serialNo, description: `Item ${item.serialNo}`, unit: 'Nos', boqQty: item.quantity, previouslyRequested: prev, qtyRequested: l.qty, overBy, overrideReason: overBy ? l.reason ?? null : null };
+        return { id: `l${Math.random()}`, workOrderItemId: item.id, serialNo: item.serialNo, description: `Item ${item.serialNo}`, unit: 'Nos', boqQty: item.quantity, previouslyRequested: prev, qtyRequested: l.qty, overBy, overrideReason: overBy ? l.reason ?? null : null, specification: l.specification ?? '' };
       });
       const missing = lines.filter((l: { overBy: number; overrideReason: string | null }) => l.overBy > 0 && !l.overrideReason);
       if (missing.length) {
         return fail(422, 'OVER_BOQ', 'Some items go beyond the work order (BOQ).', missing.map((l: { workOrderItemId: string; serialNo: string; boqQty: number; previouslyRequested: number; qtyRequested: number; overBy: number }) => ({ field: l.workOrderItemId, message: 'over', serialNo: l.serialNo, boqQty: l.boqQty, previouslyRequested: l.previouslyRequested, qtyRequested: l.qtyRequested, overBy: l.overBy })));
       }
-      const r = { id: `r${reqs.length + 1}`, number: `MR-000${reqs.length + 1}`, projectId: newReq[1], projectName: 'Worli', projectCode: 'P-001', raisedBy: { id: me.id, name: me.name }, note: body.note ?? '', neededBy: null, status: 'open', cancelReason: null, createdAt: new Date().toISOString(), overBoq: lines.some((l: { overBy: number }) => l.overBy > 0), lines };
+      const header = { note: body.remarks ?? body.note ?? '', remarks: body.remarks ?? body.note ?? '', deliveryAddress: body.deliveryAddress ?? '', neededBy: body.neededBy ?? null, overBoq: lines.some((l: { overBy: number }) => l.overBy > 0), lines };
+      if (editReq) {
+        const r = reqs.find((x) => x.id === editReq[1]);
+        if (r.status !== 'sent_back') return fail(409, 'NOT_SENT_BACK', 'Only a request sent back for changes can be edited and resubmitted');
+        Object.assign(r, header, { status: 'pending_approval' });
+        r.timeline.push({ type: 'resubmitted', at: new Date().toISOString(), by: { id: me.id, name: me.name, role: me.role }, comment: '' });
+        return ok(withProgress(r));
+      }
+      const r = { id: `r${reqs.length + 1}`, number: `MR-000${reqs.length + 1}`, projectId: newReq![1], projectName: 'Worli', projectCode: 'P-001', raisedBy: { id: me.id, name: me.name }, ...header, status: 'open', cancelReason: null, createdAt: new Date().toISOString(), attachments: [], timeline: [{ type: 'created', at: new Date().toISOString(), by: { id: me.id, name: me.name, role: me.role }, comment: '' }] };
       reqs.push(r);
       return ok(r, 201);
     }
+    const reqTimeline = path.match(/^\/requisitions\/([^/]+)\/timeline$/);
+    if (reqTimeline) return ok(reqs.find((r) => r.id === reqTimeline[1])?.timeline ?? []);
+    const approvalOne = path.match(/^\/approvals\/([^/]+)(\/action)?$/);
+    if (path === '/approvals/pending') return ok(approvals.map((a) => ({ id: a.id, transactionNumber: a.transactionNumber, transactionType: 'requisition', amount: 0, status: 'pending', currentSequence: 1, submittedAt: '' })));
+    if (approvalOne && approvalOne[2] && method === 'POST') { const a = approvals.find((x) => x.id === approvalOne[1]); a.acted = body; return ok(a); }
+    if (approvalOne) return ok(approvals.find((x) => x.id === approvalOne[1]));
     const oneReq = path.match(/^\/requisitions\/([^/]+)$/);
     if (oneReq) return ok(withProgress(reqs.find((r) => r.id === oneReq[1])));
     if (path.startsWith('/requisitions')) return ok(reqs.map(withProgress));
@@ -495,7 +517,7 @@ export function installMockApi() {
     }
     if (path.startsWith('/inventory/')) {
       if (path.startsWith('/inventory/materials')) {
-        if (method === 'POST') { const m = { id: `m${inventory.materials.length + 1}`, code: `MAT-0000${inventory.materials.length + 1}`, isActive: true, minStock: 0, category: null, ...body }; inventory.materials.push(m); return ok(m, 201); }
+        if (method === 'POST') { const m = { id: `m${inventory.materials.length + 1}`, code: `MAT-0000${inventory.materials.length + 1}`, isActive: true, minStock: 0, category: null, verification: perms(me).includes('purchase.manage') || perms(me).includes('store.manage') ? 'verified' : 'pending', ...body }; inventory.materials.push(m); return ok(m, 201); }
         return ok(inventory.materials);
       }
       if (path === '/inventory/warehouses') return ok([{ id: 'w1', code: 'CS', name: 'Central Store', address: '', isCentral: true, managerIds: [], isActive: true }]);
@@ -601,5 +623,5 @@ export function installMockApi() {
   };
 
   (globalThis as unknown as { fetch: unknown }).fetch = fetchMock;
-  return { fetchMock, net, users, addUser, byEmail: (e: string) => users.get(e.toLowerCase()), projects, boq, reqs, vendors, pos, rfqs, inventory, finance, subcontract, billing, commitments, handover, localPurchases, materialRows, returns, usage, counts, overview, attendance, payroll, service, sales };
+  return { fetchMock, net, users, addUser, byEmail: (e: string) => users.get(e.toLowerCase()), projects, boq, reqs, approvals, vendors, pos, rfqs, inventory, finance, subcontract, billing, commitments, handover, localPurchases, materialRows, returns, usage, counts, overview, attendance, payroll, service, sales };
 }

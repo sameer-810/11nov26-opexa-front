@@ -23,7 +23,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       BoqImport: 'app/projects/:id/boq/import',
       Requisitions: 'app/requisitions',
       NewRequisition: 'app/projects/:projectId/requisitions/new',
-      RequisitionDetail: { path: 'app/requisitions/:id', stringify: { justCreated: () => '' } },
+      RequisitionDetail: { path: 'app/requisitions/:id', stringify: { justCreated: () => '', attachFailed: () => '' } },
       Notifications: 'app/notifications',
       Vendors: 'app/vendors',
       PurchaseOrders: 'app/purchase-orders',

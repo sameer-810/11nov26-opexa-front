@@ -1,4 +1,5 @@
-export type Material = { id: string; code: string; name: string; unit: string; category: string | null; minStock: number; isActive: boolean };
+export type Material = { id: string; code: string; name: string; unit: string; category: string | null; minStock: number; isActive: boolean; description?: string; specifications?: string; verification?: 'pending' | 'verified'; mergedInto?: string | null };
+export type MaterialInput = { name: string; unit: string; category?: string; minStock?: number; description?: string; specifications?: string };
 export type Warehouse = { id: string; code: string; name: string; address: string; isCentral: boolean; managerIds: string[]; isActive: boolean };
 export type Location = { kind: 'warehouse' | 'site' | 'transit' | 'custody'; id: string; name: string };
 export type StockRow = { materialId: string; code: string; name: string; unit: string; location: Location; onHand: number; reserved: number; available: number; value: number; avgRate: number; minStock: number; low: boolean };
