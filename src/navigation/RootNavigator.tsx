@@ -84,6 +84,7 @@ import { ServiceScreen } from '../modules/service/screens/ServiceScreen';
 import { NewTicketScreen } from '../modules/service/screens/NewTicketScreen';
 import { TicketDetailScreen } from '../modules/service/screens/TicketDetailScreen';
 import { AssetsScreen } from '../modules/service/screens/AssetsScreen';
+import { CustomersScreen } from '../modules/service/screens/CustomersScreen';
 import { SalesScreen } from '../modules/sales/screens/SalesScreen';
 import { NewLeadScreen } from '../modules/sales/screens/NewLeadScreen';
 import { LeadDetailScreen } from '../modules/sales/screens/LeadDetailScreen';
@@ -127,7 +128,7 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
     return (
       <Stack.Navigator initialRouteName="Dashboard" screenOptions={transparent ? glassOptions : screenOptions}>
         <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Opexa - Dashboard' }} />
-        {manageTeam && <Stack.Screen name="Team" component={TeamScreen} options={{ title: 'Opexa - Team' }} />}
+        {(manageTeam || can(user, PERMS.TEAM_VIEW)) && <Stack.Screen name="Team" component={TeamScreen} options={{ title: 'Opexa - Team' }} />}
         {manageTeam && <Stack.Screen name="AddMember" component={AddMemberScreen} options={{ title: 'Opexa - Add member' }} />}
         {manageTeam && <Stack.Screen name="MemberDetail" component={MemberDetailScreen} options={{ title: 'Opexa - Team member' }} />}
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: 'Opexa - Change password' }} />
@@ -168,6 +169,7 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         <Stack.Screen name="TicketDetail" component={TicketDetailScreen} options={{ title: 'Opexa - Service job' }} />
         {can(user, PERMS.SERVICE_MANAGE) && <Stack.Screen name="NewTicket" component={NewTicketScreen} options={{ title: 'Opexa - New complaint' }} />}
         {can(user, PERMS.SERVICE_MANAGE) && <Stack.Screen name="ServiceAssets" component={AssetsScreen} options={{ title: 'Opexa - Equipment' }} />}
+        {[PERMS.SERVICE_MANAGE, PERMS.SERVICE_VIEW, PERMS.PROJECT_MANAGE, PERMS.PROJECT_VIEW, PERMS.SALES_MANAGE].some((p) => can(user, p)) && <Stack.Screen name="Customers" component={CustomersScreen} options={{ title: 'Opexa - Customers' }} />}
         {can(user, PERMS.SALES_MANAGE) && <Stack.Screen name="Sales" component={SalesScreen} options={{ title: 'Opexa - Sales' }} />}
         {can(user, PERMS.SALES_MANAGE) && <Stack.Screen name="NewLead" component={NewLeadScreen} options={{ title: 'Opexa - New enquiry' }} />}
         {can(user, PERMS.SALES_MANAGE) && <Stack.Screen name="LeadDetail" component={LeadDetailScreen} options={{ title: 'Opexa - Enquiry' }} />}
@@ -211,7 +213,7 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {canSeeExpenseReport(user) && <Stack.Screen name="ExpenseReport" component={ExpenseReportScreen} options={{ title: 'Opexa - Expense report' }} />}
         {can(user, PERMS.SETTINGS_MANAGE) && <Stack.Screen name="ExpenseCategories" component={ExpenseCategoriesScreen} options={{ title: 'Opexa - Expense categories' }} />}
         <Stack.Screen name="ProjectDocuments" component={ProjectDocumentsScreen} options={{ title: 'Opexa - Project documents' }} />
-        {(can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.SERVICE_MANAGE)) && <Stack.Screen name="HandoverAmc" component={HandoverAmcScreen} options={{ title: 'Opexa - Handover & AMC' }} />}
+        {[PERMS.PROJECT_MANAGE, PERMS.SERVICE_MANAGE, PERMS.SERVICE_VIEW, PERMS.PROJECT_VIEW].some((p) => can(user, p)) && <Stack.Screen name="HandoverAmc" component={HandoverAmcScreen} options={{ title: 'Opexa - Handover & AMC' }} />}
         {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Commitments" component={CommitmentsScreen} options={{ title: 'Opexa - Retention & guarantees' }} />}
         {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.RECEIVING_RECORD].some((p) => can(user, p)) && <Stack.Screen name="ProjectBilling" component={ProjectBillingScreen} options={{ title: 'Opexa - Client billing' }} />}
         {(can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.REPORTS_VIEW)) && <Stack.Screen name="ProjectFinance" component={ProjectFinanceScreen} options={{ title: 'Opexa - Estimate & profit' }} />}

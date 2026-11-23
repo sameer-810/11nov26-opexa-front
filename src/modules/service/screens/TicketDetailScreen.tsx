@@ -15,10 +15,14 @@ import { StatusChip } from '../../../shared/ui/StatusChip';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
-import { PRIORITY_LABEL, serviceApi, STATUS_LABEL, STATUS_TONE, type Ticket } from '../api/serviceApi';
+import { openPrint } from '../../invoice/invoiceApi';
+import { COVERAGE_TONE, PRIORITY_LABEL, serviceApi, STATUS_LABEL, STATUS_TONE, type Coverage, type Ticket } from '../api/serviceApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TicketDetail'>;
 const SOURCE = { app: 'Logged in app', 'client-link': 'Client sent from link', system: 'Created automatically' } as const;
+// Older jobs have no coverage: read it from the warranty flag.
+const coverageOf = (t: Ticket): Coverage | null => t.coverage ?? (t.asset ? (t.underWarranty ? 'warranty' : 'chargeable') : null);
+const coverageText = (t: Ticket, c: Coverage) => (c === 'warranty' ? 'Under warranty - no charge' : c === 'amc' ? (t.partsIncluded ? 'AMC - labour and parts free' : 'AMC - labour free, parts chargeable') : 'Warranty over - chargeable');
 
 export function TicketDetailScreen({ navigation, route }: Props) {
   const { id } = route.params;
@@ -32,6 +36,8 @@ export function TicketDetailScreen({ navigation, route }: Props) {
   const [vStatus, setVStatus] = useState<'in-progress' | 'resolved'>('in-progress');
   const [charge, setCharge] = useState('');
   const [rating, setRating] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [signOff, setSignOff] = useState('');
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [busy, setBusy] = useState('');
@@ -49,6 +55,13 @@ export function TicketDetailScreen({ navigation, route }: Props) {
   }, [id, manager]);
   useFocusEffect(useCallback(() => void load(), [load]));
 
+  // An action that does not return the job (print, invoice).
+  const run = async (key: string, fn: () => Promise<void>) => {
+    setError('');
+    setBusy(key);
+    try { await fn(); } catch (e) { setError(e instanceof ApiError ? e.message : 'Something went wrong'); }
+    setBusy('');
+  };
   const act = async (key: string, fn: () => Promise<Ticket>, after?: () => void) => {
     setError('');
     setBusy(key);
@@ -63,7 +76,10 @@ export function TicketDetailScreen({ navigation, route }: Props) {
 
   if (!t) return <AppScreen title="Service job" onBack={() => navigation.navigate('Service')}>{loadError ? <ErrorState message={loadError} onRetry={load} /> : <ActivityIndicator />}</AppScreen>;
   const open = !['resolved', 'closed'].includes(t.status);
-  const mayCharge = !t.underWarranty || manager;
+  const coverage = coverageOf(t);
+  const noCharge = Boolean(t.noCharge) || t.underWarranty;
+  const mayCharge = !noCharge || manager;
+  const mayInvoice = (manager || can(user, PERMS.INVOICE_CREATE)) && !open && t.charge > 0 && !noCharge && !t.serviceInvoiceId;
   const saveVisit = () => {
     const c = charge.trim() ? parseNumber(charge) : undefined;
     if (c === null) return setError('Charge must be a number');
@@ -76,7 +92,7 @@ export function TicketDetailScreen({ navigation, route }: Props) {
         <StatusChip label={STATUS_LABEL[t.status]} tone={STATUS_TONE[t.status]} testID="tk-status" />
         <StatusChip label={PRIORITY_LABEL[t.priority]} tone={t.priority === 'urgent' ? 'danger' : 'neutral'} />
         {t.kind === 'preventive' ? <StatusChip label="Preventive maintenance" tone="info" /> : null}
-        {t.asset ? <StatusChip label={t.underWarranty ? 'Under warranty - no charge' : 'Warranty over - chargeable'} tone={t.underWarranty ? 'success' : 'warning'} testID="tk-warranty" /> : null}
+        {coverage ? <StatusChip label={coverageText(t, coverage)} tone={COVERAGE_TONE[coverage]} testID="tk-warranty" /> : null}
       </View>
       <View style={styles.box}>
         {t.asset ? <Text style={styles.text}>Unit: {[t.asset.name, t.asset.brand, t.asset.model].filter(Boolean).join(' ')} · S/N {t.asset.serialNo || '-'}{t.asset.location ? ` · ${t.asset.location}` : ''} · warranty till {formatDate(t.asset.warrantyEnd)}</Text> : <Text style={styles.muted}>No specific unit</Text>}
@@ -87,6 +103,13 @@ export function TicketDetailScreen({ navigation, route }: Props) {
         <Text style={styles.muted}>{SOURCE[t.source]} on {formatDateTime(t.createdAt)} · {t.assignedTo ? `Technician: ${t.assignedTo.name}` : 'Not assigned yet'}</Text>
         {t.charge ? <Text style={styles.text}>Charge: {formatMoney(t.charge)}</Text> : null}
         {t.clientRating ? <Text style={styles.text}>Client rating: {'★'.repeat(t.clientRating)}</Text> : null}
+        {t.feedback ? <Text style={styles.text} testID="tk-feedback">Feedback: {t.feedback}</Text> : null}
+        {t.signOffName ? <Text style={styles.muted}>Signed off by {t.signOffName}</Text> : null}
+        <View style={styles.row}>
+          <Button title="Service report (print)" variant="outline" onPress={() => run('print', async () => openPrint((await serviceApi.reportLink(id)).url))} loading={busy === 'print'} testID="tk-print" />
+          {mayInvoice ? <Button title={`Raise service invoice (${formatMoney(t.charge)} + GST)`} onPress={() => run('invoice', async () => { await serviceApi.raiseInvoice(id); await load(); })} loading={busy === 'invoice'} testID="tk-invoice" /> : null}
+          {t.serviceInvoiceId ? <Button title="Open service invoice" variant="ghost" onPress={() => navigation.navigate('InvoiceDetail', { id: t.serviceInvoiceId ?? '' })} testID="tk-open-invoice" /> : null}
+        </View>
       </View>
 
       {manager && open ? (
@@ -101,7 +124,7 @@ export function TicketDetailScreen({ navigation, route }: Props) {
           <Text style={styles.title}>Visit report</Text>
           <TextField label="What did you find and do?" value={note} onChangeText={setNote} multiline testID="tk-note" />
           <TextField label="Parts used (optional)" value={parts} onChangeText={setParts} testID="tk-parts" />
-          {mayCharge ? <TextField label="Charge to client (₹, optional)" value={charge} onChangeText={setCharge} keyboardType="decimal-pad" testID="tk-charge" /> : <Text style={styles.muted}>Under warranty - no charge to the client.</Text>}
+          {mayCharge ? <TextField label="Charge to client (₹, optional)" value={charge} onChangeText={setCharge} keyboardType="decimal-pad" testID="tk-charge" /> : <Text style={styles.muted}>{coverage === 'amc' ? 'Covered by the AMC' : 'Under warranty'} - no charge to the client.</Text>}
           <ChoiceChips label="Status after this visit" options={[{ value: 'in-progress', label: 'Still working' }, { value: 'resolved', label: 'Problem solved' }]} value={vStatus} onChange={(v) => setVStatus(v as typeof vStatus)} testID="tk-vstatus" />
           <Button title="Save visit" onPress={saveVisit} loading={busy === 'visit'} testID="tk-save-visit" style={styles.self} />
         </View>
@@ -110,8 +133,10 @@ export function TicketDetailScreen({ navigation, route }: Props) {
       {manager && t.status === 'resolved' ? (
         <View style={styles.box}>
           <ChoiceChips label="Client rating (optional)" options={['1', '2', '3', '4', '5'].map((v) => ({ value: v, label: `${v}★` }))} value={rating} onChange={setRating} testID="tk-rating" />
+          <TextField label="Client feedback (optional)" value={feedback} onChangeText={setFeedback} multiline testID="tk-feedback-input" />
+          <TextField label="Signed off by (client name)" value={signOff} onChangeText={setSignOff} testID="tk-signoff" />
           <View style={styles.row}>
-            <Button title="Close job" onPress={() => act('close', () => serviceApi.close(id, rating ? Number(rating) : undefined))} loading={busy === 'close'} testID="tk-close" />
+            <Button title="Close job" onPress={() => act('close', () => serviceApi.close(id, { clientRating: rating ? Number(rating) : undefined, feedback: feedback.trim() || undefined, signOffName: signOff.trim() || undefined }))} loading={busy === 'close'} testID="tk-close" />
             <Button title="Not fixed - reopen" variant="outline" onPress={() => act('reopen', () => serviceApi.reopen(id))} loading={busy === 'reopen'} testID="tk-reopen" />
           </View>
         </View>

@@ -24,7 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
   { route: 'Store', label: 'Store', icon: 'box', show: (u) => any(u, [PERMS.STORE_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.PROJECT_MANAGE]) },
   { route: 'Invoices', label: 'Invoices', icon: 'receipt', show: (u) => any(u, [PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT]), also: ['InvoiceForm', 'InvoiceDetail'] },
   { route: 'Subcontract', label: 'Subcontractors', icon: 'hardhat', show: (u) => any(u, [PERMS.PROJECT_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.SUPPLIER_INVOICE_VERIFY, PERMS.RECEIVING_RECORD, PERMS.REPORTS_VIEW]) },
-  { route: 'Service', label: 'Service & AMC', icon: 'tool', show: always, also: ['TicketDetail', 'NewTicket', 'ServiceAssets', 'HandoverAmc'] },
+  { route: 'Service', label: 'Service & AMC', icon: 'tool', show: always, also: ['TicketDetail', 'NewTicket', 'ServiceAssets', 'HandoverAmc', 'Customers'] },
   { route: 'Sales', label: 'Sales', icon: 'trend', show: (u) => can(u, PERMS.SALES_MANAGE), also: ['NewLead', 'LeadDetail', 'QuoteForm'] },
   { route: 'MyExpenses', label: 'My expenses', icon: 'wallet', show: always, also: ['NewExpense', 'ExpenseForm', 'ExpenseCategories'] },
   { route: 'Payables', label: 'Supplier payables', icon: 'rupee', show: canSeePayables, also: ['SupplierPayments', 'SupplierPaymentForm', 'SupplierPaymentDetail', 'SupplierLedger'] },
@@ -33,7 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
   { route: 'Costing', label: 'Costing', icon: 'pie', show: (u) => any(u, [PERMS.PROJECT_MANAGE, PERMS.REPORTS_VIEW]), also: ['ProjectCost'] },
   { route: 'Overview', label: 'Analytics', icon: 'chart', show: (u) => can(u, PERMS.PROJECT_MANAGE) },
   { route: 'ActivityLog', label: 'Activity log', icon: 'shield', show: canSeeActivityLog },
-  { route: 'Team', label: 'Team', icon: 'users', show: (u) => can(u, PERMS.TEAM_MANAGE), also: ['AddMember', 'MemberDetail'] },
+  { route: 'Team', label: 'Team', icon: 'users', show: (u) => can(u, PERMS.TEAM_MANAGE) || can(u, PERMS.TEAM_VIEW), also: ['AddMember', 'MemberDetail'] },
 ];
 
 export const activeItem = (route: string | undefined) =>

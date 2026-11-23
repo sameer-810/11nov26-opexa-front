@@ -10,12 +10,16 @@ import { StatusChip } from '../../../shared/ui/StatusChip';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
+import { useAuth } from '../../../shared/store/useAuthStore';
+import { can, PERMS } from '../../../shared/permissions';
 import { teamApi } from '../api/teamApi';
 import { ROLE_LABEL, type TeamMember } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Team'>;
 
 export function TeamScreen({ navigation }: Props) {
+  // Q28: HR and directors see the team read-only.
+  const manage = can(useAuth().user, PERMS.TEAM_MANAGE);
   const [members, setMembers] = useState<TeamMember[] | null>(null);
   const [error, setError] = useState('');
 
@@ -40,7 +44,7 @@ export function TeamScreen({ navigation }: Props) {
       title="Team"
       subtitle="People who can sign in to your company account"
       onBack={() => navigation.navigate('Dashboard')}
-      right={<Button title="Add member" onPress={() => navigation.navigate('AddMember')} testID="add-member" />}
+      right={manage ? <Button title="Add member" onPress={() => navigation.navigate('AddMember')} testID="add-member" /> : undefined}
       testID="team-screen"
     >
       {error ? <ErrorState message={error} onRetry={load} /> : null}
@@ -52,7 +56,8 @@ export function TeamScreen({ navigation }: Props) {
         {members?.map((m) => (
           <Pressable
             key={m.id}
-            onPress={() => navigation.navigate('MemberDetail', { id: m.id })}
+            onPress={manage ? () => navigation.navigate('MemberDetail', { id: m.id }) : undefined}
+            disabled={!manage}
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             accessibilityRole="button"
             testID={`member-${m.email}`}

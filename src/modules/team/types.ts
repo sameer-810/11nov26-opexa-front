@@ -19,6 +19,8 @@ export const ROLE_LABEL: Record<Role, string> = {
   director: 'Director',
   admin: 'Administrator',
   store_incharge: 'Store In-charge',
+  service_head: 'Service Head',
+  hr: 'HR',
 };
 
 export const ROLE_HINT: Record<Role, string> = {
@@ -33,4 +35,6 @@ export const ROLE_HINT: Record<Role, string> = {
   director: 'Final approval and company reports',
   admin: 'Team, settings and approval rules',
   store_incharge: 'Warehouse stock, transfers and issues',
+  service_head: 'Accepts handovers, runs AMCs and complaints',
+  hr: 'Attendance, payroll and the team (view)',
 };

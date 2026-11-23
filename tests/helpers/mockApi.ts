@@ -391,7 +391,7 @@ export function installMockApi() {
       billing.invoices.push(body);
       return ok({ id: 'inv-new' }, 201);
     }
-    const finM = path.match(/^\/projects\/([^/]+)\/(financials|estimate|boq-regularisation|boq-revisions)$/);
+    const finM = path.match(/^\/projects\/([^/]+)\/(financials|estimate|boq-regularisation|boq-revisions|change-requests)$/);
     if (finM) {
       if (finM[2] === 'financials') return ok(finance.financials);
       if (finM[2] === 'estimate') { if (method === 'PUT') finance.saved.push(body); return ok(finance.estimate); }

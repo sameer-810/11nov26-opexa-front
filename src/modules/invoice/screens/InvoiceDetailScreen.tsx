@@ -15,7 +15,7 @@ import { StatusChip } from '../../../shared/ui/StatusChip';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
-import { invoiceApi, openPrint, STATUS_LABEL, STATUS_TONE, type Invoice } from '../invoiceApi';
+import { invoiceApi, openPrint, STATUS_LABEL, STATUS_TONE, lineGroups, type Invoice } from '../invoiceApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'InvoiceDetail'>;
 
@@ -71,11 +71,17 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
       {inv.status === 'cancelled' ? <Text style={styles.bad}>Cancelled: {inv.cancelReason}</Text> : null}
 
       <View style={styles.box}>
-        {inv.lines.map((l) => (
-          <View key={l.id} style={styles.line} testID={`inv-detail-line-${l.serialNo}`}>
-            <Text style={styles.text}>{l.serialNo}. {l.description}</Text>
-            <Text style={styles.muted}>{formatNumber(l.qty)} {l.unit} × {formatMoney(l.rate)} = {formatMoney(l.amount)}</Text>
-            {l.overBoq ? <Text style={styles.warn}>Beyond BOQ ({formatNumber(l.boqQty)}, billed before {formatNumber(l.billedBefore)}) - billed {l.overBoqChoice === 'boq' ? 'as per BOQ' : 'actual'}</Text> : null}
+        {lineGroups(inv.lines).map((g) => (
+          <View key={g.key} testID={`inv-group-${g.key}`}>
+            {g.title ? <Text style={styles.title}>{g.title}</Text> : null}
+            {g.lines.map((l) => (
+              <View key={l.id} style={styles.line} testID={`inv-detail-line-${l.serialNo}`}>
+                <Text style={styles.text}>{l.serialNo}. {l.description}</Text>
+                <Text style={styles.muted}>{formatNumber(l.qty)} {l.unit} × {formatMoney(l.rate)} = {formatMoney(l.amount)}</Text>
+                {l.overBoq ? <Text style={styles.warn}>Beyond BOQ ({formatNumber(l.boqQty)}, billed before {formatNumber(l.billedBefore)}) - billed {l.overBoqChoice === 'boq' ? 'as per BOQ' : 'actual'}</Text> : null}
+              </View>
+            ))}
+            {g.title ? <View style={styles.sum}><Text style={styles.muted}>Subtotal</Text><Text style={styles.muted} testID={`inv-subtotal-${g.key}`}>{formatMoney(g.lines.reduce((a, l) => a + l.amount, 0))}</Text></View> : null}
           </View>
         ))}
         <View style={styles.sum}><Text style={styles.text}>Taxable</Text><Text style={styles.text}>{formatMoney(inv.taxable)}</Text></View>

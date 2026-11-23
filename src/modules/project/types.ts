@@ -64,6 +64,9 @@ export type ProjectInput = {
   status?: ProjectStatus;
   projectManagerId?: string | null;
   boqFormat?: BoqFormat;
+  // Q22: optional estimate on create.
+  contractValue?: number;
+  estimateLumpSum?: Partial<Record<'material' | 'installation' | 'subcontract' | 'labour' | 'transport' | 'other', number>>;
 };
 
 export type BoqItem = {

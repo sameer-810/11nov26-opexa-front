@@ -16,6 +16,7 @@ import { projectApi } from '../project/api/projectApi';
 import { s, useAction, useData } from '../inventory/ui';
 import { subcontractApi } from './subcontractApi';
 import { WorkOrderForm } from './WorkOrderForm';
+import { RetentionTab } from './RetentionTab';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Subcontract'>;
 
@@ -38,7 +39,7 @@ export function SubcontractScreen({ navigation }: Props) {
 
   return (
     <AppScreen title="Subcontractors" subtitle="Work orders, verified progress and payment certificates — pay only for approved work" onBack={() => navigation.navigate('Dashboard')} testID="subcontract-screen">
-      <ChoiceChips label="Section" options={[{ value: 'work', label: 'Work orders' }, { value: 'progress', label: `Progress${data?.progress.length ? ` (${data.progress.length})` : ''}` }, { value: 'pay', label: 'Certificates' }, { value: 'setup', label: 'Subcontractors' }]} value={tab} onChange={setTab} testID="sc-tab" />
+      <ChoiceChips label="Section" options={[{ value: 'work', label: 'Work orders' }, { value: 'progress', label: `Progress${data?.progress.length ? ` (${data.progress.length})` : ''}` }, { value: 'pay', label: 'Certificates' }, { value: 'retention', label: 'Retention & register' }, { value: 'setup', label: 'Subcontractors' }]} value={tab} onChange={setTab} testID="sc-tab" />
       {problem ? <ErrorBanner message={problem} testID="sc-problem" /> : null}
       {data && tab === 'work' ? (
         <View style={s.list}>
@@ -84,7 +85,7 @@ export function SubcontractScreen({ navigation }: Props) {
       ) : null}
       {data && tab === 'pay' ? (
         <View style={s.list}>
-          {data.summary.rows.map((r) => <Text key={r.subcontractorId} style={s.muted} testID={`sc-sum-${r.name}`}>{r.name}: ordered {formatMoney(r.orderedValue)} · done {formatMoney(r.approvedValue)} · certified {formatMoney(r.certifiedGross)} · retention held {formatMoney(r.retentionHeld)} · advance balance {formatMoney(r.advanceBalance)} · paid {formatMoney(r.paid)} · outstanding {formatMoney(r.outstanding)}{r.uncertifiedApprovedValue ? ` · approved, not yet certified ${formatMoney(r.uncertifiedApprovedValue)}` : ''}</Text>)}
+          {data.summary.rows.map((r) => <Text key={r.subcontractorId} style={s.muted} testID={`sc-sum-${r.name}`}>{r.name}: ordered {formatMoney(r.orderedValue)} · done {formatMoney(r.approvedValue)} · certified {formatMoney(r.certifiedGross)} · retention held {formatMoney(r.retentionHeld)}{r.retentionReleased ? ` (released ${formatMoney(r.retentionReleased)})` : ''} · advance balance {formatMoney(r.advanceBalance)} · paid {formatMoney(r.paid)} · outstanding {formatMoney(r.outstanding)}{r.uncertifiedApprovedValue ? ` · approved, not yet certified ${formatMoney(r.uncertifiedApprovedValue)}` : ''}</Text>)}
           {pm ? data.wos.filter((w) => w.status === 'approved').map((w) => <Button key={w.id} title={`Certify approved work on ${w.number}`} variant="outline" onPress={() => run(`c-${w.id}`, () => subcontractApi.certify(w.id))} loading={busy === `c-${w.id}`} testID={`certify-${w.number}`} />) : null}
           {data.certs.map((c) => (
             <View key={c.id} style={s.card} testID={`cert-${c.number}`}>
@@ -100,6 +101,7 @@ export function SubcontractScreen({ navigation }: Props) {
           ))}
         </View>
       ) : null}
+      {data && tab === 'retention' ? <RetentionTab agreements={data.agreements} subs={data.subs} pm={pm} finance={finance || pm} /> : null}
       {data && tab === 'setup' ? (
         <View style={s.list}>
           <View style={s.form}>
@@ -120,8 +122,9 @@ export function SubcontractScreen({ navigation }: Props) {
                 <View style={s.cell}><TextField label="Title" value={f.atitle ?? ''} onChangeText={set('atitle')} testID="ag-title" /></View>
                 <View style={s.cell}><TextField label="Retention %" value={f.aret ?? ''} onChangeText={set('aret')} keyboardType="decimal-pad" /></View>
                 <View style={s.cell}><TextField label="Advance recovery %" value={f.aadv ?? ''} onChangeText={set('aadv')} keyboardType="decimal-pad" /></View>
+                <View style={s.cell}><TextField label="DLP ends on (YYYY-MM-DD)" value={f.adlp ?? ''} onChangeText={set('adlp')} testID="ag-dlp" /></View>
               </View>
-              <Button title="Save agreement" onPress={() => run('ag', () => subcontractApi.createAgreement({ subcontractorId: f.asub ?? '', projectId: f.aproj ?? '', title: f.atitle ?? '', retentionPct: parseNumber(f.aret ?? '') ?? 0, advanceRecoveryPct: parseNumber(f.aadv ?? '') ?? 0 }))} loading={busy === 'ag'} testID="ag-save" />
+              <Button title="Save agreement" onPress={() => run('ag', () => subcontractApi.createAgreement({ subcontractorId: f.asub ?? '', projectId: f.aproj ?? '', title: f.atitle ?? '', retentionPct: parseNumber(f.aret ?? '') ?? 0, advanceRecoveryPct: parseNumber(f.aadv ?? '') ?? 0, ...(f.adlp ? { dlpEndsOn: f.adlp } : {}) }))} loading={busy === 'ag'} testID="ag-save" />
             </View>
           ) : null}
           {data.subs.map((x) => <Text key={x.id} style={s.muted}>{x.code} · {x.name}{x.gstin ? ` · ${x.gstin}` : ''}</Text>)}

@@ -11,8 +11,8 @@ import { TRANSACTION_TYPES, type Person, type TransactionType, type Workflow, ty
 import { roleName } from './ApprovalHistory';
 
 // Roles that can be an approval level (anyone in the role can act, or their delegate).
-export const APPROVER_ROLES = ['purchaser', 'project_manager', 'hod', 'director', 'accounts', 'admin', 'store_incharge'] as const;
-export const typeLabel = (t: string) => ({ requisition: 'Material request', purchase_order: 'Purchase order', po_revision: 'PO revision', supplier_selection: 'Supplier selection', boq_revision: 'BOQ revision', additional_work: 'Additional work', work_order: 'Subcontract work order', work_certificate: 'Work certificate', transfer: 'Stock transfer', billing: 'Billing', expense: 'Expense voucher', over_receipt: 'Over-receipt', supplier_payment: 'Supplier payment' }[t] ?? t);
+export const APPROVER_ROLES = ['purchaser', 'project_manager', 'hod', 'director', 'accounts', 'admin', 'store_incharge', 'service_head', 'hr'] as const;
+export const typeLabel = (t: string) => ({ requisition: 'Material request', purchase_order: 'Purchase order', po_revision: 'PO revision', supplier_selection: 'Supplier selection', boq_revision: 'BOQ revision', additional_work: 'Additional work', work_order: 'Subcontract work order', work_certificate: 'Work certificate', transfer: 'Stock transfer', billing: 'Billing', expense: 'Expense voucher', over_receipt: 'Over-receipt', supplier_payment: 'Supplier payment', retention_release: 'Retention release' }[t] ?? t);
 
 type LevelDraft = { by: 'role' | 'user'; value: string };
 type Props = { workflow: Workflow | null; people: Person[]; projects: { id: string; code: string; name: string }[]; onSave: (input: WorkflowInput) => Promise<void>; onCancel: () => void };

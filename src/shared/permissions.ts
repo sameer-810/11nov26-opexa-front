@@ -21,6 +21,10 @@ export const PERMS = {
   SUPPLIER_INVOICE_VERIFY: 'supplierInvoice.verify',
   STORE_MANAGE: 'store.manage',
   AUDIT_VIEW: 'audit.view',
+  // Q28: read-only rights (directors, HR).
+  PROJECT_VIEW: 'project.view',
+  TEAM_VIEW: 'team.view',
+  SERVICE_VIEW: 'service.view',
 } as const;
 
 export const can = (user: User | null | undefined, permission: string) => Boolean(user?.permissions?.includes(permission));

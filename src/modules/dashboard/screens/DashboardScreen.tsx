@@ -335,7 +335,7 @@ function quickTiles(navigation: Nav, user: ReturnType<typeof useAuth>['user'], s
       show: manager, title: 'Over BOQ', body: s.overBoq === null ? 'PO amendments needed' : `${s.overBoq} request${s.overBoq === 1 ? '' : 's'} beyond the work order`,
       icon: 'alert', tint: glass.amber, onPress: () => navigation.navigate('Requisitions', { overBoq: 'true' }), testID: 'tile-overboq',
     },
-    { show: can(user, PERMS.TEAM_MANAGE), title: 'Team', body: 'Add people, set roles and access', icon: 'users', tint: glass.indigo, onPress: go('Team'), testID: 'tile-team' },
+    { show: can(user, PERMS.TEAM_MANAGE) || can(user, PERMS.TEAM_VIEW), title: 'Team', body: 'Add people, set roles and access', icon: 'users', tint: glass.indigo, onPress: go('Team'), testID: 'tile-team' },
     { show: true, title: 'Change password', body: 'Update your sign-in password', icon: 'lock', tint: glass.inkMuted, onPress: go('ChangePassword'), testID: 'tile-password' },
   ];
 }

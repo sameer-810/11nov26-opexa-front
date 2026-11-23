@@ -69,6 +69,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Service: 'app/service',
       NewTicket: 'app/service/new',
       ServiceAssets: 'app/service/equipment',
+      Customers: 'app/service/customers',
       TicketDetail: 'app/service/:id',
       Sales: 'app/sales',
       NewLead: 'app/sales/new',

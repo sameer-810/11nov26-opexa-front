@@ -12,6 +12,7 @@ import { ChoiceChips } from '../../../shared/ui/ChoiceChips';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { colors, spacing } from '../../../shared/designSystem';
 import { projectApi } from '../api/projectApi';
+import { EstimateSummaryFields, emptyEstimate, estimateBody, type EstimateDraft } from '../components/EstimateSummaryFields';
 import { BOQ_FORMAT_LABEL, STATUS_LABEL, type AssignableUser, type BoqFormat, type ProjectStatus } from '../types';
 import { validateProjectForm, type ProjectForm, type ProjectFormErrors } from '../project.validation';
 
@@ -29,6 +30,7 @@ export function ProjectFormScreen({ navigation, route }: Props) {
   // Q18: chosen at creation; changeable until the BOQ is locked.
   const [boqFormat, setBoqFormat] = useState<BoqFormat>('sitc');
   const [boqLocked, setBoqLocked] = useState(false);
+  const [estimate, setEstimate] = useState<EstimateDraft>(emptyEstimate);
   const [errors, setErrors] = useState<ProjectFormErrors>({});
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(Boolean(id));
@@ -102,7 +104,7 @@ export function ProjectFormScreen({ navigation, route }: Props) {
     };
     setBusy(true);
     try {
-      const saved = id ? await projectApi.update(id, { ...body, status }) : await projectApi.create(body);
+      const saved = id ? await projectApi.update(id, { ...body, status }) : await projectApi.create({ ...body, ...estimateBody(estimate) });
       navigation.replace('ProjectDetail', { id: saved.id });
     } catch (e) {
       if (e instanceof ApiError) {
@@ -156,6 +158,7 @@ export function ProjectFormScreen({ navigation, route }: Props) {
             options={(['active', 'closing', 'closed'] as const).map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
           />
         ) : null}
+        {!id ? <EstimateSummaryFields value={estimate} onChange={setEstimate} /> : null}
         <Text style={styles.section}>Site location</Text>
         <Text style={styles.muted}>Used for attendance: staff can check in only within this distance of the site.</Text>
         <View style={styles.row}>

@@ -11,9 +11,14 @@ export type Ticket = {
   id: string; number: string; kind: 'complaint' | 'preventive'; title: string; description: string; priority: 'low' | 'normal' | 'urgent';
   project: { id: string; code?: string; name?: string }; asset: Asset | null; contactName: string; contactPhone: string; source: 'app' | 'client-link' | 'system';
   status: TicketStatus; underWarranty: boolean; charge: number; assignedTo: { id: string; name: string } | null;
-  visits: { at: string; byName: string; note: string; partsUsed: string; status: string }[];
+  // 5C: coverage when raised (null: no unit). AMC labour is free; parts per the contract.
+  coverage: Coverage | null; amcId: string | null; partsIncluded: boolean; labourFree: boolean; noCharge: boolean;
+  serviceInvoiceId: string | null; feedback: string; signOffName: string;
+  visits: { at: string; byName: string; note: string; partsUsed: string; status: string; charge: number | null }[];
   createdAt: string; resolvedAt: string | null; closedAt: string | null; clientRating: number | null;
 };
+export type Coverage = 'warranty' | 'amc' | 'chargeable';
+export type CloseInput = { clientRating?: number; feedback?: string; signOffName?: string };
 export type NewAssets = { projectId: string; name: string; brand?: string; model?: string; serials: string[]; location?: string; installedOn: string; warrantyMonths: number; pmEveryMonths: number };
 export type NewTicket = { projectId: string; assetId?: string; title: string; description?: string; priority: 'low' | 'normal' | 'urgent'; contactName?: string; contactPhone?: string };
 
@@ -23,7 +28,9 @@ export const serviceApi = {
   create: (body: NewTicket) => api<Ticket>('/service/tickets', { method: 'POST', body }),
   assign: (id: string, userId: string) => api<Ticket>(`/service/tickets/${id}/assign`, { method: 'POST', body: { userId } }),
   visit: (id: string, body: { note: string; partsUsed?: string; status: 'in-progress' | 'resolved'; charge?: number }) => api<Ticket>(`/service/tickets/${id}/visits`, { method: 'POST', body }),
-  close: (id: string, clientRating?: number) => api<Ticket>(`/service/tickets/${id}/close`, { method: 'POST', body: clientRating ? { clientRating } : {} }),
+  close: (id: string, body: CloseInput = {}) => api<Ticket>(`/service/tickets/${id}/close`, { method: 'POST', body }),
+  raiseInvoice: (id: string) => api<{ invoiceId: string }>(`/service/tickets/${id}/invoice`, { method: 'POST' }),
+  reportLink: (id: string) => api<{ url: string }>(`/service/tickets/${id}/report-link`),
   reopen: (id: string) => api<Ticket>(`/service/tickets/${id}/reopen`, { method: 'POST', body: {} }),
   technicians: () => api<{ id: string; name: string; role: string }[]>('/service/technicians'),
   assets: (projectId?: string) => api<Asset[]>(`/service/assets${projectId ? `?projectId=${projectId}` : ''}`),
@@ -50,5 +57,7 @@ export async function shareLink(url: string, projectName: string): Promise<'shar
 
 export const STATUS_LABEL: Record<TicketStatus, string> = { open: 'New', assigned: 'Assigned', 'in-progress': 'Working', resolved: 'Resolved', closed: 'Closed' };
 export const STATUS_TONE = { open: 'danger', assigned: 'info', 'in-progress': 'warning', resolved: 'success', closed: 'neutral' } as const;
+export const COVERAGE_LABEL: Record<Coverage, string> = { warranty: 'Warranty', amc: 'AMC', chargeable: 'Chargeable' };
+export const COVERAGE_TONE = { warranty: 'success', amc: 'info', chargeable: 'warning' } as const;
 export const PRIORITY_LABEL = { low: 'Low', normal: 'Normal', urgent: 'Urgent' } as const;
 export const splitSerials = (s: string) => s.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);

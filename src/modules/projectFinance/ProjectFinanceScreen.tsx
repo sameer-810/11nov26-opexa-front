@@ -10,11 +10,15 @@ import { ErrorBanner } from '../../shared/ui/Banner';
 import { ErrorState } from '../../shared/ui/ErrorState';
 import { StatusChip } from '../../shared/ui/StatusChip';
 import { TextField } from '../../shared/ui/TextField';
+import { useAuth } from '../../shared/store/useAuthStore';
+import { can, PERMS } from '../../shared/permissions';
 import { s, useAction, useData } from '../inventory/ui';
-import { projectFinanceApi } from './projectFinanceApi';
+import { BoqProfitTab } from './BoqProfitTab';
+import { ChangeRequestsTab } from './ChangeRequestsTab';
+import { ExtraMaterialsTab } from './ExtraMaterialsTab';
+import { LINE_CATS, LUMP_CATS, projectFinanceApi } from './projectFinanceApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProjectFinance'>;
-const CATS = ['material', 'labour', 'subcontract', 'equipment', 'other'] as const;
 const pct = (v: number | null) => (v == null ? '—' : `${v}%`);
 
 function Profit({ id }: { id: string }) {
@@ -27,6 +31,7 @@ function Profit({ id }: { id: string }) {
       {f.overrun ? <ErrorBanner message="Actual + committed cost is above the estimate (alert threshold passed)." /> : null}
       <View style={s.card}>
         <Text style={s.title}>Margin: estimated {pct(f.estimate.marginPct)} → forecast {pct(f.forecast.marginPct)}</Text>
+        {f.actualMargin ? <Text style={f.actualMargin.value < 0 ? s.danger : s.muted} testID="pf-actual-margin">At today's actual cost: margin {formatMoney(f.actualMargin.value)} ({pct(f.actualMargin.pct)}) on contract {formatMoney(f.revenue.contract)}</Text> : null}
         <Text style={s.muted} testID="pf-summary">Contract {formatMoney(f.revenue.contract)} · estimated cost {formatMoney(f.estimate.cost)} · actual {formatMoney(f.actual.cost)} · committed {formatMoney(f.committed.cost)} · forecast {formatMoney(f.forecast.cost)}</Text>
         <Text style={s.muted}>Billed {formatMoney(f.revenue.billed)} · margin on billed {formatMoney(f.marginOnBilled.value)} ({pct(f.marginOnBilled.pct)}) · material consumed {formatMoney(f.consumedMaterial)} · lying at site {formatMoney(f.materialAtSite)} · supplier bills {formatMoney(f.supplierInvoiced)}</Text>
       </View>
@@ -46,23 +51,27 @@ function EstimateTab({ id }: { id: string }) {
   const { busy, problem, run } = useAction(() => void reload());
   const [vals, setVals] = useState<Record<string, string>>({});
   const [overhead, setOverhead] = useState('');
+  const [lump, setLump] = useState<Record<string, string>>({});
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!e) return null;
   const v = (lineId: string, c: string, cur: number) => vals[`${lineId}:${c}`] ?? (cur ? String(cur) : '');
   const save = () => run('save', () => projectFinanceApi.saveEstimate(id, {
     overheadEstimate: parseNumber(overhead) ?? undefined,
-    lines: e.lines.map((l) => ({ workOrderItemId: l.workOrderItemId, ...Object.fromEntries(CATS.map((c) => [c, parseNumber(v(l.workOrderItemId, c, l.perUnit[c])) ?? 0])) })),
+    estimateLumpSum: Object.fromEntries(Object.entries(lump).map(([k, t]) => [k, parseNumber(t) ?? 0])),
+    lines: e.lines.map((l) => ({ workOrderItemId: l.workOrderItemId, ...Object.fromEntries(LINE_CATS.map((c) => [c, parseNumber(v(l.workOrderItemId, c, l.perUnit[c] ?? 0)) ?? 0])) })),
   }));
   return (
     <View style={s.list} testID="pf-estimate">
       {problem ? <ErrorBanner message={problem} /> : null}
       <Text style={s.title} testID="pf-est-summary">Estimated cost {formatMoney(e.cost)} on revenue {formatMoney(e.revenue)} · margin {formatMoney(e.margin)} ({pct(e.marginPct)})</Text>
       <TextField label="Project overheads (₹)" value={overhead || (e.overheadEstimate ? String(e.overheadEstimate) : '')} onChangeText={setOverhead} keyboardType="decimal-pad" />
+      <Text style={s.muted}>Project-level amounts (not per BOQ line, e.g. transport), added to the line estimates:</Text>
+      <View style={s.row}>{LUMP_CATS.map((c) => <View key={c} style={s.cell}><TextField label={`${c} (₹)`} value={lump[c] ?? (e.lumpSum?.[c] ? String(e.lumpSum[c]) : '')} onChangeText={(t) => setLump((x) => ({ ...x, [c]: t }))} keyboardType="decimal-pad" testID={`est-lump-${c}`} /></View>)}</View>
       {e.lines.map((l) => (
         <View key={l.workOrderItemId} style={s.card}>
           <Text style={s.title}>S.No {l.serialNo} {l.description} · {formatNumber(l.quantity)} {l.unit} @ {formatMoney(l.rate)}</Text>
           <Text style={s.muted}>Cost per {l.unit}:</Text>
-          <View style={s.row}>{CATS.map((c) => <View key={c} style={s.cell}><TextField label={c} value={v(l.workOrderItemId, c, l.perUnit[c])} onChangeText={(t) => setVals((x) => ({ ...x, [`${l.workOrderItemId}:${c}`]: t }))} keyboardType="decimal-pad" testID={`est-${l.serialNo}-${c}`} /></View>)}</View>
+          <View style={s.row}>{LINE_CATS.map((c) => <View key={c} style={s.cell}><TextField label={c} value={v(l.workOrderItemId, c, l.perUnit[c] ?? 0)} onChangeText={(t) => setVals((x) => ({ ...x, [`${l.workOrderItemId}:${c}`]: t }))} keyboardType="decimal-pad" testID={`est-${l.serialNo}-${c}`} /></View>)}</View>
           <Text style={l.margin < 0 ? s.danger : s.muted}>Line cost {formatMoney(l.totalCost)} · margin {formatMoney(l.margin)} ({pct(l.marginPct)})</Text>
         </View>
       ))}
@@ -72,7 +81,8 @@ function EstimateTab({ id }: { id: string }) {
 }
 
 function BoqChanges({ id }: { id: string }) {
-  const fetcher = useCallback(async () => ({ reg: await projectFinanceApi.regularisation(id), revs: await projectFinanceApi.revisions(id), est: await projectFinanceApi.estimate(id) }), [id]);
+  const fetcher = useCallback(async () => ({ reg: await projectFinanceApi.regularisation(id), revs: await projectFinanceApi.revisions(id), est: await projectFinanceApi.estimate(id), crs: await projectFinanceApi.changeRequests(id) }), [id]);
+  const [crId, setCrId] = useState('');
   const { data, error, reload } = useData(fetcher);
   const { busy, problem, run } = useAction(() => void reload());
   const [w, setW] = useState({ serialNo: '', description: '', unit: '', quantity: '', rate: '', reason: '' });
@@ -110,7 +120,8 @@ function BoqChanges({ id }: { id: string }) {
           <View style={s.cell}><TextField label="Rate ₹" value={w.rate} onChangeText={set('rate')} keyboardType="decimal-pad" /></View>
         </View>
         <TextField label="Why (client instruction)" value={w.reason} onChangeText={set('reason')} />
-        <Button title="Add to register" onPress={() => run('aw', async () => { await projectFinanceApi.addWork(id, { ...w, quantity: parseNumber(w.quantity) ?? 0, rate: parseNumber(w.rate) ?? 0 }); setW({ serialNo: '', description: '', unit: '', quantity: '', rate: '', reason: '' }); })} loading={busy === 'aw'} testID="aw-save" />
+        {data.crs.some((c) => c.status === 'raised' || c.status === 'client_approved') ? <ChoiceChips label="Change request" options={[{ value: '', label: 'None' }, ...data.crs.filter((c) => c.status === 'raised' || c.status === 'client_approved').map((c) => ({ value: c.id, label: c.number }))]} value={crId} onChange={setCrId} testID="aw-cr" /> : null}
+        <Button title="Add to register" onPress={() => run('aw', async () => { await projectFinanceApi.addWork(id, { ...w, quantity: parseNumber(w.quantity) ?? 0, rate: parseNumber(w.rate) ?? 0, ...(crId ? { changeRequestId: crId } : {}) }); setW({ serialNo: '', description: '', unit: '', quantity: '', rate: '', reason: '' }); })} loading={busy === 'aw'} testID="aw-save" />
       </View>
       <Text style={s.title}>BOQ revisions</Text>
       {data.revs.map((r) => <Text key={r.id} style={s.muted}>Rev {r.revisionNo} · {r.status.replace('_', ' ')} · {r.reason} · {r.changes.length} change(s)</Text>)}
@@ -121,12 +132,17 @@ function BoqChanges({ id }: { id: string }) {
 export function ProjectFinanceScreen({ navigation, route }: Props) {
   const { id } = route.params;
   const [tab, setTab] = useState('profit');
+  const { user } = useAuth();
+  const pm = can(user, PERMS.PROJECT_MANAGE);
   return (
     <AppScreen title="Estimate & profit" subtitle="Estimated vs actual cost, BOQ revisions and additional work" onBack={() => navigation.navigate('ProjectDetail', { id })} testID="project-finance-screen">
-      <ChoiceChips label="Section" options={[{ value: 'profit', label: 'Profit' }, { value: 'estimate', label: 'Estimate' }, { value: 'boq', label: 'BOQ changes' }]} value={tab} onChange={setTab} />
+      <ChoiceChips label="Section" options={[{ value: 'profit', label: 'Profit' }, { value: 'lines', label: 'BOQ-wise profit' }, { value: 'estimate', label: 'Estimate' }, { value: 'extras', label: 'Extra materials' }, { value: 'changes', label: 'Change requests' }, { value: 'boq', label: 'BOQ changes' }]} value={tab} onChange={setTab} />
       {tab === 'profit' ? <Profit id={id} /> : null}
       {tab === 'estimate' ? <EstimateTab id={id} /> : null}
       {tab === 'boq' ? <BoqChanges id={id} /> : null}
+      {tab === 'lines' ? <BoqProfitTab id={id} /> : null}
+      {tab === 'extras' ? <ExtraMaterialsTab id={id} /> : null}
+      {tab === 'changes' ? <ChangeRequestsTab id={id} pm={pm} /> : null}
     </AppScreen>
   );
 }

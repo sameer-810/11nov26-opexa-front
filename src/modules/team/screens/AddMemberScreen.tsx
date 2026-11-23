@@ -14,7 +14,7 @@ import { ROLE_HINT, ROLE_LABEL, type NewMemberInput } from '../types';
 import { generateTempPassword, validateNewMember, type MemberErrors } from '../team.validation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddMember'>;
-const ROLES = ['project_manager', 'engineer', 'supervisor', 'purchaser', 'store_incharge', 'accounts', 'hod', 'director', 'admin', 'staff'] as const;
+const ROLES = ['project_manager', 'engineer', 'supervisor', 'purchaser', 'store_incharge', 'service_head', 'accounts', 'hr', 'hod', 'director', 'admin', 'staff'] as const;
 
 export function AddMemberScreen({ navigation }: Props) {
   const [form, setForm] = useState<NewMemberInput>({ name: '', email: '', phone: '', role: '', password: generateTempPassword() });

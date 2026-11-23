@@ -30,6 +30,7 @@ export const ENTITY_LABEL: Record<string, string> = {
   delivery_challan: 'Delivery challan', stock_transfer: 'Stock transfer', stock_adjustment: 'Stock adjustment', material_return: 'Return', over_receipt: 'Over-receipt', stock_damage: 'Damaged stock',
   invoice: 'Invoice', expense: 'Expense', subcontract_certificate: 'Subcontract certificate', amc: 'AMC', asset: 'Equipment', user: 'Team member',
   attendance: 'Attendance', transfer: 'Stock transfer', additional_work: 'Additional work', work_certificate: 'Subcontract certificate', work_order: 'Subcontract work order',
+  change_request: 'Change request', retention_release: 'Retention release', project_estimate: 'Project estimate',
 };
 export const entityLabel = (t: string) => ENTITY_LABEL[t] ?? t.replace(/_/g, ' ');
 export const actionLabel = (a: string) => {

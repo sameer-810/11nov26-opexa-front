@@ -14,7 +14,7 @@ import { EmptyState } from '../../../shared/ui/EmptyState';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { StatusChip } from '../../../shared/ui/StatusChip';
 import { colors, radius, spacing } from '../../../shared/designSystem';
-import { serviceApi, STATUS_LABEL, STATUS_TONE, type Ticket } from '../api/serviceApi';
+import { COVERAGE_LABEL, COVERAGE_TONE, serviceApi, STATUS_LABEL, STATUS_TONE, type Ticket } from '../api/serviceApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Service'>;
 const FILTERS = [{ value: 'active', label: 'Open jobs' }, { value: 'resolved', label: 'Resolved' }, { value: 'closed', label: 'Closed' }, { value: '', label: 'All' }];
@@ -46,6 +46,7 @@ export function ServiceScreen({ navigation }: Props) {
         <View style={styles.row}>
           <Button title="New complaint" onPress={() => navigation.navigate('NewTicket')} testID="svc-new" />
           <Button title="Equipment & warranty" variant="outline" onPress={() => navigation.navigate('ServiceAssets')} testID="svc-assets" />
+          <Button title="Customers" variant="outline" onPress={() => navigation.navigate('Customers')} testID="svc-customers" />
         </View>
       ) : null}
       <ChoiceChips label="Show" options={FILTERS} value={filter} onChange={(v) => { setRows(null); setFilter(v); }} testID="svc-filter" />
@@ -59,7 +60,7 @@ export function ServiceScreen({ navigation }: Props) {
             <StatusChip label={STATUS_LABEL[t.status]} tone={STATUS_TONE[t.status]} />
             {t.priority === 'urgent' ? <StatusChip label="Urgent" tone="danger" /> : null}
             {t.kind === 'preventive' ? <StatusChip label="Preventive" tone="info" /> : null}
-            {t.asset ? <StatusChip label={t.underWarranty ? 'In warranty' : 'Chargeable'} tone={t.underWarranty ? 'success' : 'warning'} /> : null}
+            {t.coverage ? <StatusChip label={COVERAGE_LABEL[t.coverage]} tone={COVERAGE_TONE[t.coverage]} testID={`svc-cover-${t.number}`} /> : t.asset ? <StatusChip label={t.underWarranty ? 'In warranty' : 'Chargeable'} tone={t.underWarranty ? 'success' : 'warning'} /> : null}
           </View>
           <Text style={styles.title}>{t.title}</Text>
           <Text style={styles.muted}>
