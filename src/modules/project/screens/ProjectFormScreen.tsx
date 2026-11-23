@@ -12,7 +12,7 @@ import { ChoiceChips } from '../../../shared/ui/ChoiceChips';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { colors, spacing } from '../../../shared/designSystem';
 import { projectApi } from '../api/projectApi';
-import { STATUS_LABEL, type AssignableUser, type ProjectStatus } from '../types';
+import { BOQ_FORMAT_LABEL, STATUS_LABEL, type AssignableUser, type BoqFormat, type ProjectStatus } from '../types';
 import { validateProjectForm, type ProjectForm, type ProjectFormErrors } from '../project.validation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NewProject' | 'EditProject'>;
@@ -26,6 +26,9 @@ export function ProjectFormScreen({ navigation, route }: Props) {
   // 1A.2: the project manager, chosen from people who can manage projects ('' = none).
   const [managerId, setManagerId] = useState('');
   const [managers, setManagers] = useState<AssignableUser[]>([]);
+  // Q18: chosen at creation; changeable until the BOQ is locked.
+  const [boqFormat, setBoqFormat] = useState<BoqFormat>('sitc');
+  const [boqLocked, setBoqLocked] = useState(false);
   const [errors, setErrors] = useState<ProjectFormErrors>({});
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(Boolean(id));
@@ -52,6 +55,8 @@ export function ProjectFormScreen({ navigation, route }: Props) {
         });
         setStatus(p.status);
         setManagerId(p.projectManagerId ?? '');
+        setBoqFormat(p.boqFormat ?? 'sitc');
+        setBoqLocked(Boolean(p.boqLocked));
       })
       .catch((e) => setFormError(e instanceof ApiError ? e.message : 'Could not load'))
       .finally(() => setLoading(false));
@@ -93,6 +98,7 @@ export function ProjectFormScreen({ navigation, route }: Props) {
       location: lat !== null && lng !== null ? { lat, lng } : null,
       geofenceRadiusM: parseNumber(form.geofenceRadiusM) ?? 200,
       projectManagerId: managerId || null,
+      ...(boqLocked ? {} : { boqFormat }),
     };
     setBusy(true);
     try {
@@ -130,6 +136,17 @@ export function ProjectFormScreen({ navigation, route }: Props) {
           error={errors.projectManagerId}
           options={[{ value: '', label: 'Not set' }, ...managers.map((m) => ({ value: m.id, label: m.name }))]}
         />
+        {boqLocked ? (
+          <Text style={styles.muted} testID="pf-boq-format-locked">BOQ format: {BOQ_FORMAT_LABEL[boqFormat]} (fixed, the BOQ is locked)</Text>
+        ) : (
+          <ChoiceChips
+            label="BOQ format"
+            testID="pf-boq-format"
+            value={boqFormat}
+            onChange={(v) => setBoqFormat(v as BoqFormat)}
+            options={(['sitc', 'supply_installation'] as const).map((f) => ({ value: f, label: BOQ_FORMAT_LABEL[f], hint: f === 'sitc' ? 'One rate per line' : 'Separate supply and installation rates' }))}
+          />
+        )}
         {id ? (
           <ChoiceChips
             label="Status"

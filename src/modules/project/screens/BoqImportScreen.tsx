@@ -27,6 +27,8 @@ function toForm(file: Picked): FormData {
 
 export function BoqImportScreen({ navigation, route }: Props) {
   const { id } = route.params;
+  // Q18: the template, the expected columns and the preview follow the project's BOQ format.
+  const split = route.params.format === 'supply_installation';
   const [file, setFile] = useState<Picked | null>(null);
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [error, setError] = useState('');
@@ -66,8 +68,8 @@ export function BoqImportScreen({ navigation, route }: Props) {
     setError('');
     setBusy('template');
     try {
-      const blob = await projectApi.template();
-      if (!saveBlob(blob, 'opexa-boq-template.xlsx')) setError('Download the template from the web app on a computer.');
+      const blob = await projectApi.template(split ? 'supply_installation' : 'sitc');
+      if (!saveBlob(blob, split ? 'opexa-boq-template-supply-installation.xlsx' : 'opexa-boq-template.xlsx')) setError('Download the template from the web app on a computer.');
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Download failed');
     } finally {
@@ -80,7 +82,9 @@ export function BoqImportScreen({ navigation, route }: Props) {
   return (
     <AppScreen title="Import BOQ from Excel" subtitle="Rows are checked first. Nothing is saved until you confirm." onBack={() => navigation.navigate('ProjectDetail', { id })} testID="boq-import-screen">
       <View style={styles.steps}>
-        <Text style={styles.step}>1. The first sheet needs columns: S.No, Description, Unit, Qty, Rate (headings can be in any of the first 15 rows).</Text>
+        <Text style={styles.step} testID="import-columns">
+          1. The first sheet needs columns: S.No, Description, Unit, Qty, {split ? 'Supply rate, Installation rate' : 'SITC rate'} and optionally Remarks (headings can be in any of the first 15 rows).
+        </Text>
         <Text style={styles.step}>2. Choose the .xlsx file. Each row is checked and problems are shown below.</Text>
         <Text style={styles.step}>3. If every row is fine, confirm the import.</Text>
       </View>
@@ -101,8 +105,8 @@ export function BoqImportScreen({ navigation, route }: Props) {
           <ScrollView horizontal>
             <View style={styles.table}>
               <View style={[styles.tr, styles.head]}>
-                {['Row', 'S.No', 'Description', 'Unit', 'Qty', 'Rate', 'Problem'].map((h, i) => (
-                  <Text key={h} style={[styles.th, { width: [50, 60, 260, 60, 80, 100, 260][i] }]}>{h}</Text>
+                {[['Row', 50], ['S.No', 60], ['Description', 260], ['Unit', 60], ['Qty', 80], ...(split ? [['Supply', 100], ['Installation', 100]] : []), ['Rate', 100], ['Problem', 260]].map(([h, w]) => (
+                  <Text key={h} style={[styles.th, { width: Number(w) }]}>{h}</Text>
                 ))}
               </View>
               {preview.rows.map((r) => (
@@ -112,6 +116,8 @@ export function BoqImportScreen({ navigation, route }: Props) {
                   <Text style={[styles.td, { width: 260 }]} numberOfLines={2}>{r.description}</Text>
                   <Text style={[styles.td, { width: 60 }]}>{r.unit}</Text>
                   <Text style={[styles.td, { width: 80 }]}>{r.quantity === null ? '—' : formatNumber(r.quantity)}</Text>
+                  {split ? <Text style={[styles.td, { width: 100 }]}>{r.supplyRate === null || r.supplyRate === undefined ? '—' : formatMoney(r.supplyRate)}</Text> : null}
+                  {split ? <Text style={[styles.td, { width: 100 }]}>{r.installationRate === null || r.installationRate === undefined ? '—' : formatMoney(r.installationRate)}</Text> : null}
                   <Text style={[styles.td, { width: 100 }]}>{r.rate === null ? '—' : formatMoney(r.rate)}</Text>
                   <Text style={[styles.td, styles.problem, { width: 260 }]}>{r.errors.join('; ')}</Text>
                 </View>

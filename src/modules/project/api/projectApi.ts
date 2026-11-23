@@ -1,5 +1,5 @@
 import { api, apiBlob } from '../../../shared/api/apiClient';
-import type { AssignableUser, BoqItem, BoqItemInput, ImportResult, MilestoneInput, MilestoneList, Project, ProjectInput } from '../types';
+import type { AssignableUser, BoqColumn, BoqFormat, BoqItem, BoqItemInput, BoqView, ImportResult, MilestoneInput, MilestoneList, Project, ProjectInput } from '../types';
 
 export const projectApi = {
   list: () => api<Project[]>('/projects'),
@@ -15,7 +15,10 @@ export const projectApi = {
   deleteItem: (id: string, itemId: string) => api<{ deleted: boolean }>(`/projects/${id}/boq/${itemId}`, { method: 'DELETE' }),
   importBoq: (id: string, form: FormData, dryRun: boolean) =>
     api<ImportResult>(`/projects/${id}/boq/import${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', body: form }),
-  template: () => apiBlob('/projects/boq-template'),
+  template: (format: BoqFormat = 'sitc') => apiBlob(`/projects/boq-template${format === 'sitc' ? '' : `?format=${format}`}`),
+  boqView: (id: string) => api<BoqView>(`/projects/${id}/boq-view`),
+  exportBoq: (id: string) => apiBlob(`/projects/${id}/boq-export`),
+  saveColumns: (id: string, columns: BoqColumn[]) => api<BoqColumn[]>(`/projects/${id}/boq-columns`, { method: 'PUT', body: { columns } }),
 
   milestones: (id: string) => api<MilestoneList>(`/projects/${id}/milestones`),
   addMilestone: (id: string, body: MilestoneInput) => api<MilestoneList>(`/projects/${id}/milestones`, { method: 'POST', body }),

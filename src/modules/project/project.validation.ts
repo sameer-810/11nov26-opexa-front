@@ -17,7 +17,7 @@ export function validateProjectForm(f: ProjectForm): ProjectFormErrors {
   return e;
 }
 
-export type ItemForm = { serialNo: string; description: string; unit: string; quantity: string; rate: string };
+export type ItemForm = { serialNo: string; description: string; unit: string; quantity: string; rate: string; supplyRate: string; installationRate: string; remarks: string };
 export type ItemErrors = Partial<Record<keyof ItemForm, string>>;
 
 export function validateItemForm(f: ItemForm): ItemErrors {
@@ -27,7 +27,9 @@ export function validateItemForm(f: ItemForm): ItemErrors {
   if (!f.unit.trim()) e.unit = 'Required';
   const q = parseNumber(f.quantity);
   if (q === null || q <= 0) e.quantity = 'More than 0';
-  const r = parseNumber(f.rate);
-  if (f.rate.trim() && (r === null || r < 0)) e.rate = 'Not negative';
+  for (const k of ['rate', 'supplyRate', 'installationRate'] as const) {
+    const r = parseNumber(f[k]);
+    if (f[k].trim() && (r === null || r < 0)) e[k] = 'Not negative';
+  }
   return e;
 }

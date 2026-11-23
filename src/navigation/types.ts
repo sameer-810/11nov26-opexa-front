@@ -13,7 +13,7 @@ export type RootStackParamList = {
   ProjectDetail: { id: string };
   EditProject: { id: string };
   ProjectTeam: { id: string };
-  BoqImport: { id: string };
+  BoqImport: { id: string; format?: 'sitc' | 'supply_installation' };
   Requisitions: { projectId?: string; overBoq?: string } | undefined;
   NewRequisition: { projectId: string; requisitionId?: string };
   RequisitionDetail: { id: string; justCreated?: boolean; attachFailed?: number };

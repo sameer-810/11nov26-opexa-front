@@ -8,6 +8,7 @@ import { useAuth } from '../../../shared/store/useAuthStore';
 import { can, canEditBoq, PERMS } from '../../../shared/permissions';
 import { CHALLAN_VIEWERS } from '../../../navigation/navItems';
 import { formatMoney } from '../../../shared/format';
+import { saveBlob } from '../../../shared/download';
 import { AppScreen } from '../../../shared/ui/AppScreen';
 import { Button } from '../../../shared/ui/Button';
 import { StatusChip } from '../../../shared/ui/StatusChip';
@@ -17,7 +18,9 @@ import { colors, radius, spacing } from '../../../shared/designSystem';
 import { projectApi } from '../api/projectApi';
 import { BoqTable } from '../components/BoqTable';
 import { BoqItemForm } from '../components/BoqItemForm';
-import { STATUS_LABEL, type BoqItem, type Project } from '../types';
+import { BoqColumnsSheet } from '../components/BoqColumnsSheet';
+import { ErrorBanner } from '../../../shared/ui/Banner';
+import { BOQ_FORMAT_LABEL, DEFAULT_BOQ_COLUMNS, STATUS_LABEL, type BoqItem, type BoqView, type Project } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProjectDetail'>;
 
@@ -33,11 +36,21 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
   const editBoq = canEditBoq(user);
   const [project, setProject] = useState<Project | null>(null);
   const [items, setItems] = useState<BoqItem[]>([]);
+  // 3B: the BOQ joined with execution / approved qty. Loaded on its own so the BOQ still shows if it fails.
+  const [view, setView] = useState<BoqView | null>(null);
+  const [viewError, setViewError] = useState('');
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<BoqItem | 'new' | null>(null);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
+    setViewError('');
+    projectApi.boqView(id).then(setView).catch(() => {
+      setView(null);
+      setViewError('Execution and approved quantities could not be loaded.');
+    });
     try {
       const [p, boq] = await Promise.all([projectApi.get(id), projectApi.boq(id)]);
       setProject(p);
@@ -55,6 +68,19 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
   const afterChange = async () => {
     setEditing(null);
     await load();
+  };
+  const format = project.boqFormat ?? 'sitc';
+  const columns = view?.columns ?? project.boqColumns ?? DEFAULT_BOQ_COLUMNS;
+  const exportExcel = async () => {
+    setViewError('');
+    setExporting(true);
+    try {
+      if (!saveBlob(await projectApi.exportBoq(id), `${project.code}-boq.xlsx`)) setViewError('Export the BOQ from the web app on a computer.');
+    } catch (e) {
+      setViewError(e instanceof ApiError ? e.message : 'Export failed');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -78,6 +104,10 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
         <Fact label="Team" value={`${project.memberIds.length} member${project.memberIds.length === 1 ? '' : 's'}`} />
         <Fact label="Schedule" value={project.milestones?.total ? `${project.milestones.progressPct}% (${project.milestones.done} of ${project.milestones.total} milestones)${project.milestones.delayed ? `, ${project.milestones.delayed} delayed` : ''}` : 'No milestones'} testID="fact-schedule" />
         <Fact label="BOQ value" value={formatMoney(project.boqValue)} testID="fact-boq-value" />
+        <Fact label="BOQ format" value={`${BOQ_FORMAT_LABEL[format]}${project.boqLocked ? ' · locked' : ''}`} testID="fact-boq-format" />
+        {format === 'supply_installation' ? (
+          <Fact label="Supply / Installation" value={`${formatMoney(project.boqSupplyValue ?? 0)} / ${formatMoney(project.boqInstallationValue ?? 0)}`} testID="fact-boq-split" />
+        ) : null}
       </View>
       <View style={styles.row}>
         <Button title="Material requests" onPress={() => navigation.navigate('Requisitions', { projectId: id })} testID="project-requisitions" />
@@ -103,18 +133,32 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
 
       <View style={styles.sectionHead}>
         <Text style={styles.section}>Work order (BOQ)</Text>
-        {editBoq ? (
-          <View style={styles.row}>
-            <Button title="Import from Excel" variant="outline" onPress={() => navigation.navigate('BoqImport', { id })} testID="import-boq" />
-            <Button title="Add item" onPress={() => setEditing('new')} testID="add-boq-item" />
-          </View>
-        ) : null}
+        <View style={styles.row}>
+          {items.length ? <Button title="Export to Excel" variant="ghost" onPress={exportExcel} loading={exporting} testID="export-boq" /> : null}
+          {manage ? <Button title="Columns" variant="outline" onPress={() => setColumnsOpen(true)} testID="boq-columns" /> : null}
+          {editBoq ? <Button title="Import from Excel" variant="outline" onPress={() => navigation.navigate('BoqImport', { id, format })} testID="import-boq" /> : null}
+          {editBoq ? <Button title="Add item" onPress={() => setEditing('new')} testID="add-boq-item" /> : null}
+        </View>
       </View>
+      {viewError ? <ErrorBanner message={viewError} testID="boq-view-error" /> : null}
+      {columnsOpen ? (
+        <BoqColumnsSheet
+          columns={columns}
+          onCancel={() => setColumnsOpen(false)}
+          onSave={async (cols) => {
+            const saved = await projectApi.saveColumns(id, cols);
+            setView((v) => (v ? { ...v, columns: saved } : v));
+            setProject((p) => (p ? { ...p, boqColumns: saved } : p));
+            setColumnsOpen(false);
+          }}
+        />
+      ) : null}
 
       {editing ? (
         <BoqItemForm
           key={editing === 'new' ? 'new' : editing.id}
           initial={editing === 'new' ? undefined : editing}
+          format={format}
           suggestedSerial={nextSerial(items)}
           onCancel={() => setEditing(null)}
           onSave={async (input) => {
@@ -134,7 +178,7 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
       ) : (
         <>
           {editBoq ? <Text style={styles.muted}>Tap a row to edit it.</Text> : null}
-          <BoqTable items={items} onPressItem={editBoq ? (i) => setEditing(i) : undefined} />
+          <BoqTable columns={columns} lines={view?.lines ?? items} onPressItem={editBoq ? (i) => setEditing(i) : undefined} />
         </>
       )}
     </AppScreen>

@@ -7,23 +7,28 @@ import { TextField } from '../../../shared/ui/TextField';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { validateItemForm, type ItemErrors, type ItemForm } from '../project.validation';
-import type { BoqItem, BoqItemInput } from '../types';
+import type { BoqFormat, BoqItem, BoqItemInput } from '../types';
 
 type Props = {
   initial?: BoqItem;
+  format?: BoqFormat;
   suggestedSerial?: string;
   onSave: (input: BoqItemInput) => Promise<void>;
   onCancel: () => void;
   onDelete?: () => Promise<void>;
 };
 
-export function BoqItemForm({ initial, suggestedSerial, onSave, onCancel, onDelete }: Props) {
+export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave, onCancel, onDelete }: Props) {
+  const split = format === 'supply_installation';
   const [form, setForm] = useState<ItemForm>({
     serialNo: initial?.serialNo ?? suggestedSerial ?? '',
     description: initial?.description ?? '',
     unit: initial?.unit ?? '',
     quantity: initial ? String(initial.quantity) : '',
     rate: initial ? String(initial.rate) : '',
+    supplyRate: initial?.supplyRate != null ? String(initial.supplyRate) : '',
+    installationRate: initial?.installationRate != null ? String(initial.installationRate) : '',
+    remarks: initial?.remarks ?? '',
   });
   const [errors, setErrors] = useState<ItemErrors>({});
   const [error, setError] = useState('');
@@ -47,7 +52,11 @@ export function BoqItemForm({ initial, suggestedSerial, onSave, onCancel, onDele
         description: form.description.trim(),
         unit: form.unit.trim(),
         quantity: parseNumber(form.quantity) ?? 0,
-        rate: parseNumber(form.rate) ?? 0,
+        // Q18: split projects send supply + installation; the server keeps rate = their sum.
+        ...(split
+          ? { supplyRate: parseNumber(form.supplyRate) ?? 0, installationRate: parseNumber(form.installationRate) ?? 0 }
+          : { rate: parseNumber(form.rate) ?? 0 }),
+        remarks: form.remarks.trim(),
       });
     } catch (e) {
       if (e instanceof ApiError) {
@@ -84,8 +93,16 @@ export function BoqItemForm({ initial, suggestedSerial, onSave, onCancel, onDele
       <View style={styles.row}>
         <View style={styles.small}><TextField label="Unit" testID="bi-unit" value={form.unit} onChangeText={set('unit')} error={errors.unit} placeholder="Nos" /></View>
         <View style={styles.mid}><TextField label="Quantity" testID="bi-qty" value={form.quantity} onChangeText={set('quantity')} error={errors.quantity} keyboardType="decimal-pad" /></View>
-        <View style={styles.mid}><TextField label="Rate (₹)" testID="bi-rate" value={form.rate} onChangeText={set('rate')} error={errors.rate} keyboardType="decimal-pad" /></View>
+        {split ? (
+          <>
+            <View style={styles.mid}><TextField label="Supply rate (₹)" testID="bi-supply-rate" value={form.supplyRate} onChangeText={set('supplyRate')} error={errors.supplyRate} keyboardType="decimal-pad" /></View>
+            <View style={styles.mid}><TextField label="Installation rate (₹)" testID="bi-installation-rate" value={form.installationRate} onChangeText={set('installationRate')} error={errors.installationRate} keyboardType="decimal-pad" /></View>
+          </>
+        ) : (
+          <View style={styles.mid}><TextField label="SITC rate (₹)" testID="bi-rate" value={form.rate} onChangeText={set('rate')} error={errors.rate} keyboardType="decimal-pad" /></View>
+        )}
       </View>
+      <TextField label="Remarks" testID="bi-remarks" value={form.remarks} onChangeText={set('remarks')} maxLength={500} />
       <View style={styles.actions}>
         <Button title={initial ? 'Save item' : 'Add item'} onPress={save} loading={busy === 'save'} testID="bi-save" />
         <Button title="Cancel" variant="ghost" onPress={onCancel} />
