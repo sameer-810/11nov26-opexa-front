@@ -94,6 +94,19 @@ export function MaterialReceivedScreen({ navigation, route }: Props) {
     }
   };
 
+  // Nothing pending on any item: no entry form, nothing to create.
+  if (lines.every((l) => (l.pending ?? receivable(l)) <= 1e-9)) {
+    return (
+      <AppScreen title="Material received" subtitle={`${req.number} · ${req.projectCode} ${req.projectName}`} onBack={back} testID="material-received-screen">
+        <Text style={styles.title} testID="mr-recv-all-done">Everything on this request has been received.</Text>
+        {lines.map((l) => (
+          <Text key={l.id} style={styles.text} testID={`mr-recv-line-${l.serialNo}`}>{l.serialNo}. {l.description}: delivered {formatNumber(l.received ?? 0)} of {formatNumber(l.qtyApproved ?? l.qtyRequested)} {l.unit}</Text>
+        ))}
+        <Button title="Create challan" onPress={() => undefined} disabled testID="mr-recv-create" style={styles.self} />
+      </AppScreen>
+    );
+  }
+
   if (confirming) {
     return (
       <AppScreen title="Check and create the challan" subtitle={`${req.number} · ${req.projectCode} ${req.projectName}`} onBack={() => setConfirming(false)} testID="material-received-confirm">

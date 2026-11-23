@@ -1,5 +1,6 @@
 import { Linking } from 'react-native';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { CommonActions } from '@react-navigation/native';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { installMockApi } from './helpers/mockApi';
 import { installChallanMock } from './helpers/mockChallanApi';
 import { renderApp } from './helpers/renderApp';
@@ -21,11 +22,12 @@ function setup() {
 }
 
 async function signIn(email: string, password: string) {
-  await renderApp({ showLanding: false });
+  const ref = await renderApp({ showLanding: false });
   await fireEvent.changeText(await screen.findByTestId('signin-email'), email);
   await fireEvent.changeText(screen.getByTestId('signin-password'), password);
   await fireEvent.press(screen.getByTestId('signin-submit'));
   await screen.findByTestId('dashboard-screen');
+  return ref;
 }
 
 async function openRequest() {
@@ -80,7 +82,7 @@ describe('1C/1D - Material received and delivery challan', () => {
 
   test('a manager cancels with a reason; the challan list searches by number', async () => {
     const { api, dc } = setup();
-    await signIn('owner@airtech.in', 'Owner12345');
+    const ref = await signIn('owner@airtech.in', 'Owner12345');
     await openRequest();
     await fireEvent.press(await screen.findByTestId('req-material-received'));
     await fireEvent.changeText(await screen.findByTestId('mr-recv-qty-1'), '4');
@@ -94,6 +96,17 @@ describe('1C/1D - Material received and delivery challan', () => {
     await fireEvent.press(await screen.findByTestId('mr-recv-create'));
     expect(await screen.findByTestId('dc-created')).toHaveTextContent(/DC-0002/);
     expect(api.reqs[0].lines[0]).toMatchObject({ received: 10, pending: 0 });
+    // Nothing pending any more: no entry form, Create challan is off.
+    await fireEvent.press(screen.getByTestId('dc-open-mr'));
+    expect(await screen.findByTestId('req-pending-1')).toHaveTextContent('0');
+    expect(screen.queryByTestId('req-material-received')).toBeNull();
+    await act(async () => { ref.dispatch(CommonActions.navigate({ name: 'MaterialReceived', params: { requisitionId: 'r1' } })); });
+    expect(await screen.findByTestId('mr-recv-all-done')).toHaveTextContent('Everything on this request has been received.');
+    expect(screen.queryByTestId('mr-recv-qty-1')).toBeNull();
+    expect(screen.queryByTestId('mr-recv-ok')).toBeNull();
+    expect(screen.getByTestId('mr-recv-create')).toBeDisabled();
+    await act(async () => { ref.dispatch(CommonActions.navigate({ name: 'ChallanDetail', params: { id: dc.challans[0].id } })); });
+    await screen.findByTestId('challan-detail-screen');
 
     await fireEvent.press(screen.getByTestId('dc-cancel'));
     await fireEvent.press(screen.getByTestId('dc-cancel-confirm'));
@@ -101,6 +114,11 @@ describe('1C/1D - Material received and delivery challan', () => {
     await fireEvent.changeText(screen.getByTestId('dc-cancel-reason'), 'Counted twice');
     await fireEvent.press(screen.getByTestId('dc-cancel-confirm'));
     expect(await screen.findByTestId('dc-cancelled')).toHaveTextContent(/Counted twice/);
+    // A cancelled challan says so prominently and no longer shows its stale running totals.
+    expect(screen.getByTestId('dc-status')).toHaveTextContent('Cancelled');
+    expect(screen.getByTestId('dc-cancelled-note')).toHaveTextContent(/material request to see what is pending now/);
+    expect(screen.getByTestId('dc-line-1')).not.toHaveTextContent(/Pending|0$/);
+    expect(screen.queryByText('Delivered to date')).toBeNull();
     expect(dc.challans[0]).toMatchObject({ number: 'DC-0002', status: 'cancelled' });
   });
 

@@ -31,6 +31,9 @@ describe('1F.1 - Approval settings screen', () => {
     expect(await screen.findByTestId('workflow-levels-wlow')).toHaveTextContent('Purchaser → Project Manager');
     expect(screen.getByTestId('workflow-levels-whigh')).toHaveTextContent('Purchaser → Project Manager → Director');
     expect(screen.queryByTestId('toggle-workflow-wlow')).toBeNull();
+    // The low row reads as the band below the high row's threshold, not "Any amount".
+    expect(screen.getByTestId('workflow-wlow')).toHaveTextContent(/Below ₹1,00,000/);
+    expect(screen.getByTestId('workflow-whigh')).toHaveTextContent(/₹1,00,000\.00 and above/);
 
     await fireEvent.press(screen.getByTestId('new-workflow'));
     await fireEvent.press(screen.getByTestId('wf-save'));

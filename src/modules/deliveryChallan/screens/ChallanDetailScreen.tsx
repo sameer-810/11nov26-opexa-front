@@ -48,6 +48,8 @@ export function ChallanDetailScreen({ navigation, route }: Props) {
   if (loadError) return <AppScreen title="Delivery challan" onBack={() => navigation.navigate('Challans')}><ErrorState message={loadError} onRetry={load} /></AppScreen>;
   if (!dc) return <AppScreen title="Delivery challan" onBack={() => navigation.navigate('Challans')}><ActivityIndicator /></AppScreen>;
 
+  const cancelled = dc.status === 'cancelled';
+  const cols = cancelled ? 5 : HEAD.length;
   const canCancel = dc.status === 'active' && (can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.STORE_MANAGE));
   const act = async (what: string, fn: () => Promise<void>) => {
     setBusy(what);
@@ -72,12 +74,18 @@ export function ChallanDetailScreen({ navigation, route }: Props) {
       title={`Delivery challan ${dc.number}`}
       subtitle={`${dc.projectCode ?? ''} ${dc.projectName ?? ''} · ${dc.requisitionNumber ?? ''} · ${formatDate(dc.date)}`}
       onBack={back}
-      right={<StatusChip label={dc.status === 'active' ? 'Received' : 'Cancelled'} tone={dc.status === 'active' ? 'success' : 'neutral'} testID="dc-status" />}
+      right={<StatusChip label={dc.status === 'active' ? 'Received' : 'Cancelled'} tone={cancelled ? 'danger' : 'success'} testID="dc-status" />}
       testID="challan-detail-screen"
     >
       {justCreated ? <Text style={styles.ok} testID="dc-created">Challan {dc.number} created. Stock at site is updated.</Text> : null}
       {attachFailed ? <ErrorBanner message="The challan was saved, but some attachments could not be uploaded." testID="dc-attach-failed" /> : null}
-      {dc.status === 'cancelled' ? <Text style={styles.cancelled} testID="dc-cancelled">Cancelled by {dc.cancelledBy?.name ?? '—'} on {formatDateTime(dc.cancelledAt)}: {dc.cancelReason}</Text> : null}
+      {cancelled ? (
+        <View style={styles.cancelBox}>
+          <Text style={styles.cancelHead}>CANCELLED</Text>
+          <Text style={styles.cancelled} testID="dc-cancelled">Cancelled by {dc.cancelledBy?.name ?? '—'} on {formatDateTime(dc.cancelledAt)}: {dc.cancelReason}</Text>
+          <Text style={styles.text} testID="dc-cancelled-note">The quantities were taken back out of stock. Open the material request to see what is pending now.</Text>
+        </View>
+      ) : null}
       <View style={styles.info} testID="dc-info">
         <Text style={styles.text}>Deliver to: {dc.deliveryAddress || '—'}</Text>
         <Text style={styles.text}>Supplier: {dc.supplierName || '—'}{dc.vendorChallanNo ? ` · supplier challan ${dc.vendorChallanNo}` : ''}{dc.vehicleNo ? ` · vehicle ${dc.vehicleNo}` : ''}</Text>
@@ -87,7 +95,7 @@ export function ChallanDetailScreen({ navigation, route }: Props) {
       <ScrollView horizontal>
         <View style={styles.table}>
           <View style={[styles.tr, styles.head]}>
-            {HEAD.map((h, i) => <Text key={h} style={[styles.th, { width: W[i] }, i > 2 && styles.right]}>{h}</Text>)}
+            {HEAD.slice(0, cols).map((h, i) => <Text key={h} style={[styles.th, { width: W[i] }, i > 2 && styles.right]}>{h}</Text>)}
           </View>
           {dc.lines.map((l) => (
             <View key={l.id} style={styles.tr} testID={`dc-line-${l.serialNo}`}>
@@ -96,8 +104,8 @@ export function ChallanDetailScreen({ navigation, route }: Props) {
               <Text style={[styles.td, { width: W[2] }]}>{l.unit}</Text>
               <Text style={[styles.td, styles.right, { width: W[3] }]}>{formatNumber(l.qtyApproved)}</Text>
               <Text style={[styles.td, styles.right, styles.bold, { width: W[4] }]}>{formatNumber(l.qty)}</Text>
-              <Text style={[styles.td, styles.right, { width: W[5] }]}>{formatNumber(l.cumulative)}</Text>
-              <Text style={[styles.td, styles.right, { width: W[6] }]}>{formatNumber(l.pending)}</Text>
+              {cancelled ? null : <Text style={[styles.td, styles.right, { width: W[5] }]}>{formatNumber(l.cumulative)}</Text>}
+              {cancelled ? null : <Text style={[styles.td, styles.right, { width: W[6] }]}>{formatNumber(l.pending)}</Text>}
             </View>
           ))}
         </View>
@@ -132,6 +140,8 @@ export function ChallanDetailScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   ok: { color: '#065F46', fontWeight: '700', backgroundColor: '#ECFDF5', borderRadius: radius.md, padding: spacing.md },
   cancelled: { fontSize: 15, color: colors.danger, fontWeight: '600' },
+  cancelBox: { borderWidth: 2, borderColor: colors.danger, borderRadius: radius.md, padding: spacing.md, gap: 4 },
+  cancelHead: { fontSize: 20, fontWeight: '800', color: colors.danger, letterSpacing: 1 },
   info: { gap: 2 },
   text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },

@@ -22,7 +22,12 @@ import { roleName } from '../components/ApprovalHistory';
 type Props = NativeStackScreenProps<RootStackParamList, 'ApprovalSettings'>;
 type Data = { workflows: Workflow[]; people: Person[]; projects: { id: string; code: string; name: string }[] };
 
-const band = (w: Workflow) => (w.maxAmount != null ? `${formatMoney(w.minAmount)} to ${formatMoney(w.maxAmount)}` : w.minAmount > 0 ? `${formatMoney(w.minAmount)} and above` : 'Any amount');
+// The low default row covers everything below the high row's threshold.
+const band = (w: Workflow, all: Workflow[]) => {
+  const high = w.defaultKey === 'low' ? all.find((x) => x.defaultKey === 'high' && x.transactionType === w.transactionType) : undefined;
+  return high ? `Below ${formatMoney(high.minAmount)}` : plainBand(w);
+};
+const plainBand = (w: Workflow) => (w.maxAmount != null ? `${formatMoney(w.minAmount)} to ${formatMoney(w.maxAmount)}` : w.minAmount > 0 ? `${formatMoney(w.minAmount)} and above` : 'Any amount');
 const asInput = (w: Workflow, isActive: boolean): WorkflowInput => ({
   name: w.name, transactionType: w.transactionType, projectId: w.projectId, departmentId: w.departmentId, minAmount: w.minAmount, maxAmount: w.maxAmount, isActive,
   levels: w.levels.map((l) => (l.approverUserId ? { sequence: l.sequence, approverUserId: l.approverUserId } : { sequence: l.sequence, approverRole: l.approverRole ?? '' })),
@@ -84,7 +89,7 @@ export function ApprovalSettingsScreen({ navigation }: Props) {
                 <StatusChip label={w.isActive ? 'On' : 'Off'} tone={w.isActive ? 'success' : 'neutral'} />
               </View>
               <Text style={styles.muted}>
-                {[band(w), w.projectId ? `Project ${data.projects.find((p) => p.id === w.projectId)?.code ?? ''}` : null, w.department ? `Dept ${w.department}` : null].filter(Boolean).join(' · ')}
+                {[band(w, data.workflows), w.projectId ? `Project ${data.projects.find((p) => p.id === w.projectId)?.code ?? ''}` : null, w.department ? `Dept ${w.department}` : null].filter(Boolean).join(' · ')}
               </Text>
               <Text style={styles.text} testID={`workflow-levels-${w.id}`}>{who(w)}</Text>
               <View style={styles.row}>
