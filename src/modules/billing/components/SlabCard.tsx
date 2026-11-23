@@ -24,15 +24,16 @@ export function SlabCard({ projectId, m, approved, busy, run, onInvoice }: Props
   const early = m.eligible === false;
   const above = value > computed + 0.005;
   const done = m.completion;
+  const doneWord = m.trackBy === 'installed' ? 'installed' : 'delivered';
   return (
     <View style={s.card} testID={`slab-pos-${m.name}`}>
       <View style={s.row}>
         <Text style={s.title}>{m.name}{m.contractPct != null ? ` (${m.contractPct}%)` : ''}: {formatMoney(m.amount)}</Text>
-        {m.billedAheadOfDelivery ? <StatusChip label="Billed ahead of delivery" tone="warning" /> : null}
+        {m.billedAheadOfDelivery ? <StatusChip label={`Billed ahead of ${m.trackBy === 'installed' ? 'installation' : 'delivery'}`} tone="warning" /> : null}
         {done ? <StatusChip label={`Complete ${formatDate(done.completedOn)}`} tone="success" /> : null}
       </View>
-      <Text style={s.muted}>Billed {formatMoney(m.billed)} · unbilled {formatMoney(m.unbilled)}{m.linkedTotalQty ? ` · delivered ${formatNumber(m.linkedDoneQty)}/${formatNumber(m.linkedTotalQty)} (${m.deliveredPct}%)` : ''}</Text>
-      {m.remainingObligation ? <Text style={s.warn} testID={`slab-obligation-${m.name}`}>Remaining obligation: {formatMoney(m.remainingObligation)} billed but not yet delivered</Text> : null}
+      <Text style={s.muted}>Billed {formatMoney(m.billed)} · unbilled {formatMoney(m.unbilled)}{m.linkedTotalQty ? ` · ${doneWord} ${formatNumber(m.linkedDoneQty)}/${formatNumber(m.linkedTotalQty)} (${m.deliveredPct}%)` : ''}</Text>
+      {m.remainingObligation ? <Text style={s.warn} testID={`slab-obligation-${m.name}`}>Remaining obligation: {formatMoney(m.remainingObligation)} billed but not yet {doneWord}</Text> : null}
       {m.pending.map((p) => <Text key={p.serialNo} style={s.warn}>Pending: S.No {p.serialNo} {p.description} — {formatNumber(p.pendingQty)} {p.unit}</Text>)}
       {done ? <Text style={s.muted}>Completion: {done.note || 'recorded'}{done.linkedTotalQty ? ` · ${formatNumber(done.linkedDoneQty ?? 0)}/${formatNumber(done.linkedTotalQty)} done then` : ''} · {done.documentIds.length} evidence file(s)</Text> : null}
       {approved && m.stage !== 'advance' ? (
@@ -45,7 +46,7 @@ export function SlabCard({ projectId, m, approved, busy, run, onInvoice }: Props
       {approved && m.unbilled > 0 ? (
         <View style={s.form}>
           {early ? <Text style={s.warn} testID={`slab-early-${m.name}`}>Not marked complete: billing now is early billing. It needs a reason and approval (Accounts → Director); the invoice stays a draft until approved.</Text> : null}
-          {above ? <Text style={s.warn} testID={`slab-above-${m.name}`}>{formatMoney(value)} is more than the {formatMoney(computed)} the delivered quantity supports. The reason is kept as an override record.</Text> : null}
+          {above ? <Text style={s.warn} testID={`slab-above-${m.name}`}>{formatMoney(value)} is more than the {formatMoney(computed)} the {doneWord} quantity supports. The reason is kept as an override record.</Text> : null}
           <View style={s.row}>
             <TextField label="Bill amount ₹" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" testID={`slab-amount-${m.name}`} />
             {early || above ? <View style={s.cell}><TextField label="Reason" value={reason} onChangeText={setReason} testID={`slab-reason-${m.name}`} /></View> : null}

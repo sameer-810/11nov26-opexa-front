@@ -11,7 +11,8 @@ test('Phase 7 - full high-side slab billed with 1 AHU pending; the true position
   api.addUser({ email: 'owner@airtech.in', password: 'Owner12345' });
   api.projects.push({ id: 'p1', code: 'P-001', name: 'Worli', clientName: 'Lodha', status: 'active', siteAddress: null, clientPoNumber: null, poDate: null, location: null, geofenceRadiusM: 200, memberIds: [] });
   api.billing.plan = { id: 'bp1', status: 'approved', retentionPct: 5, slabBase: 'contract_value', baseValue: 1000000, highSideValue: 1000000, highSideItemIds: ['i1'], milestones: [{ id: 'm2', name: 'High-side delivery', stage: 'high_side_delivery', basis: 'percent', percent: 30, fixedAmount: 0, amount: 300000, billed: 0, linkedItemIds: ['i1'] }] };
-  api.billing.position = { planStatus: 'approved', slabBase: 'contract_value', baseValue: 1000000, highSideValue: 1000000, remainingObligation: 0, lowSide: [], milestones: [{ id: 'm2', name: 'High-side delivery', stage: 'high_side_delivery', contractPct: 30, computedAmount: 270000, eligible: false, completion: null, remainingObligation: 0, amount: 300000, billed: 0, unbilled: 300000, linkedTotalQty: 10, linkedDoneQty: 9, pendingQty: 1, deliveredPct: 90, billedAheadOfDelivery: false, pending: [{ serialNo: '4', description: 'AHU 10000 CFM', pendingQty: 1, unit: 'Nos' }] }] };
+  api.billing.position = { planStatus: 'approved', slabBase: 'contract_value', baseValue: 1000000, highSideValue: 1000000, remainingObligation: 0, lowSide: [], milestones: [{ id: 'm2', name: 'High-side delivery', stage: 'high_side_delivery', contractPct: 30, computedAmount: 270000, eligible: false, completion: null, remainingObligation: 0, amount: 300000, billed: 0, unbilled: 300000, linkedTotalQty: 10, linkedDoneQty: 9, pendingQty: 1, deliveredPct: 90, billedAheadOfDelivery: false, pending: [{ serialNo: '4', description: 'AHU 10000 CFM', pendingQty: 1, unit: 'Nos' }] },
+    { id: 'm3', name: 'Installation', stage: 'installation', contractPct: 25, computedAmount: 0, eligible: false, completion: null, remainingObligation: 50000, amount: 250000, billed: 50000, unbilled: 200000, trackBy: 'installed', linkedTotalQty: 10, linkedDoneQty: 0, pendingQty: 10, deliveredPct: 0, billedAheadOfDelivery: true, pending: [] }] };
   await renderApp({ showLanding: false });
   await fireEvent.changeText(await screen.findByTestId('signin-email'), 'owner@airtech.in');
   await fireEvent.changeText(screen.getByTestId('signin-password'), 'Owner12345');
@@ -23,6 +24,11 @@ test('Phase 7 - full high-side slab billed with 1 AHU pending; the true position
   expect(slab).toHaveTextContent(/delivered 9\/10 \(90%\)/);
   expect(slab).toHaveTextContent(/Pending: S.No 4 AHU 10000 CFM — 1 Nos/);
   expect(slab).toHaveTextContent(/High-side delivery \(30%\)/);
+  // An installation slab tracks installed quantity, not delivery.
+  const ins = screen.getByTestId('slab-pos-Installation');
+  expect(ins).toHaveTextContent(/installed 0\/10 \(0%\)/);
+  expect(ins).toHaveTextContent(/Billed ahead of installation/);
+  expect(screen.getByTestId('slab-obligation-Installation')).toHaveTextContent(/billed but not yet installed/);
   expect(screen.getByTestId('slab-base-value')).toHaveTextContent(/Slabs on contract value/);
   // Not complete: early-billing warning; the amount defaults to what delivery supports (9/10 of 30%).
   expect(screen.getByTestId('slab-early-High-side delivery')).toHaveTextContent(/needs a reason and approval/);

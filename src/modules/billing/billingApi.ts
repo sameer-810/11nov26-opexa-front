@@ -10,7 +10,7 @@ export type Milestone = { id: string; name: string; stage: Stage; basis: 'percen
 export type Plan = { id: string; status: 'draft' | 'approved'; retentionPct: number; advanceRecoveryPct?: number; slabBase?: SlabBase; baseValue?: number; highSideValue: number; highSideItemIds?: string[]; milestones: Milestone[] };
 export type PositionMilestone = {
   id: string; name: string; stage?: Stage; contractPct?: number | null; amount: number; billed: number; unbilled: number; computedAmount?: number; eligible?: boolean; completion?: Completion | null; remainingObligation?: number;
-  linkedTotalQty: number; linkedDoneQty: number; pendingQty: number; deliveredPct: number | null; billedAheadOfDelivery: boolean; pending: { serialNo: string; description: string; pendingQty: number; unit: string }[];
+  trackBy?: 'received' | 'installed'; linkedTotalQty: number; linkedDoneQty: number; pendingQty: number; deliveredPct: number | null; billedAheadOfDelivery: boolean; pending: { serialNo: string; description: string; pendingQty: number; unit: string }[];
 };
 export type PlanMilestoneIn = { id?: string; name: string; stage: Stage; basis: 'percent' | 'fixed'; percent: number; fixedAmount: number; linkedItemIds: string[] };
 export type LowSide = {

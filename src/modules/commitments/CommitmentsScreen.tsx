@@ -16,7 +16,7 @@ import { TextField } from '../../shared/ui/TextField';
 import { s, useAction, useData } from '../inventory/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Commitments'>;
-type RetRow = { projectId: string; projectCode: string; projectName: string; client: string; held: number; released: number; claimedOpen: number; outstanding: number; releaseDueDate: string | null; due: boolean; daysToRelease: number | null; retentionPct: number | null; retentionBase: 'taxable' | 'gross' };
+type RetRow = { projectId: string; projectCode: string; projectName: string; client: string; held: number; released: number; claimedOpen: number; outstanding: number; releaseDueDate: string | null; due: boolean; daysToRelease: number | null; retentionPct: number | null; retentionBase: 'taxable' | 'gross'; dlpMonths?: number };
 type Batch = { invoiceId: string; number: string; retention: number; retentionPct: number; retentionBase: string; expectedRelease: string };
 type Claim = { id: string; amount: number; reference: string; status: string; releasedAmount: number };
 type Bg = { id: string; number: string; type: string; bank: string; beneficiary: string; amount: number; expiryDate: string; status: string; daysToExpiry: number; expiringSoon: boolean; expiredNotClosed: boolean; renewals: unknown[]; alertDays: number | null; leadDays: number };
@@ -62,7 +62,7 @@ export function CommitmentsScreen({ navigation }: Props) {
                 <TextField label="DLP months" value={v(`d-${r.projectId}`)} onChangeText={set(`d-${r.projectId}`)} keyboardType="number-pad" />
                 <TextField label="Retention % (blank: plan)" value={v(`p-${r.projectId}`)} onChangeText={set(`p-${r.projectId}`)} keyboardType="decimal-pad" testID={`ret-pct-${r.projectCode}`} />
                 <ChoiceChips label="On" value={v(`b-${r.projectId}`) || r.retentionBase} onChange={set(`b-${r.projectId}`)} options={[{ value: 'taxable', label: 'Taxable value' }, { value: 'gross', label: 'Gross (with GST)' }]} />
-                <Button title="Save terms" variant="outline" onPress={() => run(`t-${r.projectId}`, () => api(`${C}/retention/${r.projectId}/terms`, { method: 'PUT', body: { ...(v(`h-${r.projectId}`) ? { handoverDate: v(`h-${r.projectId}`) } : {}), dlpMonths: parseNumber(v(`d-${r.projectId}`)) ?? 12, retentionPct: v(`p-${r.projectId}`) ? parseNumber(v(`p-${r.projectId}`)) : r.retentionPct, retentionBase: (v(`b-${r.projectId}`) || r.retentionBase) as 'taxable' | 'gross' } }))} testID={`ret-terms-${r.projectCode}`} />
+                <Button title="Save terms" variant="outline" onPress={() => run(`t-${r.projectId}`, () => api(`${C}/retention/${r.projectId}/terms`, { method: 'PUT', body: { ...(v(`h-${r.projectId}`) ? { handoverDate: v(`h-${r.projectId}`) } : {}), dlpMonths: parseNumber(v(`d-${r.projectId}`)) ?? r.dlpMonths ?? 12, retentionPct: v(`p-${r.projectId}`) ? parseNumber(v(`p-${r.projectId}`)) : r.retentionPct, retentionBase: (v(`b-${r.projectId}`) || r.retentionBase) as 'taxable' | 'gross' } }))} testID={`ret-terms-${r.projectCode}`} />
               </View>
               <View style={s.row}>
                 <TextField label="Claim ₹" value={v(`c-${r.projectId}`)} onChangeText={set(`c-${r.projectId}`)} keyboardType="decimal-pad" testID={`ret-claim-${r.projectCode}`} />
