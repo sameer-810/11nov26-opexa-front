@@ -12,6 +12,7 @@ import { ErrorState } from '../../../shared/ui/ErrorState';
 import { StatusChip } from '../../../shared/ui/StatusChip';
 import { TextField } from '../../../shared/ui/TextField';
 import { s, useAction, useData } from '../../inventory/ui';
+import { AttachmentList, pickAttachment } from '../../requisition/components/Attachments';
 import { canPaySuppliers, MODE_LABEL, STATUS_LABEL, statusTone, supplierPaymentApi, type OpenInvoice, type SupplierPaymentMode } from '../supplierPaymentApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SupplierPaymentDetail'>;
@@ -65,6 +66,11 @@ export function SupplierPaymentDetailScreen({ navigation, route }: Props) {
         {p.reviewComment ? <Text style={s.warn} testID="spay-review">Approver: {p.reviewComment}</Text> : null}
         {p.cancelled ? <Text style={s.danger}>Cancelled {formatDate(p.cancelled.at)}: {p.cancelled.reason}</Text> : null}
       </View>
+      <AttachmentList items={p.attachments} onError={setProblem} fetchFile={(a) => supplierPaymentApi.downloadAttachment(p.id, a)} />
+      {writes && p.status !== 'cancelled' && p.attachments.length < 5 ? (
+        <Button title="Attach payment proof (photo or PDF)" variant="outline" style={s.self} loading={busy === 'attach'} testID="spay-attach"
+          onPress={() => void pickAttachment().then((f) => (f ? run('attach', () => supplierPaymentApi.addAttachment(p.id, f)) : undefined))} />
+      ) : null}
       {writes && ['draft', 'sent_back'].includes(p.status) ? (
         <View style={s.row}>
           <Button title="Submit for approval" onPress={() => void run('submit', () => supplierPaymentApi.submit(p.id))} loading={busy === 'submit'} testID="spay-detail-submit" />

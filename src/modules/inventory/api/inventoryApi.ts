@@ -1,5 +1,5 @@
-import { api } from '../../../shared/api/apiClient';
-import type { Adjustment, DamagedInput, Issue, LedgerRow, Material, MaterialInput, StockRow, Tool, Transfer, Warehouse } from '../types';
+import { api, apiBlob } from '../../../shared/api/apiClient';
+import type { Adjustment, DamagedInput, Issue, LedgerRow, Material, MaterialInput, Party, StockCount, StockLevel, StockRow, Tool, ToolHistory, ToolMaintenance, Transfer, Warehouse } from '../types';
 
 const qs = (q: Record<string, string | undefined>) => {
   const p = new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][]).toString();
@@ -37,9 +37,22 @@ export const inventoryApi = {
   returnDamaged: (body: DamagedInput) => api<{ id: string; number: string }>('/inventory/damaged/return', { method: 'POST', body }),
   settings: () => api<{ overReceiptTolerancePercent: number }>('/inventory/settings'),
   saveSettings: (body: { overReceiptTolerancePercent: number }) => api<{ overReceiptTolerancePercent: number }>('/inventory/settings', { method: 'PUT', body }),
-  tools: (q: { status?: string; q?: string } = {}) => api<Tool[]>(`/inventory/tools${qs(q)}`),
+  tools: (q: { status?: string; q?: string; due?: 'service' } = {}) => api<Tool[]>(`/inventory/tools${qs(q)}`),
+  tool: (id: string) => api<ToolHistory>(`/inventory/tools/${id}`),
   createTool: (body: { name: string; serialNo?: string; category?: string }) => api<Tool>('/inventory/tools', { method: 'POST', body }),
-  issueTool: (id: string, body: { holder: { kind: 'employee' | 'subcontractor' | 'other'; name: string }; projectId?: string; expectedReturn?: string }) => api<Tool>(`/inventory/tools/${id}/issue`, { method: 'POST', body }),
-  returnTool: (id: string, condition: 'good' | 'needs_repair' | 'damaged', note?: string) => api<Tool>(`/inventory/tools/${id}/return`, { method: 'POST', body: { condition, note } }),
-  toolStatus: (id: string, action: 'missing' | 'scrapped' | 'found', note: string) => api<Tool>(`/inventory/tools/${id}/status`, { method: 'POST', body: { action, note } }),
+  issueTool: (id: string, body: { holder: Party; projectId?: string; expectedReturn?: string; condition?: 'good' | 'fair' | 'needs_repair'; note?: string }) => api<Tool>(`/inventory/tools/${id}/issue`, { method: 'POST', body }),
+  returnTool: (id: string, condition: 'good' | 'fair' | 'needs_repair' | 'damaged', extra: { returnedAt?: string; remarks?: string } = {}) => api<Tool>(`/inventory/tools/${id}/return`, { method: 'POST', body: { condition, ...extra } }),
+  toolStatus: (id: string, action: 'missing' | 'damaged' | 'scrapped' | 'found', note: string, extra: { responsible?: Party; recoveryAmount?: number } = {}) => api<Tool>(`/inventory/tools/${id}/status`, { method: 'POST', body: { action, note, ...extra } }),
+  sendForRepair: (id: string, body: { vendor?: string; notes?: string; date?: string; projectId?: string }) => api<Tool>(`/inventory/tools/${id}/repair`, { method: 'POST', body }),
+  markRepaired: (id: string, body: { cost?: number; vendor?: string; notes?: string; date?: string; nextDueDate?: string; projectId?: string }) => api<Tool>(`/inventory/tools/${id}/repaired`, { method: 'POST', body }),
+  addMaintenance: (id: string, body: { type: 'repair' | 'service' | 'calibration'; cost?: number; vendor?: string; notes?: string; date?: string; nextDueDate?: string; projectId?: string }) => api<ToolMaintenance>(`/inventory/tools/${id}/maintenance`, { method: 'POST', body }),
+  counts: (q: { status?: string; kind?: string } = {}) => api<StockCount[]>(`/inventory/counts${qs(q)}`),
+  count: (id: string) => api<StockCount>(`/inventory/counts/${id}`),
+  startCount: (body: { location: Loc; countDate?: string; scope?: { type: 'all' | 'category' | 'selected'; category?: string; materialIds?: string[] }; note?: string }) => api<StockCount>('/inventory/counts', { method: 'POST', body }),
+  saveCount: (id: string, lines: { materialId: string; countedQty: number; damagedQty?: number; reason?: string }[]) => api<StockCount>(`/inventory/counts/${id}/lines`, { method: 'PUT', body: { lines } }),
+  submitCount: (id: string) => api<StockCount>(`/inventory/counts/${id}/submit`, { method: 'POST' }),
+  cancelCount: (id: string, reason: string) => api<StockCount>(`/inventory/counts/${id}/cancel`, { method: 'POST', body: { reason } }),
+  countExcel: (id: string) => apiBlob(`/inventory/counts/${id}/report.xlsx`),
+  stockLevels: (q: { kind?: string; locationId?: string } = {}) => api<StockLevel[]>(`/inventory/stock-levels${qs(q)}`),
+  saveStockLevel: (body: { materialId: string; location: Loc; minQty: number | null; reorderQty?: number }) => api<StockLevel>('/inventory/stock-levels', { method: 'PUT', body }),
 };

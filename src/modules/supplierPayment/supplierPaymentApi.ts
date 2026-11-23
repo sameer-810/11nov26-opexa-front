@@ -1,4 +1,5 @@
 import { api, apiBlob } from '../../shared/api/apiClient';
+import { attachmentForm, type PickedFile } from '../requisition/api/requisitionApi';
 import { can, PERMS } from '../../shared/permissions';
 import type { User } from '../auth/types';
 
@@ -67,4 +68,7 @@ export const supplierPaymentApi = {
   pay: (id: string, body: { paidDate: string; reference?: string; mode?: SupplierPaymentMode }) => api<SupplierPayment>(`${P}/${id}/pay`, { method: 'POST', body }),
   cancel: (id: string, reason: string) => api<SupplierPayment>(`${P}/${id}/cancel`, { method: 'POST', body: { reason } }),
   adjust: (id: string, allocations: { supplierInvoiceId: string; amount: number }[]) => api<SupplierPayment>(`${P}/${id}/adjust`, { method: 'POST', body: { allocations } }),
+  // Payment proof (bank advice, cheque copy): up to 5 photos or PDFs per payment.
+  addAttachment: (id: string, picked: PickedFile) => api<SupplierPayment>(`${P}/${id}/attachments`, { method: 'POST', body: attachmentForm(picked) }),
+  downloadAttachment: (id: string, a: { id: string }) => apiBlob(`${P}/${id}/attachments/${a.id}`),
 };

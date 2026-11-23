@@ -10,6 +10,8 @@ import { EmptyState } from '../../../shared/ui/EmptyState';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { TextField } from '../../../shared/ui/TextField';
 import { errText, s } from '../../inventory/ui';
+import { AttachmentPicker } from '../../requisition/components/Attachments';
+import type { PickedFile } from '../../requisition/api/requisitionApi';
 import { MODE_LABEL, supplierPaymentApi, type OpenInvoice, type PaymentInput, type SupplierPaymentMode } from '../supplierPaymentApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SupplierPaymentForm'>;
@@ -33,6 +35,7 @@ export function SupplierPaymentFormScreen({ navigation, route }: Props) {
   const [date, setDate] = useState(todayLocal());
   const [remarks, setRemarks] = useState('');
   const [problem, setProblem] = useState('');
+  const [files, setFiles] = useState<PickedFile[]>([]);
   const [busy, setBusy] = useState('');
 
   useEffect(() => { supplierPaymentApi.vendorNames().then(setVendors).catch((e: unknown) => setProblem(errText(e))); }, []);
@@ -82,6 +85,8 @@ export function SupplierPaymentFormScreen({ navigation, route }: Props) {
     setBusy(submit ? 'submit' : 'save'); setProblem('');
     try {
       const p = editId ? await supplierPaymentApi.update(editId, body) : await supplierPaymentApi.create(body);
+      // Files go up once the payment exists; one that fails can be attached again from the payment screen.
+      for (const f of files) await supplierPaymentApi.addAttachment(p.id, f).catch(() => null);
       if (submit) await supplierPaymentApi.submit(p.id);
       navigation.navigate('SupplierPaymentDetail', { id: p.id });
     } catch (e) { setProblem(errText(e)); } finally { setBusy(''); }
@@ -120,6 +125,7 @@ export function SupplierPaymentFormScreen({ navigation, route }: Props) {
         <TextField label={mode === 'cash' ? 'Reference (optional)' : 'UTR / cheque / UPI reference'} value={reference} onChangeText={setReference} maxLength={80} testID="spay-reference" />
         <TextField label="Remarks" value={remarks} onChangeText={setRemarks} maxLength={1000} testID="spay-remarks" />
         <Text style={s.title} testID="spay-summary">Against invoices {formatMoney(allocated)} · payment + TDS {formatMoney(round(paid + tdsValue))}</Text>
+        <AttachmentPicker picked={files} onPick={setFiles} />
         {advance > 0.005 ? <Text style={s.warn} testID="spay-advance">{formatMoney(advance)} will be an advance on account, to adjust against invoices later</Text> : null}
         <View style={s.row}>
           <Button title="Submit for approval" onPress={() => void save(true)} loading={busy === 'submit'} testID="spay-submit" />

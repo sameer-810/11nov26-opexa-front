@@ -7,54 +7,68 @@ import { ErrorBanner } from '../../../shared/ui/Banner';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { StatusChip } from '../../../shared/ui/StatusChip';
 import { TextField } from '../../../shared/ui/TextField';
+import { projectApi } from '../../project/api/projectApi';
 import { inventoryApi } from '../api/inventoryApi';
+import type { Tool } from '../types';
 import { s, useAction, useData } from '../ui';
+import { ToolActionForm, type ToolMode } from './ToolActionForm';
+import { ToolHistoryPanel } from './ToolHistoryPanel';
 
-// Tools and equipment register: issue to staff / subcontractors, return with condition, missing.
+const VIEWS = [{ value: '', label: 'All tools' }, { value: 'service', label: 'Due for service' }];
+const STATUS_TONE: Record<Tool['status'], 'success' | 'info' | 'warning' | 'danger'> = { available: 'success', issued: 'info', in_repair: 'warning', missing: 'danger', scrapped: 'danger' };
+// What can be done with a tool in each status.
+const ACTIONS: Record<Tool['status'], { mode: ToolMode; title: string }[]> = {
+  available: [{ mode: 'issue', title: 'Issue' }, { mode: 'repair', title: 'Send for repair' }, { mode: 'service', title: 'Record service' }, { mode: 'damaged', title: 'Damaged' }, { mode: 'missing', title: 'Lost' }],
+  issued: [{ mode: 'return', title: 'Return' }, { mode: 'missing', title: 'Lost' }],
+  in_repair: [{ mode: 'repaired', title: 'Repaired' }],
+  missing: [],
+  scrapped: [],
+};
+const label = (v: string) => v.replace(/_/g, ' ');
+
+// Tools and equipment register: issue with condition, return with its date, repair and service records, history.
 export function ToolsTab() {
-  const fetcher = useCallback(() => inventoryApi.tools(), []);
+  const [view, setView] = useState('');
+  const fetcher = useCallback(async () => {
+    const [tools, projects] = await Promise.all([inventoryApi.tools(view === 'service' ? { due: 'service' } : {}), projectApi.list().catch(() => [])]);
+    return { tools, projects: projects.filter((p) => p.status !== 'closed').map((p) => ({ value: p.id, label: `${p.code} ${p.name}` })) };
+  }, [view]);
   const { data, error, reload } = useData(fetcher);
-  const { busy, problem, run } = useAction(() => void reload());
+  const { busy, problem, run, setProblem } = useAction(() => void reload());
   const [name, setName] = useState('');
   const [serial, setSerial] = useState('');
-  const [holderKind, setHolderKind] = useState<'employee' | 'subcontractor' | 'other'>('employee');
-  const [holder, setHolder] = useState('');
-  const [open, setOpen] = useState('');
+  const [open, setOpen] = useState<{ id: string; mode: ToolMode | 'history' } | null>(null);
   if (error) return <ErrorState message={error} onRetry={reload} />;
+  const toggle = (id: string, mode: ToolMode | 'history') => setOpen(open?.id === id && open.mode === mode ? null : { id, mode });
   return (
     <View style={s.list} testID="tools-tab">
-      {problem ? <ErrorBanner message={problem} /> : null}
+      {problem ? <ErrorBanner message={problem} testID="tools-problem" /> : null}
       <View style={s.form}>
         <View style={s.row}>
           <View style={s.cell}><TextField label="New tool / equipment" value={name} onChangeText={setName} placeholder="e.g. Hilti drilling machine" testID="tool-name" /></View>
-          <View style={s.cell}><TextField label="Serial no." value={serial} onChangeText={setSerial} /></View>
+          <View style={s.cell}><TextField label="Serial no. (unique)" value={serial} onChangeText={setSerial} testID="tool-serial" /></View>
         </View>
         <Button title="Add to register" onPress={() => run('add', async () => { await inventoryApi.createTool({ name, serialNo: serial || undefined }); setName(''); setSerial(''); })} loading={busy === 'add'} testID="tool-add" />
       </View>
-      {data?.map((t) => (
+      <ChoiceChips label="Show" options={VIEWS} value={view} onChange={setView} testID="tools-view" />
+      {data?.tools.map((t) => (
         <View key={t.id} style={s.card} testID={`tool-${t.code}`}>
           <View style={s.row}>
-            <Text style={s.title}>{t.code} · {t.name}</Text>
-            <StatusChip label={t.status} tone={t.status === 'available' ? 'success' : t.status === 'issued' ? 'info' : 'danger'} />
-            {t.condition !== 'good' ? <StatusChip label={t.condition.replace('_', ' ')} tone="warning" /> : null}
+            <Text style={s.title}>{t.code} · {t.name}{t.serialNo ? ` · S/N ${t.serialNo}` : ''}</Text>
+            <StatusChip label={label(t.status)} tone={STATUS_TONE[t.status]} />
+            {t.condition !== 'good' ? <StatusChip label={label(t.condition)} tone="warning" /> : null}
+            {t.serviceDue ? <StatusChip label={`Service due ${formatDate(t.nextServiceDue ?? null)}`} tone="warning" testID={`tool-due-${t.code}`} /> : null}
           </View>
-          {t.holder ? <Text style={t.holder.overdue ? s.danger : s.muted}>With {t.holder.name} ({t.holder.kind}) since {formatDate(t.holder.issuedAt)}{t.holder.expectedReturn ? ` · due back ${formatDate(t.holder.expectedReturn)}` : ''}</Text> : null}
-          {open === t.id ? (
-            <View style={s.list}>
-              <ChoiceChips label="Issue to" options={[{ value: 'employee', label: 'Employee' }, { value: 'subcontractor', label: 'Subcontractor' }, { value: 'other', label: 'Other' }]} value={holderKind} onChange={(v) => setHolderKind(v as typeof holderKind)} />
-              <TextField label="Name" value={holder} onChangeText={setHolder} testID="tool-holder" />
-              <View style={s.row}>
-                <Button title="Issue" onPress={() => run(`i-${t.id}`, async () => { await inventoryApi.issueTool(t.id, { holder: { kind: holderKind, name: holder } }); setOpen(''); setHolder(''); })} loading={busy === `i-${t.id}`} testID="tool-issue-save" />
-                <Button title="Cancel" variant="ghost" onPress={() => setOpen('')} />
-              </View>
-            </View>
-          ) : (
-            <View style={s.row}>
-              {t.status === 'available' ? <Button title="Issue" variant="outline" onPress={() => setOpen(t.id)} testID={`tool-issue-${t.code}`} /> : null}
-              {t.status === 'issued' ? <><Button title="Returned OK" variant="outline" onPress={() => run(`r-${t.id}`, () => inventoryApi.returnTool(t.id, 'good'))} /><Button title="Returned damaged" variant="ghost" onPress={() => run(`r-${t.id}`, () => inventoryApi.returnTool(t.id, 'damaged'))} /><Button title="Missing" variant="ghost" onPress={() => run(`m-${t.id}`, () => inventoryApi.toolStatus(t.id, 'missing', 'Reported missing from the store screen'))} /></> : null}
-              {t.status === 'missing' ? <Button title="Found" variant="ghost" onPress={() => run(`f-${t.id}`, () => inventoryApi.toolStatus(t.id, 'found', 'Found'))} /> : null}
-            </View>
-          )}
+          {t.holder ? <Text style={t.holder.overdue ? s.danger : s.muted}>With {t.holder.name} ({t.holder.kind}) since {formatDate(t.holder.issuedAt)}{t.holder.conditionAtIssue ? `, issued ${label(t.holder.conditionAtIssue)}` : ''}{t.holder.expectedReturn ? ` · due back ${formatDate(t.holder.expectedReturn)}` : ''}</Text> : null}
+          <View style={s.row}>
+            {ACTIONS[t.status].filter((a) => !(a.mode === 'issue' && t.condition === 'damaged')).map((a) => (
+              <Button key={a.mode} title={a.title} variant={['issue', 'return', 'repaired'].includes(a.mode) ? 'outline' : 'ghost'} onPress={() => toggle(t.id, a.mode)} testID={`tool-${a.mode}-${t.code}`} />
+            ))}
+            {t.status === 'missing' ? <Button title="Found" variant="ghost" onPress={() => run(`f-${t.id}`, () => inventoryApi.toolStatus(t.id, 'found', 'Found'))} testID={`tool-found-${t.code}`} /> : null}
+            <Button title={open?.id === t.id && open.mode === 'history' ? 'Hide history' : 'History'} variant="ghost" onPress={() => toggle(t.id, 'history')} testID={`tool-history-${t.code}`} />
+          </View>
+          {open?.id === t.id && open.mode === 'history' ? <ToolHistoryPanel id={t.id} /> : null}
+          {open?.id === t.id && open.mode !== 'history' ? <ToolActionForm tool={t} mode={open.mode} projects={data.projects} busy={busy} run={run} setProblem={setProblem} onClose={() => setOpen(null)} /> : null}
         </View>
       ))}
     </View>

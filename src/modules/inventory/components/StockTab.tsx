@@ -11,6 +11,7 @@ import { useAuth } from '../../../shared/store/useAuthStore';
 import { can, PERMS } from '../../../shared/permissions';
 import { DamagedStockActions } from './DamagedStockActions';
 import { ReceiptSettings } from './ReceiptSettings';
+import { StockLevelForm } from './StockLevelForm';
 
 const VIEWS = [{ value: '', label: 'All locations' }, { value: 'warehouse', label: 'Warehouses' }, { value: 'site', label: 'Sites' }, { value: 'transit', label: 'In transit' }, { value: 'low', label: 'Low stock' }];
 
@@ -41,12 +42,16 @@ export function StockTab() {
             const key = `${r.materialId}-${r.location.kind}-${r.location.id}`;
             return (
               <View key={key} style={s.card} testID={`stock-${r.code}-${r.location.kind}`}>
-                <View style={s.row}><Text style={s.title}>{r.name}</Text>{r.low ? <StatusChip label={`Below minimum ${formatNumber(r.minStock)}`} tone="danger" /> : null}</View>
+                <View style={s.row}><Text style={s.title}>{r.name}</Text>{r.low ? <StatusChip label={`Below minimum ${formatNumber(r.minStock)}${r.reorderQty ? ` · reorder ${formatNumber(r.reorderQty)}` : ''}`} tone="danger" /> : null}</View>
                 <Text style={s.muted}>{r.location.name} · on hand {formatNumber(r.onHand)} {r.unit}{r.reserved ? ` · reserved ${formatNumber(r.reserved)} · available ${formatNumber(r.available)}` : ''}{r.damaged ? ` · damaged ${formatNumber(r.damaged)}` : ''} · {formatMoney(r.value)} (avg {formatMoney(r.avgRate)})</Text>
                 {storeStaff && r.location.kind === 'warehouse' ? (
                   <Button title={acting === key ? 'Close' : 'Damaged stock'} variant="ghost" onPress={() => setActing(acting === key ? '' : key)} testID={`damaged-open-${r.code}`} style={s.self} />
                 ) : null}
+                {(storeStaff || (r.location.kind === 'site' && can(user, PERMS.PROJECT_MANAGE))) && ['warehouse', 'site'].includes(r.location.kind) ? (
+                  <Button title={acting === `min-${key}` ? 'Close' : `Minimum${r.minStock ? ` ${formatNumber(r.minStock)}` : ''}`} variant="ghost" onPress={() => setActing(acting === `min-${key}` ? '' : `min-${key}`)} testID={`level-open-${r.code}`} style={s.self} />
+                ) : null}
                 {acting === key ? <DamagedStockActions row={r} onDone={reload} /> : null}
+                {acting === `min-${key}` ? <StockLevelForm row={r} onDone={() => { setActing(''); void reload(); }} /> : null}
               </View>
             );
           })}
