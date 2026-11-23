@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { ApiError } from '../../shared/api/apiClient';
 import { colors, radius, spacing } from '../../shared/designSystem';
 
-export const errText = (e: unknown) => (e instanceof ApiError ? (e.details.length ? `${e.message}: ${e.details.map((d) => d.message).join('; ')}` : e.message) : 'Something went wrong');
+export const errText = (e: unknown) => (e instanceof ApiError ? (e.details.length ? `${e.message.replace(/[.:]\s*$/, '')}: ${e.details.map((d) => d.message).join('; ')}` : e.message) : 'Something went wrong');
 
 // Load on mount / when deps change; reload() after an action.
 export function useData<T>(fn: () => Promise<T>) {

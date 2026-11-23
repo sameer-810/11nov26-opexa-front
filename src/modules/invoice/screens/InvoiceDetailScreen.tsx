@@ -19,6 +19,7 @@ import { invoiceApi, openPrint, STATUS_LABEL, STATUS_TONE, lineGroups, type Invo
 import { GstSummary, SlabAmountEditor, SlabNotes } from '../components/InvoiceBilling';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'InvoiceDetail'>;
+const BASIS_LABEL: Record<string, string> = { installed: 'installed work', manual: 'entered by hand', measurement: 'approved measurement sheets', milestone: 'payment term (billing plan)' };
 
 export function InvoiceDetailScreen({ navigation, route }: Props) {
   const { id } = route.params;
@@ -67,7 +68,7 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
     <AppScreen title={inv.label} subtitle={`${inv.project.code} ${inv.project.name} · ${inv.client.name}`} onBack={() => navigation.navigate('Invoices')} testID="invoice-detail-screen">
       <View style={styles.row}>
         <StatusChip label={STATUS_LABEL[inv.status]} tone={STATUS_TONE[inv.status]} testID="inv-status" />
-        <Text style={styles.muted}>Date {formatDate(inv.invoiceDate)} · {inv.basis === 'lots' ? `lots billed: ${inv.lotIds.length}` : inv.basis === 'installed' ? 'installed work' : 'entered by hand'}</Text>
+        <Text style={styles.muted}>Date {formatDate(inv.invoiceDate)} · {inv.basis === 'lots' ? `lots billed: ${inv.lotIds.length}` : BASIS_LABEL[inv.basis] ?? inv.basis}</Text>
         {inv.invoiceType ? <StatusChip label={inv.invoiceType === 'advance' ? 'Advance invoice' : 'Progress invoice'} tone="neutral" testID="inv-type" /> : null}
         {inv.raLabel ? <StatusChip label={inv.raLabel} tone="neutral" testID="inv-ra" /> : null}
       </View>
@@ -100,9 +101,11 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
         <Text style={styles.muted}>{inv.totalInWords}</Text>
         {inv.milestoneLine ? <Text style={styles.text} testID="inv-slab">Payment-term slab: {inv.milestoneLine.description} · billed {formatMoney(inv.milestoneLine.amount)} of {formatMoney(inv.milestoneLine.planAmount)}</Text> : null}
         {inv.retention ? <Text style={styles.muted}>Retention {inv.retentionPct}%: {formatMoney(inv.retention)} held by the client</Text> : null}
-        {inv.status === 'issued' ? <Text style={styles.muted} testID="inv-outstanding">Received {formatMoney(inv.received ?? 0)} · TDS {formatMoney(inv.tds ?? 0)} · outstanding {formatMoney(inv.outstanding ?? 0)}</Text> : null}
+        {inv.advanceRecovery ? <Text style={styles.muted} testID="inv-advance-recovery">Advance recovered on this bill: {formatMoney(inv.advanceRecovery)}</Text> : null}
+        {inv.status === 'issued' ? <Text style={styles.muted} testID="inv-outstanding">Received {formatMoney((inv.received ?? 0) + (inv.allocated ?? 0))} · TDS {formatMoney(inv.tds ?? 0)}{inv.credited ? ` · credit notes ${formatMoney(inv.credited)}` : ''}{inv.debited ? ` · debit notes ${formatMoney(inv.debited)}` : ''} · outstanding {formatMoney(inv.outstanding ?? 0)}</Text> : null}
+        {inv.inTally ? <Text style={styles.warn} testID="inv-in-tally">Exported to Tally: correct it with a credit or debit note, not a revision.</Text> : null}
         {inv.revisions?.length ? <Text style={styles.muted}>{inv.revisions.length} earlier version(s) kept</Text> : null}
-        {inv.kind === 'milestone' && md && inv.status !== 'cancelled' ? <SlabAmountEditor inv={inv} busy={busy === 'slab'} onSave={(milestoneAmount, editReason) => act('slab', () => invoiceApi.update(id, { milestoneAmount, editReason: editReason || undefined }))} /> : null}
+        {inv.kind === 'milestone' && md && inv.status !== 'cancelled' && !inv.inTally ? <SlabAmountEditor inv={inv} busy={busy === 'slab'} onSave={(milestoneAmount, editReason) => act('slab', () => invoiceApi.update(id, { milestoneAmount, editReason: editReason || undefined }))} /> : null}
       </View>
 
       <View style={styles.box}>
@@ -121,7 +124,8 @@ export function InvoiceDetailScreen({ navigation, route }: Props) {
         <Button title="Print bundle (invoice + lot reports + photos)" onPress={() => act('print', async () => openPrint((await invoiceApi.printLink(id)).url))} loading={busy === 'print'} testID="inv-print" />
         <Button title="Print RA bill (cover + abstract + back sheets)" variant="outline" onPress={() => act('ra', async () => { const l = await invoiceApi.printLink(id); await openPrint(l.raUrl ?? l.url); })} loading={busy === 'ra'} testID="inv-print-ra" />
         {inv.status === 'draft' ? <Button title="Issue invoice" onPress={() => act('issue', () => invoiceApi.issue(id))} loading={busy === 'issue'} testID="inv-issue" /> : null}
-        {canChange && inv.kind !== 'milestone' ? <Button title={inv.status === 'issued' ? 'Change (MD/accountant)' : 'Edit'} variant="outline" onPress={() => navigation.navigate('InvoiceForm', { projectId: inv.project.id, invoiceId: inv.id })} testID="inv-edit" /> : null}
+        {inv.status === 'issued' ? <Button title="Raise credit / debit note" variant="outline" onPress={() => navigation.navigate('Notes', { invoiceId: inv.id })} testID="inv-raise-note" /> : null}
+        {canChange && !inv.inTally && inv.kind !== 'milestone' ? <Button title={inv.status === 'issued' ? 'Change (MD/accountant)' : 'Edit'} variant="outline" onPress={() => navigation.navigate('InvoiceForm', { projectId: inv.project.id, invoiceId: inv.id })} testID="inv-edit" /> : null}
         {md && inv.status !== 'cancelled' ? <Button title="Cancel invoice" variant="ghost" onPress={() => setShowCancel(true)} testID="inv-cancel" /> : null}
       </View>
       {showCancel ? (

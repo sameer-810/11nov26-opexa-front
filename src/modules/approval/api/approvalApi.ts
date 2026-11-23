@@ -19,7 +19,7 @@ export type LineDecision = { lineId: string; qtyApproved?: number; reject?: bool
 export type ApprovalDetail = PendingApproval & {
   history: HistoryEntry[];
   details: null | {
-    kind: 'requisition' | 'supplier_selection' | 'po_revision' | 'expense' | 'over_receipt' | 'supplier_payment' | 'early_billing';
+    kind: 'requisition' | 'supplier_selection' | 'po_revision' | 'expense' | 'over_receipt' | 'supplier_payment' | 'early_billing' | 'credit_note';
     expenseId?: string; number?: string | null; amount?: number; category?: string; date?: string; billNo?: string;
     projectName?: string | null; projectCode?: string | null; employee?: { id: string | null; name: string | null } | null;
     priority?: string; department?: string | null; note?: string; lines?: ApprovalLine[];
@@ -33,17 +33,19 @@ export type ApprovalDetail = PendingApproval & {
     supplierPaymentId?: string; vendor?: { id: string; name: string } | null; mode?: string; reference?: string; tds?: number; onAccount?: number;
     // Early billing of a payment-term slab (Q24).
     slab?: string; planAmount?: number; label?: string;
+    // Credit / debit note (4D).
+    noteKind?: 'credit' | 'debit'; side?: 'client' | 'supplier'; against?: string; party?: string; taxable?: number; gst?: number; total?: number; noteLines?: { description: string; qty: number; rate: number; amount: number; gstRate: number }[];
     invoices?: { supplierInvoiceId: string; invoiceNumber: string | null; invoiceDate: string | null; amount: number }[]; isAdvance?: boolean; remarks?: string;
   };
 };
 export type ApprovalAction = 'approve' | 'reject' | 'send_back';
 
-export const TRANSACTION_TYPES = ['requisition', 'purchase_order', 'transfer', 'supplier_selection', 'po_revision', 'boq_revision', 'additional_work', 'work_order', 'work_certificate', 'billing', 'expense', 'over_receipt', 'supplier_payment', 'retention_release', 'early_billing'] as const;
+export const TRANSACTION_TYPES = ['requisition', 'purchase_order', 'transfer', 'supplier_selection', 'po_revision', 'boq_revision', 'additional_work', 'work_order', 'work_certificate', 'billing', 'expense', 'over_receipt', 'supplier_payment', 'retention_release', 'early_billing', 'credit_note'] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 export type WorkflowLevel = { sequence: number; approverRole?: string | null; approverUserId?: string | null };
 export type Workflow = {
   id: string; name: string; transactionType: TransactionType; projectId: string | null; departmentId: string | null; department: string | null;
-  minAmount: number; maxAmount: number | null; levels: WorkflowLevel[]; isActive: boolean; isDefault: boolean; defaultKey: 'low' | 'high' | 'expense_project' | 'expense_office' | 'payment_low' | 'payment_high' | null; version: number;
+  minAmount: number; maxAmount: number | null; levels: WorkflowLevel[]; isActive: boolean; isDefault: boolean; defaultKey: 'low' | 'high' | 'expense_project' | 'expense_office' | 'payment_low' | 'payment_high' | 'note_low' | 'note_high' | null; version: number;
 };
 export type WorkflowInput = {
   name: string; transactionType: TransactionType; projectId: string | null; departmentId: string | null; minAmount: number; maxAmount: number | null;

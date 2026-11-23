@@ -14,6 +14,7 @@ import { StatusChip } from '../../shared/ui/StatusChip';
 import { TextField } from '../../shared/ui/TextField';
 import { projectApi } from '../project/api/projectApi';
 import { s, useAction, useData } from '../inventory/ui';
+import { openPrint } from '../invoice/invoiceApi';
 import { subcontractApi } from './subcontractApi';
 import { WorkOrderForm } from './WorkOrderForm';
 import { RetentionTab } from './RetentionTab';
@@ -89,7 +90,8 @@ export function SubcontractScreen({ navigation }: Props) {
           {pm ? data.wos.filter((w) => w.status === 'approved').map((w) => <Button key={w.id} title={`Certify approved work on ${w.number}`} variant="outline" onPress={() => run(`c-${w.id}`, () => subcontractApi.certify(w.id))} loading={busy === `c-${w.id}`} testID={`certify-${w.number}`} />) : null}
           {data.certs.map((c) => (
             <View key={c.id} style={s.card} testID={`cert-${c.number}`}>
-              <View style={s.row}><Text style={s.number}>{c.number}</Text><StatusChip label={c.status.replace('_', ' ')} tone={c.status === 'approved' ? 'success' : 'neutral'} /></View>
+              <View style={s.row}><Text style={s.number}>{c.number}</Text><StatusChip label={c.status.replace('_', ' ')} tone={c.status === 'approved' ? 'success' : 'neutral'} /><Button title="Print / PDF" variant="ghost" onPress={() => run(`print-${c.id}`, async () => openPrint((await subcontractApi.certificatePrintLink(c.id)).url))} testID={`cert-print-${c.number}`} /></View>
+              {(c.lines ?? []).map((l, i) => <Text key={i} style={s.muted} testID={`cert-line-${c.number}-${i}`}>{l.description}: {formatNumber(l.qty)} {l.unit} certified{l.reportedQty != null ? ` (${formatNumber(l.qty)} of ${formatNumber(l.reportedQty)} reported)` : ''} @ {formatMoney(l.rate)} = {formatMoney(l.amount)}</Text>)}
               <Text style={s.muted}>Gross {formatMoney(c.gross)} − retention {formatMoney(c.retention)} − advance {formatMoney(c.advanceRecovery)} = net {formatMoney(c.net)} · paid {formatMoney(c.paid)} · outstanding {formatMoney(c.outstanding)}</Text>
               {finance && c.outstanding > 0 ? (
                 <View style={s.row}>

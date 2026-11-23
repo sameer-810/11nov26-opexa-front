@@ -27,6 +27,7 @@ export const NAV_ITEMS: NavItem[] = [
   { route: 'Service', label: 'Service & AMC', icon: 'tool', show: always, also: ['TicketDetail', 'NewTicket', 'ServiceAssets', 'HandoverAmc', 'Customers'] },
   { route: 'Sales', label: 'Sales', icon: 'trend', show: (u) => can(u, PERMS.SALES_MANAGE), also: ['NewLead', 'LeadDetail', 'QuoteForm'] },
   { route: 'MyExpenses', label: 'My expenses', icon: 'wallet', show: always, also: ['NewExpense', 'ExpenseForm', 'ExpenseCategories'] },
+  { route: 'ClientReceipts', label: 'Receivables', icon: 'rupee', show: (u) => any(u, [PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.REPORTS_VIEW]), also: ['ClientLedger', 'Notes'] },
   { route: 'Payables', label: 'Supplier payables', icon: 'rupee', show: canSeePayables, also: ['SupplierPayments', 'SupplierPaymentForm', 'SupplierPaymentDetail', 'SupplierLedger'] },
   { route: 'ExpensesToPay', label: 'Expenses to pay', icon: 'rupee', show: canPayExpenses },
   { route: 'ExpenseReport', label: 'Expense report', icon: 'funnel', show: canSeeExpenseReport },

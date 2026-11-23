@@ -54,4 +54,29 @@ describe('Phase 4 - package material on a material request (engineer)', () => {
     await screen.findByTestId('requisition-detail-screen');
     expect(api.reqs[0].lines).toEqual([expect.objectContaining({ billable: false, materialId: 'm1', qtyRequested: 120 })]);
   });
+  test('extra material is billed only when linked to an approved extra-work item (Q21)', async () => {
+    const api = installMockApi();
+    api.addUser({ email: 'owner@airtech.in', password: 'Owner12345' });
+    const eng = api.addUser({ email: 'eng@airtech.in', password: 'Eng12345', role: 'engineer', name: 'Ravi' });
+    api.projects.push({ id: 'p1', code: 'P-001', name: 'Worli', clientName: 'Lodha', status: 'active', siteAddress: null, clientPoNumber: null, poDate: null, location: null, geofenceRadiusM: 200, memberIds: [eng.id] });
+    api.boq.push({ id: 'i1', projectId: 'p1', serialNo: '1.1', quantity: 2, rate: 90000, amount: 180000 });
+    api.boq.push({ id: 'a1', projectId: 'p1', serialNo: 'A1', quantity: 30, rate: 700, amount: 21000, tendered: false, additionalStatus: 'approved' });
+    api.boq.push({ id: 'a2', projectId: 'p1', serialNo: 'A2', quantity: 5, rate: 700, amount: 3500, tendered: false, additionalStatus: 'pending_approval' });
+    api.inventory.materials.push({ id: 'm1', code: 'MAT-00001', name: 'Copper pipe 3/8', unit: 'Rmt', category: null, minStock: 0, isActive: true });
+    await signIn('eng@airtech.in', 'Eng12345', 'tile-projects');
+    await fireEvent.press(screen.getByTestId('tile-projects'));
+    await fireEvent.press(await screen.findByTestId('project-P-001'));
+    await fireEvent.press(await screen.findByTestId('project-new-requisition'));
+    await fireEvent.press(await screen.findByTestId('pkg-open'));
+    await fireEvent.press(screen.getByTestId('pkg-parent-i1'));
+    await fireEvent.press(await screen.findByTestId('pkg-mat-MAT-00001'));
+    await fireEvent.changeText(screen.getByTestId('pkg-qty-0'), '30');
+    // Only the approved extra-work item is offered.
+    expect(screen.getByTestId('pkg-bill-0-a1')).toBeTruthy();
+    expect(screen.queryByTestId('pkg-bill-0-a2')).toBeNull();
+    await fireEvent.press(screen.getByTestId('pkg-bill-0-a1'));
+    await fireEvent.press(screen.getByTestId('req-submit'));
+    await screen.findByTestId('requisition-detail-screen');
+    expect(api.reqs[0].lines).toEqual([expect.objectContaining({ billable: false, materialId: 'm1', qtyRequested: 30, extraWorkItemId: 'a1' })]);
+  });
 });

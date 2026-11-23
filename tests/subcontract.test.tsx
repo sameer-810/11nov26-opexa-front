@@ -22,4 +22,5 @@ test('Phase 6 - work recorded against a work order and certified for payment', a
   await fireEvent.press(screen.getByText('Certificates'));
   await fireEvent.press(await screen.findByTestId('certify-SWO-0001'));
   expect(await screen.findByTestId('cert-PC-0001')).toHaveTextContent(/net ₹5,700/);
+  expect(screen.getByTestId('cert-line-PC-0001-0')).toHaveTextContent(/Copper pipe: 50 Rmt certified \(50 of 60 reported\) @ ₹120/);
 });

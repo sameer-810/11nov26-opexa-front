@@ -80,7 +80,7 @@ export function BoqTable({ columns, lines, onPressItem }: Props) {
           ))}
           <View style={[styles.row, styles.foot]}>
             {cols.map((c, i) => (
-              <Text key={c.key} style={[styles.th, { width: widthOf(c.key) }, right(c.key) && styles.right]} numberOfLines={1} testID={c.key === 'amount' ? 'boq-total' : TOTALLED.includes(c.key) ? `boq-total-${c.key}` : undefined}>
+              <Text key={c.key} style={[styles.th, { width: widthOf(c.key) }, right(c.key) && styles.right]} numberOfLines={2} testID={c.key === 'amount' ? 'boq-total' : TOTALLED.includes(c.key) ? `boq-total-${c.key}` : undefined}>
                 {TOTALLED.includes(c.key) ? totalText(c.key) : i === 0 ? `Total (${lines.length})` : ''}
               </Text>
             ))}

@@ -16,6 +16,7 @@ import { s, useAction, useData } from '../inventory/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Tally'>;
 type Reversal = { id: string; number: string; amount: number; paidDate: string | null; reason: string; path: 'expense-reversals' | 'supplier-payment-reversals' };
+type DocReversal = { refKey: string; type: string; number: string; amount: number; reason: string; cancelledAt: string | null };
 type Exp = { id: string; kind: string; from: string; to: string; vouchers: number; total: number; status: string; reexportReason: string; confirmation: { importedCount: number } | null; createdAt: string };
 
 // Sales, purchase and receipt vouchers for Tally; each document is exported once; the import is reconciled.
@@ -28,7 +29,9 @@ export function TallyScreen({ navigation }: Props) {
     return lists.flat();
   }, []);
   const reversals = useData(reversalFetcher);
-  const { busy, problem, run } = useAction(() => { void reload(); void reversals.reload(); });
+  // Client invoices, credit / debit notes and client receipts cancelled after export (4H).
+  const docReversals = useData(useCallback(() => api<DocReversal[]>('/tally/reversals'), []));
+  const { busy, problem, run } = useAction(() => { void reload(); void reversals.reload(); void docReversals.reload(); });
   const [kind, setKind] = useState('sales');
   const [from, setFrom] = useState(`${todayLocal().slice(0, 8)}01`);
   const [to, setTo] = useState(todayLocal());
@@ -40,14 +43,29 @@ export function TallyScreen({ navigation }: Props) {
     <AppScreen title="Tally export" subtitle="Vouchers are checked to balance before export; each document goes to Tally once" onBack={() => navigation.navigate('Dashboard')} testID="tally-screen">
       {problem ? <ErrorBanner message={problem} testID="tally-problem" /> : null}
       <View style={s.form}>
-        <ChoiceChips label="Vouchers" options={[{ value: 'sales', label: 'Sales (client invoices)' }, { value: 'purchase', label: 'Purchase (supplier invoices)' }, { value: 'receipt', label: 'Receipts' }, { value: 'expense', label: 'Payments (paid expenses)' }, { value: 'supplier_payment', label: 'Payments (supplier payments)' }]} value={kind} onChange={setKind} testID="tally-kind" />
+        <ChoiceChips label="Vouchers" options={[{ value: 'sales', label: 'Sales (client invoices)' }, { value: 'purchase', label: 'Purchase (supplier invoices)' }, { value: 'receipt', label: 'Receipts (client)' }, { value: 'notes', label: 'Credit / debit notes' }, { value: 'expense', label: 'Payments (paid expenses)' }, { value: 'supplier_payment', label: 'Payments (supplier payments)' }, { value: 'subcontract_payment', label: 'Payments (subcontractors)' }]} value={kind} onChange={setKind} testID="tally-kind" />
         <View style={s.row}>
           <View style={s.cell}><TextField label="From (YYYY-MM-DD)" value={from} onChangeText={setFrom} /></View>
           <View style={s.cell}><TextField label="To (YYYY-MM-DD)" value={to} onChangeText={setTo} /></View>
           <View style={s.cell}><TextField label="Reason (only to export again)" value={reason} onChangeText={setReason} /></View>
         </View>
-        <Button title="Create export" onPress={() => run('gen', () => api('/tally/exports', { method: 'POST', body: { kind, from, to, ...(reason ? { reexport: true, reason } : {}) } }))} loading={busy === 'gen'} testID="tally-create" />
+        <View style={s.row}>
+          <Button title="Create export" onPress={() => run('gen', () => api('/tally/exports', { method: 'POST', body: { kind, from, to, ...(reason ? { reexport: true, reason } : {}) } }))} loading={busy === 'gen'} testID="tally-create" />
+          <Button title="Download ledger & party masters (import once)" variant="outline" onPress={() => run('masters', async () => { saveBlob(await apiBlob('/tally/masters'), 'opexa-tally-masters.xml'); })} loading={busy === 'masters'} testID="tally-masters" />
+        </View>
+        <Text style={s.muted}>Sales and output GST go to one ledger per GST rate (e.g. "Output CGST @ 9%"); import the masters first.</Text>
       </View>
+      {docReversals.data?.length ? (
+        <View style={s.card} testID="tally-doc-reversals">
+          <Text style={s.danger}>Cancelled after export: reverse these in Tally, then mark them done</Text>
+          {docReversals.data.map((r) => (
+            <View key={r.refKey} style={s.row} testID={`tally-doc-reversal-${r.number}`}>
+              <Text style={[s.muted, s.cell]}>{r.type} {r.number} · {formatMoney(r.amount)} · cancelled {formatDate(r.cancelledAt)} · {r.reason}</Text>
+              <Button title="Reversed in Tally" variant="ghost" onPress={() => run(`dr-${r.refKey}`, () => api('/tally/reversals/done', { method: 'POST', body: { refKey: r.refKey } }))} loading={busy === `dr-${r.refKey}`} />
+            </View>
+          ))}
+        </View>
+      ) : null}
       {reversals.data?.length ? (
         <View style={s.card} testID="tally-reversals">
           <Text style={s.danger}>Voided or cancelled after export: reverse these in Tally (Opexa does not delete anything there)</Text>

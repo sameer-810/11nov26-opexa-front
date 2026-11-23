@@ -30,7 +30,7 @@ function Profit({ id }: { id: string }) {
     <View style={s.list} testID="pf-profit">
       {f.overrun ? <ErrorBanner message="Actual + committed cost is above the estimate (alert threshold passed)." /> : null}
       <View style={s.card}>
-        <Text style={s.title}>Margin: estimated {pct(f.estimate.marginPct)} → forecast {pct(f.forecast.marginPct)}</Text>
+        <Text style={s.title}>Margin: estimated {f.estimate.cost ? pct(f.estimate.marginPct) : 'not set (no estimate yet)'} → forecast {pct(f.forecast.marginPct)}</Text>
         {f.actualMargin ? <Text style={f.actualMargin.value < 0 ? s.danger : s.muted} testID="pf-actual-margin">At today's actual cost: margin {formatMoney(f.actualMargin.value)} ({pct(f.actualMargin.pct)}) on contract {formatMoney(f.revenue.contract)}</Text> : null}
         <Text style={s.muted} testID="pf-summary">Contract {formatMoney(f.revenue.contract)} · estimated cost {formatMoney(f.estimate.cost)} · actual {formatMoney(f.actual.cost)} · committed {formatMoney(f.committed.cost)} · forecast {formatMoney(f.forecast.cost)}</Text>
         <Text style={s.muted}>Billed {formatMoney(f.revenue.billed)} · margin on billed {formatMoney(f.marginOnBilled.value)} ({pct(f.marginOnBilled.pct)}) · material consumed {formatMoney(f.consumedMaterial)} · lying at site {formatMoney(f.materialAtSite)} · supplier bills {formatMoney(f.supplierInvoiced)}</Text>
@@ -141,7 +141,7 @@ export function ProjectFinanceScreen({ navigation, route }: Props) {
       {tab === 'estimate' ? <EstimateTab id={id} /> : null}
       {tab === 'boq' ? <BoqChanges id={id} /> : null}
       {tab === 'lines' ? <BoqProfitTab id={id} /> : null}
-      {tab === 'extras' ? <ExtraMaterialsTab id={id} /> : null}
+      {tab === 'extras' ? <ExtraMaterialsTab id={id} canLink={pm || can(user, PERMS.PURCHASE_MANAGE)} /> : null}
       {tab === 'changes' ? <ChangeRequestsTab id={id} pm={pm} /> : null}
     </AppScreen>
   );

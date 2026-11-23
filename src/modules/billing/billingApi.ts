@@ -7,7 +7,7 @@ export type SlabBase = 'contract_value' | 'high_side_value';
 // 4A: the slab's completion record (null until recorded).
 export type Completion = { completedOn: string; at: string; note: string; documentIds: string[]; linkedTotalQty: number | null; linkedDoneQty: number | null };
 export type Milestone = { id: string; name: string; stage: Stage; basis: 'percent' | 'fixed'; percent: number; fixedAmount: number; amount: number; billed: number; linkedItemIds: string[]; completion?: Completion | null };
-export type Plan = { id: string; status: 'draft' | 'approved'; retentionPct: number; slabBase?: SlabBase; baseValue?: number; highSideValue: number; highSideItemIds?: string[]; milestones: Milestone[] };
+export type Plan = { id: string; status: 'draft' | 'approved'; retentionPct: number; advanceRecoveryPct?: number; slabBase?: SlabBase; baseValue?: number; highSideValue: number; highSideItemIds?: string[]; milestones: Milestone[] };
 export type PositionMilestone = {
   id: string; name: string; stage?: Stage; contractPct?: number | null; amount: number; billed: number; unbilled: number; computedAmount?: number; eligible?: boolean; completion?: Completion | null; remainingObligation?: number;
   linkedTotalQty: number; linkedDoneQty: number; pendingQty: number; deliveredPct: number | null; billedAheadOfDelivery: boolean; pending: { serialNo: string; description: string; pendingQty: number; unit: string }[];
@@ -35,7 +35,7 @@ export type Receivable = { invoiceId: string; number: string; project: string; c
 const P = (id: string) => `/projects/${id}`;
 export const billingApi = {
   plan: (id: string) => api<Plan | null>(`${P(id)}/billing-plan`),
-  savePlan: (id: string, body: { retentionPct?: number; slabBase?: SlabBase; highSideItemIds?: string[]; milestones: PlanMilestoneIn[]; reason?: string }) => api<Plan>(`${P(id)}/billing-plan`, { method: 'PUT', body }),
+  savePlan: (id: string, body: { retentionPct?: number; advanceRecoveryPct?: number; slabBase?: SlabBase; highSideItemIds?: string[]; milestones: PlanMilestoneIn[]; reason?: string }) => api<Plan>(`${P(id)}/billing-plan`, { method: 'PUT', body }),
   approvePlan: (id: string) => api<Plan>(`${P(id)}/billing-plan/approve`, { method: 'POST' }),
   position: (id: string) => api<Position>(`${P(id)}/billing-position`),
   milestoneInvoice: (id: string, body: { milestoneId: string; invoiceDate: string; amount?: number; reason?: string }) => api<{ id: string }>(`${P(id)}/milestone-invoices`, { method: 'POST', body }),

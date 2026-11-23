@@ -67,6 +67,9 @@ describe('Q18 - BOQ format choice', () => {
     await fireEvent.press(screen.getByTestId('tile-projects'));
     await fireEvent.press(await screen.findByTestId('project-P-001'));
     expect(await screen.findByTestId('fact-boq-format')).toHaveTextContent('SITC (one rate) · locked');
+    // A locked BOQ changes only through a revision: no import / add on the BOQ itself.
+    expect(screen.queryByTestId('import-boq')).toBeNull();
+    expect(screen.queryByTestId('add-boq-item')).toBeNull();
     await fireEvent.press(screen.getByTestId('edit-project'));
     expect(await screen.findByTestId('pf-boq-format-locked')).toHaveTextContent(/fixed, the BOQ is locked/);
     expect(screen.queryByTestId('pf-boq-format-sitc')).toBeNull();

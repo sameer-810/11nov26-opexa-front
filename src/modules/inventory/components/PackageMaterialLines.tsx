@@ -8,8 +8,9 @@ import { colors, radius, spacing } from '../../../shared/designSystem';
 import { inventoryApi } from '../api/inventoryApi';
 import type { Material } from '../types';
 
-export type PackageLine = { workOrderItemId: string; materialId: string; label: string; qty: string };
-type BoqOption = { workOrderItemId: string; serialNo: string; description: string };
+export type PackageLine = { workOrderItemId: string; materialId: string; label: string; qty: string; extraWorkItemId?: string };
+type BoqOption = { workOrderItemId: string; serialNo: string; description: string; tendered?: boolean; additionalStatus?: string | null };
+const NOT_BILLED = '';
 
 // Raw material a package BOQ line needs but the BOQ does not list (e.g. copper pipe for a ductable AC).
 // Bought against that BOQ line, never billed to the client, counted in project cost.
@@ -24,6 +25,9 @@ export function PackageMaterialLines({ boq, value, onChange }: { boq: BoqOption[
     return () => clearTimeout(t);
   }, [open, search]);
 
+  // Approved extra-work (non-tendered) items: extra material linked to one is billed to the client through it.
+  const extraWork = boq.filter((b) => b.tendered === false && ['approved', 'regularised'].includes(b.additionalStatus ?? ''));
+  const billVia = [{ value: NOT_BILLED, label: 'Not billed' }, ...extraWork.map((b) => ({ value: b.workOrderItemId, label: `Bill via ${b.serialNo}. ${b.description.slice(0, 25)}` }))];
   const add = (m: Material) => {
     if (!parent) return;
     const item = boq.find((b) => b.workOrderItemId === parent);
@@ -33,13 +37,14 @@ export function PackageMaterialLines({ boq, value, onChange }: { boq: BoqOption[
 
   return (
     <View style={styles.box} testID="package-lines">
-      <Text style={styles.title}>Extra material for package items (not billed)</Text>
-      <Text style={styles.muted}>For items the BOQ does not list, e.g. copper pipe and insulation for a ductable AC. They are bought against the BOQ line you choose and count in that line's cost.</Text>
+      <Text style={styles.title}>Extra material for package items</Text>
+      <Text style={styles.muted}>For items the BOQ does not list, e.g. copper pipe and insulation for a ductable AC. They are bought against the BOQ line you choose and count in that line's cost. To bill one to the client, link it to an approved extra-work item.</Text>
       {value.map((v, i) => (
         <View key={`${v.workOrderItemId}-${v.materialId}`} style={styles.row}>
           <Text style={[styles.item, styles.flex]}>{v.label}</Text>
           <TextField label="Quantity" value={v.qty} onChangeText={(q) => onChange(value.map((x, j) => (j === i ? { ...x, qty: q } : x)))} keyboardType="decimal-pad" testID={`pkg-qty-${i}`} />
           <Button title="Remove" variant="ghost" onPress={() => onChange(value.filter((_, j) => j !== i))} />
+          {extraWork.length ? <ChoiceChips label="Billed to the client?" options={billVia} value={v.extraWorkItemId ?? NOT_BILLED} onChange={(x) => onChange(value.map((y, j) => (j === i ? { ...y, extraWorkItemId: x || undefined } : y)))} testID={`pkg-bill-${i}`} /> : null}
         </View>
       ))}
       {open ? (
@@ -60,7 +65,7 @@ export function PackageMaterialLines({ boq, value, onChange }: { boq: BoqOption[
   );
 }
 
-export const packageLinesFor = (v: PackageLine[]) => v.map((l) => ({ workOrderItemId: l.workOrderItemId, materialId: l.materialId, billable: false, qty: parseNumber(l.qty) ?? 0 })).filter((l) => l.qty > 0);
+export const packageLinesFor = (v: PackageLine[]) => v.map((l) => ({ workOrderItemId: l.workOrderItemId, materialId: l.materialId, billable: false, qty: parseNumber(l.qty) ?? 0, ...(l.extraWorkItemId ? { extraWorkItemId: l.extraWorkItemId } : {}) })).filter((l) => l.qty > 0);
 
 const styles = StyleSheet.create({
   box: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },

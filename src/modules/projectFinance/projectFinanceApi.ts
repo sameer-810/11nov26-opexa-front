@@ -36,8 +36,13 @@ export type ChangeRequest = {
 export type ExtraMaterial = {
   materialId: string; name: string; unit: string; requested: number; billableRequested: number; ordered: number; orderedValue: number; received: number; issuedToSubcontractor: number; consumed: number;
   cost: number; billableCost: number; billable: 'billable' | 'partly_billable' | 'non_billable'; extraWork: string[];
+  requests?: ExtraRequestLine[];
 };
-export type ExtraMaterialReport = { totals: { cost: number; billableCost: number; nonBillableCost: number }; lines: { workOrderItemId: string; serialNo: string; description: string; cost: number; billableCost: number; materials: ExtraMaterial[] }[] };
+// One material-request line behind an extra-material row; linking it to an approved extra-work item makes it billable.
+export type ExtraRequestLine = { requisitionId: string; number: string; lineId: string; qty: number; extraWorkItemId: string | null; extraWorkSerialNo: string | null };
+export type ExtraMaterialReport = { totals: { cost: number; billableCost: number; nonBillableCost: number }; lines: { workOrderItemId: string; serialNo: string; description: string; cost: number; billableCost: number; materials: ExtraMaterial[] }[];
+  extraWorkOptions?: { id: string; serialNo: string; description: string }[];
+};
 export type ProfitLine = {
   workOrderItemId: string; serialNo: string; description: string; tendered: boolean; revenue: number; estimatedCost: number; actualCost: number; billed: number;
   actual: { material: number; extraMaterial: number; subcontract: number; allocated: number }; forecastMargin: number; forecastMarginPct: number | null; overrun: boolean; overrunBy: number;
@@ -65,6 +70,7 @@ export const projectFinanceApi = {
   addChangeRequestDocument: (id: string, crId: string, picked: PickedFile) => api<ChangeRequest>(`${base(id)}/change-requests/${crId}/documents`, { method: 'POST', body: attachmentForm(picked) }),
   changeRequestDocument: (id: string, crId: string, a: Pick<Attachment, 'id'>) => apiBlob(`${base(id)}/change-requests/${crId}/documents/${a.id}`),
   extraMaterials: (id: string) => api<ExtraMaterialReport>(`${base(id)}/extra-materials`),
+  linkExtraMaterial: (id: string, body: { requisitionId: string; lineId: string; extraWorkItemId: string | null }) => api<ExtraMaterialReport>(`${base(id)}/extra-materials/link`, { method: 'POST', body }),
   extraMaterialsExcel: (id: string) => apiBlob(`${base(id)}/extra-materials.xlsx`),
   boqProfitability: (id: string) => api<BoqProfit>(`${base(id)}/boq-profitability`),
   boqProfitabilityExcel: (id: string) => apiBlob(`${base(id)}/boq-profitability.xlsx`),

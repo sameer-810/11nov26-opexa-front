@@ -1,4 +1,4 @@
-export type BalanceRow = { workOrderItemId: string; serialNo: string; description: string; unit: string; boqQty: number; requested: number; balance: number };
+export type BalanceRow = { workOrderItemId: string; serialNo: string; description: string; unit: string; boqQty: number; requested: number; balance: number; tendered?: boolean; additionalStatus?: string | null };
 
 export type LineStatus = 'approved' | 'reduced' | 'rejected';
 
@@ -7,6 +7,7 @@ export type RequisitionLine = {
   workOrderItemId: string | null; // null: non-BOQ material from the master (not billed)
   materialId?: string | null;
   billable?: boolean;
+  extraWorkItemId?: string | null; // extra material billed to the client through this approved extra-work item
   newMaterial?: boolean; // material added from a request, not yet verified by the purchaser
   status?: LineStatus | null;
   rejectReason?: string | null;
@@ -54,7 +55,7 @@ export type Requisition = {
 export type Attachment = { id: string; name: string; contentType: string; size: number; uploadedAt?: string };
 
 // A line is a BOQ item, package material against a BOQ item (billable: false), or a non-BOQ material (materialId only).
-export type NewRequisitionLine = { workOrderItemId?: string; materialId?: string; billable?: boolean; qty: number; reason?: string; specification?: string };
+export type NewRequisitionLine = { workOrderItemId?: string; materialId?: string; billable?: boolean; qty: number; reason?: string; specification?: string; extraWorkItemId?: string };
 export type NewRequisition = {
   lines: NewRequisitionLine[];
   deliveryAddress?: string;

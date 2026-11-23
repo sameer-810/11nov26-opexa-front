@@ -18,7 +18,9 @@ export type Invoice = {
   gstRate: number; interState: boolean; lines: InvoiceLine[]; additionalTaxable?: number; taxable: number; cgst: number; sgst: number; igst: number; roundOff: number; total: number; totalInWords: string;
   notes: string; edits: { at: string; byName: string; reason: string; summary: string }[];
   kind?: 'standard' | 'milestone' | 'measurement'; milestoneLine?: { description: string; percent: number; planAmount: number; amount: number } | null;
-  retentionPct?: number; retention?: number; received?: number; tds?: number; outstanding?: number; revisions?: { revision: number; at: string; reason: string; snapshot?: { total?: number } }[];
+  retentionPct?: number; retention?: number; received?: number; tds?: number; outstanding?: number;
+  // 4D / 4G: credit and debit notes, client-receipt allocations, advance recovered; inTally = exported (revise by note only, Q25).
+  credited?: number; debited?: number; allocated?: number; advanceRecovery?: number; retentionBase?: 'taxable' | 'gross'; inTally?: boolean; revisions?: { revision: number; at: string; reason: string; snapshot?: { total?: number } }[];
   // Q27 / 4A-4C: 'line' = GST per line (older invoices: one rate); advance / progress slab invoices; RA number; early billing and amount overrides.
   gstMode?: 'invoice' | 'line'; gstSummary?: GstRow[]; invoiceType?: 'advance' | 'progress' | null; raNo?: number | null; raLabel?: string | null;
   earlyBilling?: { status: 'pending' | 'approved' | 'rejected' | 'sent_back'; reason: string; at: string; approvalRequestId: string | null } | null;

@@ -72,7 +72,7 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
       setRemarks(r.remarks ?? r.note ?? '');
       setExisting(r.attachments ?? []);
       setBoq(Object.fromEntries(r.lines.filter((l) => l.workOrderItemId && l.billable !== false).map((l) => [l.workOrderItemId as string, { qty: String(l.qtyRequested), specification: l.specification ?? '' }])));
-      setExtras(r.lines.filter((l) => l.workOrderItemId && l.billable === false && l.materialId).map((l) => ({ workOrderItemId: l.workOrderItemId as string, materialId: l.materialId as string, label: `${l.description} (${l.unit}) for S.No ${l.serialNo}`, qty: String(l.qtyRequested) })));
+      setExtras(r.lines.filter((l) => l.workOrderItemId && l.billable === false && l.materialId).map((l) => ({ workOrderItemId: l.workOrderItemId as string, materialId: l.materialId as string, label: `${l.description} (${l.unit}) for S.No ${l.serialNo}`, qty: String(l.qtyRequested), ...(l.extraWorkItemId ? { extraWorkItemId: l.extraWorkItemId } : {}) })));
       setOthers(r.lines.filter((l) => !l.workOrderItemId && l.materialId).map((l) => ({ materialId: l.materialId as string, label: `${l.serialNo} · ${l.description}`, unit: l.unit, qty: String(l.qtyRequested), specification: l.specification ?? '', isNew: Boolean(l.newMaterial) })));
     }).catch((e) => setLoadError(message(e)));
   }, [requisitionId]);

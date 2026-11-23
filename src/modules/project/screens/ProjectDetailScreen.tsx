@@ -136,8 +136,8 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
         <View style={styles.row}>
           {items.length ? <Button title="Export to Excel" variant="ghost" onPress={exportExcel} loading={exporting} testID="export-boq" /> : null}
           {manage ? <Button title="Columns" variant="outline" onPress={() => setColumnsOpen(true)} testID="boq-columns" /> : null}
-          {editBoq ? <Button title="Import from Excel" variant="outline" onPress={() => navigation.navigate('BoqImport', { id, format })} testID="import-boq" /> : null}
-          {editBoq ? <Button title="Add item" onPress={() => setEditing('new')} testID="add-boq-item" /> : null}
+          {editBoq && !project.boqLocked ? <Button title="Import from Excel" variant="outline" onPress={() => navigation.navigate('BoqImport', { id, format })} testID="import-boq" /> : null}
+          {editBoq && !project.boqLocked ? <Button title="Add item" onPress={() => setEditing('new')} testID="add-boq-item" /> : null}
         </View>
       </View>
       {viewError ? <ErrorBanner message={viewError} testID="boq-view-error" /> : null}

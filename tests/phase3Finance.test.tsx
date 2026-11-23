@@ -31,10 +31,39 @@ test('3D - extra material report per BOQ line with billable status', async () =>
       { materialId: 'm1', name: 'Copper pipe 7/8', unit: 'Rmt', requested: 50, billableRequested: 0, ordered: 50, orderedValue: 45000, received: 50, issuedToSubcontractor: 20, consumed: 15, cost: 45000, billableCost: 0, billable: 'non_billable', extraWork: [] },
     ] }],
   }));
-  await render(<ExtraMaterialsTab id="p1" />);
+  await render(<ExtraMaterialsTab id="p1" canLink={false} />);
   expect(await screen.findByTestId('extras-total')).toHaveTextContent(/Extra material cost ₹51,000.00/);
   expect(screen.getByTestId('extras-line-1.1')).toHaveTextContent(/Copper pipe 7\/8: requested 50 · ordered 50 · received 50 · with subcontractor 20 · used 15 Rmt/);
   expect(screen.getByTestId('extras-line-1.1')).toHaveTextContent(/Non-billable/);
+});
+
+test('3D - purchaser marks an extra-material request line billable through an approved extra-work item, or unlinks it', async () => {
+  const mat = (extraWorkItemId: string | null) => ({ materialId: 'm1', name: 'Copper pipe 7/8', unit: 'Rmt', requested: 30, billableRequested: extraWorkItemId ? 30 : 0, ordered: 30, orderedValue: 27000, received: 30, issuedToSubcontractor: 0, consumed: 0, cost: 27000, billableCost: extraWorkItemId ? 27000 : 0, billable: extraWorkItemId ? 'billable' : 'non_billable', extraWork: extraWorkItemId ? ['A1'] : [],
+    requests: [{ requisitionId: 'r1', number: 'MR-0001', lineId: 'l1', qty: 30, extraWorkItemId, extraWorkSerialNo: extraWorkItemId ? 'A1' : null }] });
+  let linked: string | null = null;
+  const report = () => ({ totals: { cost: 27000, billableCost: linked ? 27000 : 0, nonBillableCost: linked ? 0 : 27000 }, extraWorkOptions: [{ id: 'a1', serialNo: 'A1', description: 'Extra piping to new FCU' }],
+    lines: [{ workOrderItemId: 'i11', serialNo: '1.1', description: 'Ductable AC', cost: 27000, billableCost: 0, materials: [mat(linked)] }] });
+  const calls = installFetch((method, path, body) => {
+    if (path.endsWith('/extra-materials/link')) linked = (body.extraWorkItemId as string | null) ?? null;
+    return report();
+  });
+  await render(<ExtraMaterialsTab id="p1" canLink />);
+  expect(await screen.findByTestId('extras-req-l1')).toHaveTextContent(/MR-0001 · 30 · not billed/);
+  await fireEvent.press(screen.getByTestId('extras-mark-l1'));
+  await fireEvent.press(screen.getByTestId('extras-pick-l1-a1'));
+  expect(await screen.findByTestId('extras-unlink-l1')).toBeTruthy();
+  expect(screen.getByTestId('extras-req-l1')).toHaveTextContent(/MR-0001 · 30 · billed via A1/);
+  expect(calls.find((c) => c.path === '/projects/p1/extra-materials/link')?.body).toEqual({ requisitionId: 'r1', lineId: 'l1', extraWorkItemId: 'a1' });
+  await fireEvent.press(await screen.findByTestId('extras-unlink-l1'));
+  expect(await screen.findByTestId('extras-mark-l1')).toBeTruthy();
+  expect(calls.filter((c) => c.path.endsWith('/link')).pop()?.body).toEqual({ requisitionId: 'r1', lineId: 'l1', extraWorkItemId: null });
+});
+
+test('3D - without the purchase / project permission the link buttons are hidden', async () => {
+  installFetch(() => ({ totals: { cost: 1, billableCost: 0, nonBillableCost: 1 }, extraWorkOptions: [{ id: 'a1', serialNo: 'A1', description: 'x' }], lines: [{ workOrderItemId: 'i', serialNo: '1', description: 'AC', cost: 1, billableCost: 0, materials: [{ materialId: 'm', name: 'Pipe', unit: 'Rmt', requested: 1, billableRequested: 0, ordered: 0, orderedValue: 0, received: 0, issuedToSubcontractor: 0, consumed: 0, cost: 1, billableCost: 0, billable: 'non_billable', extraWork: [], requests: [{ requisitionId: 'r', number: 'MR-1', lineId: 'l', qty: 1, extraWorkItemId: null, extraWorkSerialNo: null }] }] }] }));
+  await render(<ExtraMaterialsTab id="p1" canLink={false} />);
+  await screen.findByTestId('extras-req-l');
+  expect(screen.queryByTestId('extras-mark-l')).toBeNull();
 });
 
 test('3F - BOQ-wise profitability highlights the overrun line', async () => {

@@ -9,7 +9,7 @@ export function installMockApi() {
   const accessTokens = new Map<string, string>(); // token -> email
   let n = 0;
   const projects: MockProject[] = [];
-  const boq: { id: string; projectId: string; serialNo: string; quantity: number; rate: number; amount: number }[] = [];
+  const boq: { id: string; projectId: string; serialNo: string; quantity: number; rate: number; amount: number; tendered?: boolean; additionalStatus?: string | null }[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const reqs: any[] = [];
   // Approval requests are seeded by tests; POST /action stores what was sent in `acted`.
@@ -159,19 +159,19 @@ export function installMockApi() {
     if (bal) {
       return ok(boq.filter((i) => i.projectId === bal[1]).map((i) => {
         const requested = reqs.filter((r) => r.status === 'open').flatMap((r) => r.lines).filter((l) => l.workOrderItemId === i.id).reduce((s, l) => s + l.qtyRequested, 0);
-        return { workOrderItemId: i.id, serialNo: i.serialNo, description: `Item ${i.serialNo}`, unit: 'Nos', boqQty: i.quantity, requested, balance: i.quantity - requested };
+        return { workOrderItemId: i.id, serialNo: i.serialNo, description: `Item ${i.serialNo}`, unit: 'Nos', boqQty: i.quantity, requested, balance: i.quantity - requested, tendered: i.tendered !== false, additionalStatus: i.additionalStatus ?? null };
       }));
     }
     const newReq = path.match(/^\/projects\/([^/]+)\/requisitions$/);
     const editReq = path.match(/^\/requisitions\/([^/]+)$/);
     if ((newReq && method === 'POST') || (editReq && method === 'PUT')) {
-      const lines = body.lines.map((l: { workOrderItemId?: string; qty: number; reason?: string; billable?: boolean; materialId?: string; specification?: string }) => {
+      const lines = body.lines.map((l: { workOrderItemId?: string; qty: number; reason?: string; billable?: boolean; materialId?: string; specification?: string; extraWorkItemId?: string }) => {
         if (!l.workOrderItemId) {
           const m = inventory.materials.find((x) => x.id === l.materialId);
           return { id: `l${Math.random()}`, workOrderItemId: null, materialId: m.id, billable: false, serialNo: m.code, description: m.name, unit: m.unit, boqQty: 0, previouslyRequested: 0, qtyRequested: l.qty, overBy: 0, overrideReason: null, specification: l.specification ?? '', newMaterial: m.verification === 'pending' };
         }
         const item = boq.find((i) => i.id === l.workOrderItemId)!;
-        if (l.billable === false) return { id: `l${Math.random()}`, workOrderItemId: item.id, materialId: l.materialId, billable: false, serialNo: item.serialNo, description: 'package', unit: 'Rmt', boqQty: 0, previouslyRequested: 0, qtyRequested: l.qty, overBy: 0, overrideReason: null };
+        if (l.billable === false) return { id: `l${Math.random()}`, workOrderItemId: item.id, materialId: l.materialId, billable: false, extraWorkItemId: l.extraWorkItemId ?? null, serialNo: item.serialNo, description: 'package', unit: 'Rmt', boqQty: 0, previouslyRequested: 0, qtyRequested: l.qty, overBy: 0, overrideReason: null };
         const prev = reqs.filter((r) => r.status === 'open').flatMap((r) => r.lines).filter((x) => x.workOrderItemId === item.id).reduce((s, x) => s + x.qtyRequested, 0);
         const overBy = Math.min(l.qty, Math.max(0, prev + l.qty - item.quantity));
         return { id: `l${Math.random()}`, workOrderItemId: item.id, serialNo: item.serialNo, description: `Item ${item.serialNo}`, unit: 'Nos', boqQty: item.quantity, previouslyRequested: prev, qtyRequested: l.qty, overBy, overrideReason: overBy ? l.reason ?? null : null, specification: l.specification ?? '' };
@@ -366,7 +366,7 @@ export function installMockApi() {
       if (path === '/subcontract/work-orders') return ok(sc.wos);
       if (path.startsWith('/subcontract/progress') && method === 'POST') { const p = { id: `pg${sc.progress.length + 1}`, status: 'submitted', verifiedQty: null, approvedQty: null, location: '', remarks: '', certificateId: null, ...body }; sc.progress.push(p); return ok(p, 201); }
       if (path.startsWith('/subcontract/progress')) return ok(sc.progress.filter((p: { status: string }) => ['submitted', 'verified'].includes(p.status)));
-      if (path === '/subcontract/certificates' && method === 'POST') { const c = { id: `pc${sc.certs.length + 1}`, number: `PC-000${sc.certs.length + 1}`, workOrderId: body.workOrderId, status: 'approved', gross: 6000, retention: 300, advanceRecovery: 0, net: 5700, paid: 0, outstanding: 5700, createdAt: new Date().toISOString() }; sc.certs.push(c); return ok(c, 201); }
+      if (path === '/subcontract/certificates' && method === 'POST') { const c = { id: `pc${sc.certs.length + 1}`, number: `PC-000${sc.certs.length + 1}`, workOrderId: body.workOrderId, status: 'approved', lines: [{ description: 'S.No 1 Copper pipe', unit: 'Rmt', qty: 50, reportedQty: 60, rate: 120, amount: 6000 }], gross: 6000, retention: 300, advanceRecovery: 0, net: 5700, paid: 0, outstanding: 5700, createdAt: new Date().toISOString() }; sc.certs.push(c); return ok(c, 201); }
       if (path === '/subcontract/certificates') return ok(sc.certs);
       if (path === '/subcontract/summary') return ok({ rows: [], pendingReview: 0 });
       return fail(404, 'NOT_FOUND', 'not found');

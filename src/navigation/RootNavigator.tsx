@@ -45,6 +45,9 @@ import { CommitmentsScreen } from '../modules/commitments/CommitmentsScreen';
 import { ProjectDocumentsScreen } from '../modules/documents/ProjectDocumentsScreen';
 import { HandoverAmcScreen } from '../modules/service/screens/HandoverAmcScreen';
 import { TallyScreen } from '../modules/tally/TallyScreen';
+import { NotesScreen } from '../modules/receivables/NotesScreen';
+import { ClientReceiptsScreen } from '../modules/receivables/ClientReceiptsScreen';
+import { ClientLedgerScreen } from '../modules/receivables/ClientLedgerScreen';
 import { MyExpensesScreen } from '../modules/expense/screens/MyExpensesScreen';
 import { ExpenseFormScreen } from '../modules/expense/screens/ExpenseFormScreen';
 import { ExpensesToPayScreen } from '../modules/expense/screens/ExpensesToPayScreen';
@@ -206,6 +209,9 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {(can(user, PERMS.PURCHASE_MANAGE) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY)) && <Stack.Screen name="SupplierInvoices" component={SupplierInvoicesScreen} options={{ title: 'Opexa - Supplier invoices' }} />}
         {[PERMS.PROJECT_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.SUPPLIER_INVOICE_VERIFY, PERMS.RECEIVING_RECORD, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Subcontract" component={SubcontractScreen} options={{ title: 'Opexa - Subcontractors' }} />}
         {(can(user, PERMS.INVOICE_EDIT) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY)) && <Stack.Screen name="Tally" component={TallyScreen} options={{ title: 'Opexa - Tally export' }} />}
+        {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.SUPPLIER_INVOICE_VERIFY, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Notes" component={NotesScreen} options={{ title: 'Opexa - Credit & debit notes' }} />}
+        {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="ClientReceipts" component={ClientReceiptsScreen} options={{ title: 'Opexa - Client receipts' }} />}
+        {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="ClientLedger" component={ClientLedgerScreen} options={{ title: 'Opexa - Client ledger' }} />}
         <Stack.Screen name="MyExpenses" component={MyExpensesScreen} options={{ title: 'Opexa - My expenses' }} />
         <Stack.Screen name="NewExpense" component={ExpenseFormScreen} options={{ title: 'Opexa - New expense' }} />
         <Stack.Screen name="ExpenseForm" component={ExpenseFormScreen} options={{ title: 'Opexa - Expense' }} />
