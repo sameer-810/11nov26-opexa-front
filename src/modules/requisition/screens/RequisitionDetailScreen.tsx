@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
@@ -17,6 +18,9 @@ import { requisitionApi } from '../api/requisitionApi';
 import { LINE_STATUS_LABEL, PURCHASE_LABEL, REQ_STATUS_LABEL, type Requisition } from '../types';
 import { AttachmentList } from '../components/Attachments';
 import { RequisitionTimeline } from '../components/RequisitionTimeline';
+import { challanApi } from '../../deliveryChallan/api/challanApi';
+import { ChallanList } from '../../deliveryChallan/components/ChallanList';
+import type { DeliveryChallan } from '../../deliveryChallan/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RequisitionDetail'>;
 
@@ -24,6 +28,7 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
   const { id, justCreated, attachFailed } = route.params;
   const { user } = useAuth();
   const [req, setReq] = useState<Requisition | null>(null);
+  const [challans, setChallans] = useState<DeliveryChallan[]>([]);
   const [loadError, setLoadError] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState('');
@@ -34,19 +39,21 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
   const load = useCallback(async () => {
     try {
       setReq(await requisitionApi.get(id));
+      setChallans(await challanApi.list({ requisitionId: id }).catch(() => []));
     } catch (e) {
       setLoadError(e instanceof ApiError ? e.message : 'Could not load');
     }
   }, [id]);
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Reloaded when coming back from "Material received" or a challan.
+  useFocusEffect(useCallback(() => void load(), [load]));
 
   const back = () => (req ? navigation.navigate('Requisitions', { projectId: req.projectId }) : navigation.navigate('Dashboard'));
   if (loadError) return <AppScreen title="Material request" onBack={() => navigation.navigate('Dashboard')}><ErrorState message={loadError} onRetry={load} /></AppScreen>;
   if (!req) return <AppScreen title="Material request" onBack={() => navigation.navigate('Dashboard')}><ActivityIndicator /></AppScreen>;
 
   const canCancel = req.status === 'open' && (req.raisedBy.id === user?.id || can(user, PERMS.PROJECT_MANAGE));
+  // Site / store staff record material received on an approved request (Q7).
+  const canReceive = req.status === 'open' && [PERMS.PROJECT_MANAGE, PERMS.STORE_MANAGE, PERMS.RECEIVING_RECORD].some((p) => can(user, p)) && req.lines.some((l) => (l.receivable ?? 0) > 0);
   const canResubmit = req.status === 'sent_back' && req.raisedBy.id === user?.id && can(user, PERMS.REQUISITION_CREATE);
 
   const doCancel = async () => {
@@ -102,7 +109,7 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
       <ScrollView horizontal>
         <View style={styles.table}>
           <View style={[styles.tr, styles.head]}>
-            {['S.No', 'Item', 'Unit', 'BOQ', 'Earlier', 'This request', 'Approved', 'Over BOQ', 'Ordered', 'Dispatched', 'Received'].map((h, i) => (
+            {['S.No', 'Item', 'Unit', 'BOQ', 'Earlier', 'This request', 'Approved', 'Over BOQ', 'Ordered', 'Dispatched', 'Received', 'Pending'].map((h, i) => (
               <Text key={h} style={[styles.th, { width: W[i] }, i > 2 && styles.right]}>{h}</Text>
             ))}
           </View>
@@ -129,6 +136,7 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
               <Text style={[styles.td, styles.right, { width: W[8] }]}>{formatNumber(l.ordered ?? 0)}</Text>
               <Text style={[styles.td, styles.right, { width: W[9] }]}>{formatNumber(l.dispatched ?? 0)}</Text>
               <Text style={[styles.td, styles.right, { width: W[10] }]}>{formatNumber(l.received ?? 0)}</Text>
+              <Text style={[styles.td, styles.right, { width: W[11] }, (l.pending ?? 0) > 0 && styles.bold]} testID={`req-pending-${l.serialNo}`}>{l.status === 'rejected' ? '—' : formatNumber(l.pending ?? 0)}</Text>
             </View>
           ))}
         </View>
@@ -140,7 +148,16 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
         </View>
       ) : null}
 
-      <AttachmentList requisitionId={req.id} items={req.attachments ?? []} onError={setError} />
+      {canReceive ? (
+        <Button title="Material received" onPress={() => navigation.navigate('MaterialReceived', { requisitionId: req.id })} testID="req-material-received" style={styles.self} />
+      ) : null}
+      {challans.length ? (
+        <View style={styles.gap}>
+          <Text style={styles.sectionTitle}>Delivery challans ({challans.length})</Text>
+          <ChallanList items={challans} onOpen={(dc) => navigation.navigate('ChallanDetail', { id: dc.id })} testID="req-challans" />
+        </View>
+      ) : null}
+      <AttachmentList items={req.attachments ?? []} onError={setError} fetchFile={(a) => requisitionApi.downloadAttachment(req.id, a)} />
       {error ? <ErrorBanner message={error} /> : null}
       {canCancel && !cancelling ? <Button title="Cancel this request" variant="outline" onPress={() => setCancelling(true)} testID="req-cancel" style={styles.self} /> : null}
       {cancelling ? (
@@ -152,12 +169,12 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
           </View>
         </View>
       ) : null}
-      <RequisitionTimeline requisitionId={req.id} version={req.status} />
+      <RequisitionTimeline requisitionId={req.id} version={`${req.status}:${challans.map((c) => c.status).join(',')}`} />
     </AppScreen>
   );
 }
 
-const W = [80, 260, 60, 70, 70, 100, 90, 80, 80, 90, 90];
+const W = [80, 260, 60, 70, 70, 100, 90, 80, 80, 90, 90, 80];
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', alignItems: 'center' },
@@ -182,6 +199,8 @@ const styles = StyleSheet.create({
   over: { color: colors.danger, fontWeight: '700' },
   muted: { fontSize: 13, color: colors.textMuted },
   self: { alignSelf: 'flex-start' },
+  gap: { gap: spacing.sm },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   cancelBox: { gap: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.md },
   danger: { backgroundColor: colors.danger },

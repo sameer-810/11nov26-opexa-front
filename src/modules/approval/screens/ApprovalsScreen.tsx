@@ -15,6 +15,7 @@ import { formatDate, formatMoney, formatNumber } from '../../../shared/format';
 import { approvalApi, type ApprovalAction, type ApprovalDetail, type PendingApproval } from '../api/approvalApi';
 import { decisionsFor, draftsFor, RequisitionLineDecisions, type LineDraft } from '../components/RequisitionLineDecisions';
 import { AttachmentList } from '../../requisition/components/Attachments';
+import { requisitionApi } from '../../requisition/api/requisitionApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approvals'>;
 const message = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
@@ -74,7 +75,7 @@ export function ApprovalsScreen({ navigation }: Props) {
               <View style={styles.gap}>
                 <Details d={open.details} />
                 {open.details?.lines ? <RequisitionLineDecisions lines={open.details.lines} drafts={drafts} onChange={(lineId, d) => setDrafts((x) => ({ ...x, [lineId]: d }))} /> : null}
-                {open.details?.requisitionId && open.details.attachments?.length ? <AttachmentList requisitionId={open.details.requisitionId} items={open.details.attachments} onError={setProblem} /> : null}
+                {open.details?.requisitionId && open.details.attachments?.length ? <AttachmentList items={open.details.attachments} onError={setProblem} fetchFile={(a) => requisitionApi.downloadAttachment(open.details?.requisitionId ?? '', a)} /> : null}
                 <TextField label="Comment (required to reject or send back)" value={comment} onChangeText={setComment} testID="approval-comment" />
                 <View style={styles.row}>
                   <Button title="Approve" onPress={() => act(item.id, 'approve')} loading={acting === `${item.id}:approve`} testID={`approve-${item.id}`} />

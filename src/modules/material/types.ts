@@ -1,3 +1,5 @@
+import type { Attachment } from '../requisition/types';
+
 export type ReturnType = 'store' | 'vendor' | 'transfer';
 export type ReturnStatus = 'pending' | 'accepted' | 'rejected';
 type Person = { id: string; name: string } | null;
@@ -7,9 +9,17 @@ export type MaterialReturn = {
   vendor: { id: string; name: string } | null; toProject: { id: string; name: string; code: string } | null;
   reason: string; challanNo: string | null; status: ReturnStatus; decidedBy: Person; decidedAt: string | null; decisionNote: string;
   createdBy: Person; createdAt: string;
-  lines: { id: string; workOrderItemId: string; serialNo: string; description: string; unit: string; qty: number; toWorkOrderItemId: string | null; toSerialNo: string | null }[];
+  // Store returns: destination warehouse, returnable challan, gate pass.
+  warehouseId?: string | null; warehouseName?: string | null; returnable?: boolean; gatePassNo?: string | null; vehicleNo?: string | null;
+  attachments?: Attachment[];
+  lines: { id: string; workOrderItemId: string; serialNo: string; description: string; unit: string; qty: number; qtyReceived?: number | null; toWorkOrderItemId: string | null; toSerialNo: string | null }[];
 };
-export type NewReturn = { type: ReturnType; vendorId?: string; toProjectId?: string; reason: string; challanNo?: string; lines: { workOrderItemId: string; qty: number; toWorkOrderItemId?: string }[] };
+export type NewReturn = {
+  type: ReturnType; vendorId?: string; toProjectId?: string; reason: string; challanNo?: string;
+  warehouseId?: string; returnable?: boolean; vehicleNo?: string;
+  lines: { workOrderItemId: string; qty: number; toWorkOrderItemId?: string }[];
+};
+export type WarehouseChoice = { id: string; code: string; name: string; isCentral: boolean };
 
 export type Usage = {
   id: string; date: string; area: string; note: string; createdBy: Person; createdAt: string;

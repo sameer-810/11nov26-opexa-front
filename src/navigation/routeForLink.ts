@@ -13,6 +13,7 @@ export function routeForLink(link: string | null | undefined, user: User | null)
   if ((m = l.match(/^\/app\/projects\/([^/]+)\/lots\/([^/]+)$/))) return { name: 'LotDetail', params: { projectId: m[1], lotId: m[2] } };
   if ((m = l.match(/^\/app\/projects\/([^/]+)\/material$/))) return { name: 'MaterialStatus', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/returns\/([^/]+)$/))) return { name: 'ReturnDetail', params: { id: m[1] } };
+  if ((m = l.match(/^\/app\/delivery-challans\/([a-f0-9]{24})$/))) return { name: 'ChallanDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/projects\/([^/]+)\/stock-counts\/([^/]+)$/))) return { name: 'StockCount', params: { id: m[1], countId: m[2] } };
   if ((m = l.match(/^\/app\/purchase-orders\/([^/]+)$/)) && can(user, PERMS.PURCHASE_MANAGE)) return { name: 'PurchaseOrderDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/rfqs\/([a-f0-9]{24})$/)) && can(user, PERMS.PURCHASE_MANAGE)) return { name: 'RfqDetail', params: { id: m[1] } };

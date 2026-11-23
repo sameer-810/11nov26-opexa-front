@@ -4,6 +4,15 @@ import type { Attachment, BalanceRow, NewRequisition, Requisition, TimelineEvent
 // A file picked on the phone ({ uri, name, type }) or in the browser (Blob).
 export type PickedFile = { name: string; file: Blob | { uri: string; name: string; type: string } };
 
+// Multipart body with one picked file under "file".
+export function attachmentForm(picked: PickedFile): FormData {
+  const f = new FormData();
+  if (typeof Blob !== 'undefined' && picked.file instanceof Blob) f.append('file', picked.file, picked.name);
+  // React Native's FormData takes { uri, name, type } for a file on the phone.
+  else f.append('file', picked.file as unknown as Blob);
+  return f;
+}
+
 export const requisitionApi = {
   balance: (projectId: string) => api<BalanceRow[]>(`/projects/${projectId}/boq-balance`),
   create: (projectId: string, body: NewRequisition) => api<Requisition>(`/projects/${projectId}/requisitions`, { method: 'POST', body }),
@@ -18,13 +27,7 @@ export const requisitionApi = {
   get: (id: string) => api<Requisition>(`/requisitions/${id}`),
   timeline: (id: string) => api<TimelineEvent[]>(`/requisitions/${id}/timeline`),
   cancel: (id: string, reason: string) => api<Requisition>(`/requisitions/${id}/cancel`, { method: 'POST', body: { reason } }),
-  addAttachment: (id: string, picked: PickedFile) => {
-    const f = new FormData();
-    if (typeof Blob !== 'undefined' && picked.file instanceof Blob) f.append('file', picked.file, picked.name);
-    // React Native's FormData takes { uri, name, type } for a file on the phone.
-    else f.append('file', picked.file as unknown as Blob);
-    return api<Requisition>(`/requisitions/${id}/attachments`, { method: 'POST', body: f });
-  },
+  addAttachment: (id: string, picked: PickedFile) => api<Requisition>(`/requisitions/${id}/attachments`, { method: 'POST', body: attachmentForm(picked) }),
   removeAttachment: (id: string, attachmentId: string) => api<Requisition>(`/requisitions/${id}/attachments/${attachmentId}`, { method: 'DELETE' }),
   downloadAttachment: (id: string, a: Pick<Attachment, 'id'>) => apiBlob(`/requisitions/${id}/attachments/${a.id}`),
 };

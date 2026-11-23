@@ -75,6 +75,10 @@ import { SalesScreen } from '../modules/sales/screens/SalesScreen';
 import { NewLeadScreen } from '../modules/sales/screens/NewLeadScreen';
 import { LeadDetailScreen } from '../modules/sales/screens/LeadDetailScreen';
 import { QuoteFormScreen } from '../modules/sales/screens/QuoteFormScreen';
+import { MaterialReceivedScreen } from '../modules/deliveryChallan/screens/MaterialReceivedScreen';
+import { ChallansScreen } from '../modules/deliveryChallan/screens/ChallansScreen';
+import { ChallanDetailScreen } from '../modules/deliveryChallan/screens/ChallanDetailScreen';
+import { CHALLAN_VIEWERS } from './navItems';
 import { RedirectToSignIn } from './RedirectToSignIn';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -115,6 +119,9 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         <Stack.Screen name="Requisitions" component={RequisitionsScreen} options={{ title: 'Opexa - Material requests' }} />
         {can(user, PERMS.REQUISITION_CREATE) && <Stack.Screen name="NewRequisition" component={NewRequisitionScreen} options={{ title: 'Opexa - New material request' }} />}
         <Stack.Screen name="RequisitionDetail" component={RequisitionDetailScreen} options={{ title: 'Opexa - Material request' }} />
+        {[PERMS.RECEIVING_RECORD, PERMS.STORE_MANAGE, PERMS.PROJECT_MANAGE].some((p) => can(user, p)) && <Stack.Screen name="MaterialReceived" component={MaterialReceivedScreen} options={{ title: 'Opexa - Material received' }} />}
+        {CHALLAN_VIEWERS.some((p) => can(user, p)) && <Stack.Screen name="Challans" component={ChallansScreen} options={{ title: 'Opexa - Delivery challans' }} />}
+        <Stack.Screen name="ChallanDetail" component={ChallanDetailScreen} options={{ title: 'Opexa - Delivery challan' }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Opexa - Notifications' }} />
         {can(user, PERMS.APPROVAL_ACT) && <Stack.Screen name="Approvals" component={ApprovalsScreen} options={{ title: 'Opexa - My approvals' }} />}
         <Stack.Screen name="ProjectLots" component={ProjectLotsScreen} options={{ title: 'Opexa - Deliveries' }} />

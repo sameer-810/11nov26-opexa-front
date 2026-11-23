@@ -13,7 +13,9 @@ import { colors, spacing } from '../../../shared/designSystem';
 import { receivingApi } from '../../receiving/api/receivingApi';
 import { materialApi, type TransferTarget } from '../api/materialApi';
 import { ItemSearch, LineList, type Line, type PickItem } from '../ItemLines';
-import type { ReturnType } from '../types';
+import type { ReturnType, WarehouseChoice } from '../types';
+import type { PickedFile } from '../../requisition/api/requisitionApi';
+import { AttachmentPicker } from '../../requisition/components/Attachments';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NewReturn'>;
 
@@ -29,6 +31,11 @@ export function NewReturnScreen({ navigation, route }: Props) {
   const [lines, setLines] = useState<Line[]>([]);
   const [reason, setReason] = useState('');
   const [challanNo, setChallanNo] = useState('');
+  const [warehouses, setWarehouses] = useState<WarehouseChoice[]>([]);
+  const [warehouseId, setWarehouseId] = useState('');
+  const [returnable, setReturnable] = useState('no');
+  const [vehicleNo, setVehicleNo] = useState('');
+  const [picked, setPicked] = useState<PickedFile[]>([]);
   const [lineErrors, setLineErrors] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
@@ -40,6 +47,10 @@ export function NewReturnScreen({ navigation, route }: Props) {
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load'));
     api<{ id: string; name: string }[]>('/vendors/names').then(setVendors).catch(() => undefined);
     materialApi.transferTargets().then((ps) => setProjects(ps.filter((p) => p.id !== id))).catch(() => undefined);
+    materialApi.warehouses().then((ws) => {
+      setWarehouses(ws);
+      setWarehouseId((cur) => cur || ws.find((w) => w.isCentral)?.id || ws[0]?.id || '');
+    }).catch(() => undefined);
   }, [id]);
 
   useEffect(() => {
@@ -57,6 +68,7 @@ export function NewReturnScreen({ navigation, route }: Props) {
     const le: Record<string, string> = {};
     if (type === 'vendor' && !vendorId) e.vendorId = 'Choose the vendor';
     if (type === 'transfer' && !toProjectId) e.toProjectId = 'Choose the project';
+    if (type === 'store' && warehouses.length && !warehouseId) e.warehouseId = 'Choose the store';
     if (reason.trim().length < 3) e.reason = 'Say why it is going back';
     if (!lines.length) e.items = 'Add at least one item';
     const body = lines.map((l) => {
@@ -75,8 +87,11 @@ export function NewReturnScreen({ navigation, route }: Props) {
       const r = await materialApi.createReturn(id, {
         type, reason: reason.trim(), challanNo: challanNo.trim() || undefined, lines: body,
         ...(type === 'vendor' ? { vendorId } : {}), ...(type === 'transfer' ? { toProjectId } : {}),
+        ...(type === 'store' ? { warehouseId: warehouseId || undefined, returnable: returnable === 'yes', vehicleNo: vehicleNo.trim() || undefined } : {}),
       });
-      navigation.replace('ReturnDetail', { id: r.id });
+      let failed = 0;
+      for (const p of picked) await materialApi.addAttachment(r.id, p).catch(() => { failed += 1; });
+      navigation.replace('ReturnDetail', { id: r.id, ...(failed ? { attachFailed: failed } : {}) });
     } catch (err) {
       if (err instanceof ApiError) {
         setLineErrors(Object.fromEntries(err.details.map((d) => [d.field, d.message])));
@@ -100,6 +115,12 @@ export function NewReturnScreen({ navigation, route }: Props) {
           : <Text style={styles.muted}>No other open project.</Text>
       ) : null}
       {errors.toProjectId ? <Text style={styles.err}>{errors.toProjectId}</Text> : null}
+      {type === 'store' && warehouses.length ? (
+        <ChoiceChips label="Return to which store" value={warehouseId} onChange={setWarehouseId} error={errors.warehouseId} testID="rt-warehouse" options={warehouses.map((w) => ({ value: w.id, label: w.name }))} />
+      ) : null}
+      {type === 'store' ? (
+        <ChoiceChips label="Returnable (comes back to site later)?" value={returnable} onChange={setReturnable} testID="rt-returnable" options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes, returnable' }]} />
+      ) : null}
 
       <ItemSearch items={items} exclude={lines.map((l) => l.itemId)} onPick={(i) => setLines((ls) => [...ls, { itemId: i.id, qty: '' }])} testID="rt-search" error={errors.items} />
       <LineList lines={lines} items={items} errors={lineErrors} testID="rt"
@@ -115,7 +136,9 @@ export function NewReturnScreen({ navigation, route }: Props) {
           );
         } : undefined} />
       <TextField label="Reason" value={reason} onChangeText={setReason} error={errors.reason} placeholder="e.g. extra, wrong model, not needed here" testID="rt-reason" />
-      <TextField label="Challan / gate pass no. (optional)" value={challanNo} onChangeText={setChallanNo} testID="rt-challan" />
+      {type === 'store' ? <TextField label="Vehicle no." value={vehicleNo} onChangeText={setVehicleNo} autoCapitalize="characters" testID="rt-vehicle" /> : null}
+      <TextField label={type === 'store' ? 'Reference no. (optional; the gate pass number is given automatically)' : 'Challan / gate pass no. (optional)'} value={challanNo} onChangeText={setChallanNo} testID="rt-challan" />
+      <AttachmentPicker picked={picked} onPick={setPicked} />
       {error ? <ErrorBanner message={error} testID="rt-error" /> : null}
       <Button title="Send back" onPress={save} loading={busy} testID="rt-save" style={styles.self} />
     </AppScreen>

@@ -3,7 +3,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { saveBlob } from '../../../shared/download';
 import { Button } from '../../../shared/ui/Button';
 import { colors, radius, spacing } from '../../../shared/designSystem';
-import { requisitionApi, type PickedFile } from '../api/requisitionApi';
+import type { PickedFile } from '../api/requisitionApi';
 import type { Attachment } from '../types';
 
 const TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
@@ -45,12 +45,12 @@ export function AttachmentPicker({ picked, onPick, existing = [], onRemoveExisti
   );
 }
 
-// Detail part: download each attachment.
-export function AttachmentList({ requisitionId, items, onError }: { requisitionId: string; items: Attachment[]; onError: (m: string) => void }) {
+// Detail part: download each attachment (`fetchFile` fetches one; material requests, challans and returns use it).
+export function AttachmentList({ items, onError, fetchFile }: { items: Attachment[]; onError: (m: string) => void; fetchFile: (a: Attachment) => Promise<Blob> }) {
   if (!items.length) return null;
   const download = async (a: Attachment) => {
     try {
-      if (!saveBlob(await requisitionApi.downloadAttachment(requisitionId, a), a.name)) onError('Open this request on the web to download attachments.');
+      if (!saveBlob(await fetchFile(a), a.name)) onError('Open this on the web to download attachments.');
     } catch {
       onError('Could not download the file');
     }

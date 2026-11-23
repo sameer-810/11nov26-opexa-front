@@ -55,7 +55,7 @@ export function DashboardScreen({ navigation }: Props) {
       if (manager) requisitionApi.list({ overBoq: true }).then((r) => setOverBoq(r.filter((x) => x.status === 'open').length)).catch(() => undefined);
       if (site) receivingApi.toReceive().then(setToReceive).catch(() => undefined);
       if (can(user, PERMS.ATTENDANCE_SELF)) attendanceApi.today().then(setAtt).catch(() => undefined);
-      if (manager || buyer) materialApi.returns(undefined, 'pending').then((r) => setReturnsWaiting(r.length)).catch(() => undefined);
+      if (manager || buyer || can(user, PERMS.STORE_MANAGE)) materialApi.returns(undefined, 'pending').then((r) => setReturnsWaiting(r.length)).catch(() => undefined);
       if (manager) overviewApi.get().then((o) => setOv(o?.billing && o.totals ? o : null)).catch(() => setOv(null));
     }, [buyer, manager, site]), // eslint-disable-line react-hooks/exhaustive-deps
   );
@@ -317,7 +317,8 @@ function quickTiles(navigation: Nav, user: ReturnType<typeof useAuth>['user'], s
     { show: can(user, PERMS.ATTENDANCE_SELF), title: 'My payslips', body: 'Your monthly pay', icon: 'rupee', tint: glass.violet, onPress: go('Payslips'), testID: 'tile-payslips' },
     { show: can(user, PERMS.ATTENDANCE_VIEW), title: 'Team attendance', body: 'Who is at which site today', icon: 'users', tint: glass.sky, onPress: go('TeamAttendance'), testID: 'tile-team-attendance' },
     { show: manager, title: 'Business overview', body: 'Money, material and what needs attention across all projects', icon: 'chart', tint: glass.indigo, onPress: go('Overview'), testID: 'tile-overview' },
-    { show: manager || buyer, title: s.returnsWaiting ? `Returns to confirm (${s.returnsWaiting})` : 'Returns to confirm', body: 'Material sent back from sites', icon: 'undo', tint: glass.pink, onPress: go('Returns'), testID: 'tile-returns' },
+    // Store staff confirm store returns into their warehouse (1E).
+    { show: manager || buyer || can(user, PERMS.STORE_MANAGE), title: s.returnsWaiting ? `Returns to confirm (${s.returnsWaiting})` : 'Returns to confirm', body: 'Material sent back from sites', icon: 'undo', tint: glass.pink, onPress: go('Returns'), testID: 'tile-returns' },
     { show: buyer, title: 'Material requests', body: s.openRequests === null ? 'Requests from all sites' : `${s.openRequests} open request${s.openRequests === 1 ? '' : 's'}`, icon: 'clipboard', tint: glass.indigo, onPress: go('Requisitions'), testID: 'tile-requisitions' },
     { show: can(user, PERMS.INVOICE_EDIT) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY), title: 'Tally export', body: 'Sales, purchase and receipt vouchers', icon: 'upload', tint: glass.green, onPress: go('Tally'), testID: 'tile-tally' },
     { show: [PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.REPORTS_VIEW].some((p) => can(user, p)), title: 'Retention & guarantees', body: 'Retention to claim, bank guarantee expiries', icon: 'shield', tint: glass.violet, onPress: go('Commitments'), testID: 'tile-commitments' },

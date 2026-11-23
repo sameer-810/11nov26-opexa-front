@@ -16,8 +16,10 @@ const LABEL: Record<TimelineEvent['type'], string> = {
   ordered: 'Purchase order raised',
   dispatched: 'Dispatched by supplier',
   received: 'Received at site',
+  challan: 'Material received · delivery challan',
+  challan_cancelled: 'Delivery challan cancelled',
 };
-const TONE: Partial<Record<TimelineEvent['type'], string>> = { approved: colors.success, received: colors.success, rejected: colors.danger, cancelled: colors.danger, sent_back: '#B45309' };
+const TONE: Partial<Record<TimelineEvent['type'], string>> = { approved: colors.success, received: colors.success, challan: colors.success, challan_cancelled: colors.danger, rejected: colors.danger, cancelled: colors.danger, sent_back: '#B45309' };
 const role = (r: string | null | undefined) => (r ? r.replace(/_/g, ' ') : '');
 
 // Who did what and when on a material request, oldest first. `version` reloads it after a change.

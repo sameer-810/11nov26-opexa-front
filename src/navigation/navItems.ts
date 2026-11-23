@@ -7,12 +7,15 @@ export type NavItem = { route: keyof RootStackParamList; label: string; icon: Ic
 
 const any = (u: User | null, perms: string[]) => perms.some((p) => can(u, p));
 const always = () => true;
+// Who records or follows material received on requests (must match RootNavigator).
+export const CHALLAN_VIEWERS = [PERMS.RECEIVING_RECORD, PERMS.STORE_MANAGE, PERMS.PROJECT_MANAGE, PERMS.PURCHASE_MANAGE];
 
 // Sidebar entries. `show` must match the screen registration in RootNavigator.
 export const NAV_ITEMS: NavItem[] = [
   { route: 'Dashboard', label: 'Dashboard', icon: 'home', show: always },
   { route: 'Projects', label: 'Projects', icon: 'folder', show: always, also: ['ProjectDetail', 'NewProject', 'EditProject', 'ProjectTeam', 'BoqImport', 'ProjectLots', 'LotDetail', 'MaterialStatus', 'Usage', 'ProjectBilling', 'ProjectFinance', 'ProjectDocuments'] },
-  { route: 'Requisitions', label: 'Material requests', icon: 'clipboard', show: always, also: ['NewRequisition', 'RequisitionDetail'] },
+  { route: 'Requisitions', label: 'Material requests', icon: 'clipboard', show: always, also: ['NewRequisition', 'RequisitionDetail', 'MaterialReceived'] },
+  { route: 'Challans', label: 'Delivery challans', icon: 'receipt', show: (u) => any(u, CHALLAN_VIEWERS), also: ['ChallanDetail'] },
   { route: 'Approvals', label: 'Approvals', icon: 'check', show: (u) => can(u, PERMS.APPROVAL_ACT) },
   { route: 'Procurement', label: 'Procurement', icon: 'cart', show: (u) => can(u, PERMS.PURCHASE_MANAGE), also: ['Rfqs', 'NewRfq', 'RfqDetail', 'RfqComparison', 'SelectionDetail', 'FollowUps', 'PendingQuantities', 'PurchaseOrders', 'PurchaseOrderDetail', 'NewPurchaseOrder', 'Vendors'] },
   { route: 'Store', label: 'Store', icon: 'box', show: (u) => any(u, [PERMS.STORE_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.PROJECT_MANAGE]) },

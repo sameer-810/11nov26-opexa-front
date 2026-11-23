@@ -23,7 +23,9 @@ export type RequisitionLine = {
   ordered?: number;
   dispatched?: number;
   received?: number;
+  inTransit?: number; // dispatched by a supplier, not yet checked in
   pending?: number;
+  receivable?: number; // what a Delivery Challan may still take (pending minus in transit)
   toOrder?: number;
 };
 
@@ -63,12 +65,13 @@ export type NewRequisition = {
 };
 
 export type TimelineEvent = {
-  type: 'created' | 'submitted' | 'approved' | 'rejected' | 'sent_back' | 'resubmitted' | 'cancelled' | 'ordered' | 'dispatched' | 'received';
+  type: 'created' | 'submitted' | 'approved' | 'rejected' | 'sent_back' | 'resubmitted' | 'cancelled' | 'ordered' | 'dispatched' | 'received' | 'challan' | 'challan_cancelled';
   at: string;
   by: { id: string; name: string; role: string } | null;
   comment: string;
   level?: number;
   levelRole?: string | null;
+  challanId?: string;
 };
 
 // One entry per line that would go past the BOQ (from the API's OVER_BOQ answer).
