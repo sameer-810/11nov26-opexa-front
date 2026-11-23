@@ -31,8 +31,9 @@ export function HandoverAmcScreen({ navigation, route }: Props) {
   const fetcher = useCallback(async () => ({
     handover: await api<Handover | null>(`/projects/${id}/handover`).catch(() => null),
     amc: await api<{ rows: Amc[] }>('/amc').catch(() => ({ rows: [] as Amc[] })),
-    boq: await projectApi.boq(id),
-  }), [id]);
+    // Only the project team prepares the list from the BOQ; service staff may not be on the project team.
+    boq: pm ? await projectApi.boq(id) : [],
+  }), [id, pm]);
   const { data, error, reload } = useData(fetcher);
   const { busy, problem, run } = useAction(() => void reload());
   const [item, setItem] = useState('');

@@ -48,7 +48,19 @@ export function Panel({ icon, title, action, onAction, children, style, testID }
 }
 
 // Quick-access tile (every module the user can open).
-export function Tile({ title, body, icon, tint, onPress, testID }: { title: string; body: string; icon: IconName; tint: string; onPress: () => void; testID: string }) {
+export function Tile({ title, body, icon, tint, onPress, testID, compact }: { title: string; body: string; icon: IconName; tint: string; onPress: () => void; testID: string; compact?: boolean }) {
+  if (compact) {
+    // Phone: two tiles per row, icon above the text.
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.miniWrap, pressed && styles.pressed]} accessibilityRole="button" testID={testID}>
+        <View style={styles.mini}>
+          <View style={[styles.iconTileSm, { backgroundColor: `${tint}1F` }]}><Icon name={icon} size={18} color={tint} /></View>
+          <Text style={styles.tileTitle} numberOfLines={2}>{title}</Text>
+          <Text style={styles.sub} numberOfLines={2}>{body}</Text>
+        </View>
+      </Pressable>
+    );
+  }
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.tileWrap, pressed && styles.pressed]} accessibilityRole="button" testID={testID}>
       <GlassCard style={styles.tile}>
@@ -92,6 +104,8 @@ const styles = StyleSheet.create({
   action: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: glass.line },
   actionText: { fontSize: 13, color: glass.indigo, fontWeight: '600' },
   tileWrap: { flexGrow: 1, flexBasis: 280 },
+  miniWrap: { flexGrow: 1, flexBasis: '40%' },
+  mini: { height: '100%', backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 18, padding: 14, gap: 6, boxShadow: glass.shadow },
   tile: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, height: '100%' },
   tileTitle: { fontSize: 15, fontWeight: '700', color: glass.ink },
   chip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },

@@ -1,4 +1,4 @@
-export type Role = 'owner' | 'purchaser' | 'engineer' | 'supervisor' | 'accounts' | 'staff';
+export type Role = 'owner' | 'purchaser' | 'engineer' | 'supervisor' | 'accounts' | 'staff' | 'project_manager' | 'hod' | 'director' | 'admin' | 'store_incharge';
 
 export type User = {
   id: string;

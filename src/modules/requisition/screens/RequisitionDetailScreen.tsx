@@ -14,7 +14,7 @@ import { ErrorBanner } from '../../../shared/ui/Banner';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { requisitionApi } from '../api/requisitionApi';
-import { PURCHASE_LABEL, type Requisition } from '../types';
+import { PURCHASE_LABEL, REQ_STATUS_LABEL, type Requisition } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RequisitionDetail'>;
 
@@ -69,7 +69,7 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
         <View style={styles.row}>
           {req.overBoq ? <StatusChip label="Over BOQ" tone="danger" testID="req-over-chip" /> : null}
           <StatusChip
-            label={req.purchaseStatus ? PURCHASE_LABEL[req.purchaseStatus] : req.status === 'open' ? 'Open' : 'Cancelled'}
+            label={req.status !== 'open' ? REQ_STATUS_LABEL[req.status] ?? req.status : req.purchaseStatus ? PURCHASE_LABEL[req.purchaseStatus] : 'Open'}
             tone={req.purchaseStatus === 'ordered' || req.purchaseStatus === 'received' ? 'success' : req.status === 'cancelled' ? 'neutral' : 'info'}
             testID="req-status"
           />

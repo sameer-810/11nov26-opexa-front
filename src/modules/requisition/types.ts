@@ -44,4 +44,5 @@ export type NewRequisition = { lines: { workOrderItemId: string; qty: number; re
 // One entry per line that would go past the BOQ (from the API's OVER_BOQ answer).
 export type OverBoqLine = { field: string; message: string; serialNo: string; boqQty: number; previouslyRequested: number; qtyRequested: number; overBy: number };
 
+export const REQ_STATUS_LABEL = { pending_approval: 'Waiting for approval', open: 'Open', rejected: 'Rejected', sent_back: 'Sent back', cancelled: 'Cancelled' } as const;
 export const PURCHASE_LABEL = { 'to-order': 'To order', 'partly-ordered': 'Partly ordered', ordered: 'Ordered', received: 'Received at site', cancelled: 'Cancelled' } as const;

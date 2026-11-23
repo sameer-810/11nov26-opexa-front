@@ -12,7 +12,6 @@ import type { RootStackParamList } from '../../../navigation/types';
 import { routeForLink } from '../../../navigation/routeForLink';
 import { useAuth } from '../../../shared/store/useAuthStore';
 import { can, PERMS } from '../../../shared/permissions';
-import { Button } from '../../../shared/ui/Button';
 import { lit, Backdrop } from '../../../shared/ui/Glass';
 import { Icon, type IconName } from '../../../shared/ui/Icon';
 import { formatShortMoney as short } from '../../../shared/format';
@@ -21,6 +20,8 @@ import { ROLE_LABEL } from '../../team/types';
 import { overviewApi, type Overview } from '../api/overviewApi';
 import { AreaChart, BarList, Donut, Funnel } from '../components/charts';
 import { PayChip, Panel, StatCard, Tile } from '../components/widgets';
+import { ActivityList, HeroCard, MobileHeader, SectionTitle, type HeroChip } from '../components/mobile';
+import type { AppNotification } from '../../notification/api/notificationApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 type Nav = Props['navigation'];
@@ -33,8 +34,8 @@ export function DashboardScreen({ navigation }: Props) {
   const { user, organization, signOut } = useAuth();
   const { width } = useWindowDimensions();
   const wide = Platform.OS === 'web' && width >= 1024; // the web shell shows sign-out in the top bar
-  const [busy, setBusy] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [recent, setRecent] = useState<AppNotification[]>([]);
   const [openRequests, setOpenRequests] = useState<number | null>(null);
   const [overBoq, setOverBoq] = useState<number | null>(null);
   const [att, setAtt] = useState<Today | null>(null);
@@ -49,7 +50,7 @@ export function DashboardScreen({ navigation }: Props) {
   // Refresh counts each time the dashboard is shown.
   useFocusEffect(
     useCallback(() => {
-      notificationApi.list().then((r) => setUnread(r.unread)).catch(() => undefined);
+      notificationApi.list().then((r) => { setUnread(r.unread); setRecent((r.items ?? []).slice(0, 4)); }).catch(() => undefined);
       if (buyer) requisitionApi.list().then((r) => setOpenRequests(r.filter((x) => x.status === 'open').length)).catch(() => undefined);
       if (manager) requisitionApi.list({ overBoq: true }).then((r) => setOverBoq(r.filter((x) => x.status === 'open').length)).catch(() => undefined);
       if (site) receivingApi.toReceive().then(setToReceive).catch(() => undefined);
@@ -59,10 +60,12 @@ export function DashboardScreen({ navigation }: Props) {
     }, [buyer, manager, site]), // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  const onSignOut = async () => {
-    setBusy(true);
-    await signOut();
+  const openLink = (link: string | null) => {
+    const t = routeForLink(link, user);
+    if (t) (navigation.navigate as (n: string, p?: object) => void)(t.name, t.params);
+    else navigation.navigate('Notifications');
   };
+  const userLine = `${user?.name ?? ''} · ${user ? ROLE_LABEL[user.role] ?? user.role : ''}`;
 
   const tiles = quickTiles(navigation, user, { unread, openRequests, overBoq, att, toReceive, returnsWaiting, buyer, manager, site, invoices });
 
@@ -70,6 +73,8 @@ export function DashboardScreen({ navigation }: Props) {
     <View style={styles.root}>
       {wide ? null : <Backdrop />}
       <ScrollView contentContainerStyle={styles.page} testID="dashboard-screen">
+{wide ? (
+          <>
         <View style={styles.header}>
           <View style={styles.flex}>
             <Text style={styles.hello} testID="dashboard-welcome">Welcome, {user?.name?.split(' ')[0]}</Text>
@@ -78,7 +83,6 @@ export function DashboardScreen({ navigation }: Props) {
               {user?.name} · {user ? ROLE_LABEL[user.role] ?? user.role : ''}
             </Text>
           </View>
-          {wide ? null : <Button title="Sign out" variant="outline" onPress={onSignOut} loading={busy} testID="signout" />}
         </View>
 
         <View style={styles.row}>
@@ -99,11 +103,48 @@ export function DashboardScreen({ navigation }: Props) {
           )}
         </View>
 
+          </>
+        ) : (
+          <>
+        <MobileHeader name={user?.name} welcome={`Welcome, ${user?.name?.split(' ')[0] ?? ''}`} company={organization?.name} userLine={userLine}
+          unread={unread} onBell={() => navigation.navigate('Notifications')} onSignOut={() => void signOut()} />
+        {ov ? (
+          <HeroCard
+            label="Outstanding from clients"
+            value={short(ov.billing.outstanding)}
+            sub="Issued invoices not yet received"
+            trend={ov.billing.months.map((m) => m.billed)}
+            chips={[
+              { label: 'This month', value: short(ov.billing.months[5]?.billed ?? 0), tone: (pctChange(ov.billing.months[5]?.billed ?? 0, ov.billing.months[4]?.billed ?? 0) ?? 0) >= 0 ? 'up' : 'down' },
+              { label: 'Projects', value: String(ov.projects.active) },
+              { label: 'BOQ', value: short(ov.totals.boqValue) },
+            ]}
+            testID="hero-card"
+          />
+        ) : (
+          <HeroCard
+            label="Unread alerts"
+            value={String(unread)}
+            sub={organization?.name}
+            chips={([
+              site ? { label: 'On the way', value: String(toReceive?.length ?? '—') } : null,
+              buyer ? { label: 'Requests', value: String(openRequests ?? '—') } : null,
+              returnsWaiting !== null ? { label: 'Returns', value: String(returnsWaiting) } : null,
+              can(user, PERMS.ATTENDANCE_SELF) ? { label: 'Attendance', value: att?.open ? 'Checked in' : 'Not in' } : null,
+            ].filter(Boolean) as HeroChip[]).slice(0, 3)}
+            testID="hero-card"
+          />
+        )}
+        <SectionTitle action="See all" onAction={() => navigation.navigate('Notifications')}>Recent activity</SectionTitle>
+        <ActivityList items={recent} onOpen={(n) => openLink(n.link)} testID="activity-list" />
+          </>
+        )}
+
         {ov ? <ManagerPanels ov={ov} navigation={navigation} invoices={invoices} user={user} /> : null}
 
         <Text style={styles.h2} accessibilityRole="header">Quick access</Text>
         <View style={styles.row}>
-          {tiles.filter((t) => t.show).map((t) => <Tile key={t.testID} {...t} />)}
+          {tiles.filter((t) => t.show).map((t) => <Tile key={t.testID} compact={!wide} {...t} />)}
         </View>
       </ScrollView>
     </View>

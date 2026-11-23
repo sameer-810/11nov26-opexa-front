@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, View, useWindowDimensions } from 'react-native';
 import { DefaultTheme, NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { WebShell } from './WebShell';
+import { PhoneShell } from './PhoneTabBar';
 import { onPushTap } from '../shared/push/push';
 import { OfflineSync } from '../shared/offline/OfflineSync';
 import { routeForLink } from './routeForLink';
@@ -56,6 +57,10 @@ export function AppNavigator() {
         <WebShell route={route} go={(name) => (navigationRef.navigate as (n: string) => void)(name)}>
           <RootNavigator transparent />
         </WebShell>
+      ) : isSignedIn && !user?.mustChangePassword ? (
+        <PhoneShell route={route} go={(name) => (navigationRef.navigate as (n: string) => void)(name)}>
+          <RootNavigator />
+        </PhoneShell>
       ) : <RootNavigator />}
     </NavigationContainer>
   );

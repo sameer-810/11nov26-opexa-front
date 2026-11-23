@@ -14,6 +14,11 @@ export const ROLE_LABEL: Record<Role, string> = {
   supervisor: 'Site Supervisor',
   accounts: 'HR / Accounts',
   staff: 'Staff',
+  project_manager: 'Project Manager',
+  hod: 'Head of Department',
+  director: 'Director',
+  admin: 'Administrator',
+  store_incharge: 'Store In-charge',
 };
 
 export const ROLE_HINT: Record<Role, string> = {
@@ -23,4 +28,9 @@ export const ROLE_HINT: Record<Role, string> = {
   supervisor: 'Receives material and marks attendance',
   accounts: 'Attendance, payroll and billing',
   staff: 'Attendance only',
+  project_manager: 'Runs projects and approves requests',
+  hod: 'Approves above the project manager',
+  director: 'Final approval and company reports',
+  admin: 'Team, settings and approval rules',
+  store_incharge: 'Warehouse stock, transfers and issues',
 };

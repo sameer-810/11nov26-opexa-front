@@ -14,7 +14,7 @@ import { ErrorState } from '../../../shared/ui/ErrorState';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { requisitionApi } from '../api/requisitionApi';
-import type { Requisition } from '../types';
+import { REQ_STATUS_LABEL, type Requisition } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Requisitions'>;
 
@@ -68,7 +68,7 @@ export function RequisitionsScreen({ navigation, route }: Props) {
                 <Text style={styles.number}>{r.number}</Text>
                 <View style={styles.chips}>
                   {r.overBoq ? <StatusChip label="Over BOQ" tone="danger" /> : null}
-                  <StatusChip label={r.status === 'open' ? 'Open' : 'Cancelled'} tone={r.status === 'open' ? 'info' : 'neutral'} />
+                  <StatusChip label={REQ_STATUS_LABEL[r.status] ?? r.status} tone={r.status === 'open' ? 'info' : r.status === 'pending_approval' ? 'warning' : r.status === 'cancelled' ? 'neutral' : 'danger'} />
                 </View>
               </View>
               <Text style={styles.title}>{r.projectCode} · {r.projectName}</Text>
