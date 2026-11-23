@@ -105,9 +105,10 @@ export function installStockControlMock(api: BaseApi, { payments = [] as Supplie
       const act = tm[2];
       if (act === 'issue') {
         const holder = b.holder as { kind: string; name: string };
-        Object.assign(t, { status: 'issued', condition: b.condition ?? 'good', holder: { kind: holder.kind, name: holder.name, projectId: (b.projectId as string) ?? null, issuedAt: new Date().toISOString(), expectedReturn: (b.expectedReturn as string) ?? null, conditionAtIssue: b.condition ?? 'good', overdue: false } });
+        Object.assign(t, { status: 'issued', condition: b.condition ?? 'good', holder: { kind: holder.kind, name: holder.name, projectId: (b.projectId as string) ?? null, issuedAt: '2026-11-19T04:30:00.000Z', expectedReturn: (b.expectedReturn as string) ?? null, conditionAtIssue: b.condition ?? 'good', overdue: false } });
         move(t, 'issued');
       }
+      if (act === 'return' && String(b.returnedAt) < String(t.holder?.issuedAt).slice(0, 10)) return fail(422, 'BAD_DATE', 'The return date cannot be before the issue date');
       if (act === 'return') { move(t, 'returned', { condition: String(b.condition), note: String(b.remarks ?? ''), date: String(b.returnedAt) }); Object.assign(t, { status: 'available', condition: b.condition, holder: null }); }
       if (act === 'status') { Object.assign(t, b.action === 'damaged' ? { condition: 'damaged' } : { status: b.action, condition: b.action }); move(t, String(b.action), { note: String(b.note), responsible: (b.responsible as { kind: string; name: string }) ?? null, recoveryAmount: (b.recoveryAmount as number) ?? null }); }
       if (act === 'repair') { t.status = 'in_repair'; move(t, 'repair_sent'); }

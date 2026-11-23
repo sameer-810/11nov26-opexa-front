@@ -62,7 +62,7 @@ export function CountSheet({ id, onClose }: { id: string; onClose: () => void })
         <StatusChip label={COUNT_STATUS[c.status].label} tone={COUNT_STATUS[c.status].tone} testID="count-status" />
       </View>
       <Text style={s.muted}>{formatDate(c.countDate)} · counted by {c.countedBy.name}{c.scope.type === 'category' ? ` · category ${c.scope.category}` : ''}</Text>
-      <Text style={s.title} testID="count-totals">Short {formatMoney(-c.totals.shortValue)} · excess {formatMoney(c.totals.excessValue)} · net {formatMoney(c.totals.netValue)}{c.totals.damagedValue ? ` · damaged found ${formatMoney(c.totals.damagedValue)}` : ''}</Text>
+      <Text style={s.title} testID="count-totals">Short {formatMoney(Math.abs(c.totals.shortValue))} · excess {formatMoney(c.totals.excessValue)} · net {formatMoney(c.totals.netValue)}{c.totals.damagedValue ? ` · damaged found ${formatMoney(c.totals.damagedValue)}` : ''}</Text>
       {c.lines.map((l) => (
         <View key={l.id} style={s.card} testID={`count-line-${l.code}`}>
           <Text style={s.title}>{l.name}</Text>

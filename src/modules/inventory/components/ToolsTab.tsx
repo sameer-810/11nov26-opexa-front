@@ -69,6 +69,8 @@ export function ToolsTab() {
           </View>
           {open?.id === t.id && open.mode === 'history' ? <ToolHistoryPanel id={t.id} /> : null}
           {open?.id === t.id && open.mode !== 'history' ? <ToolActionForm tool={t} mode={open.mode} projects={data.projects} busy={busy} run={run} setProblem={setProblem} onClose={() => setOpen(null)} /> : null}
+          {/* Also on the card being acted on: the banner at the top of a long list is out of view. */}
+          {open?.id === t.id && open.mode !== 'history' && problem ? <ErrorBanner message={problem} testID={`tool-problem-${t.code}`} /> : null}
         </View>
       ))}
     </View>

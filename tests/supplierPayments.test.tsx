@@ -61,6 +61,7 @@ describe('4X - Supplier payables and payments', () => {
     await fireEvent.changeText(screen.getByTestId('spay-alloc-CT/101'), '10000');
     await fireEvent.press(screen.getByTestId('spay-submit'));
     expect(await screen.findByTestId('spay-problem')).toHaveTextContent(/Invoice CT\/101: at most ₹8,000(\.00)? can be paid now/);
+    expect(screen.getByTestId('spay-problem-bottom')).toHaveTextContent(/at most ₹8,000(\.00)? can be paid now/);
     expect(sp.payments).toHaveLength(0);
 
     await fireEvent.press(screen.getByTestId('spay-full-CT/101'));

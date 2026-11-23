@@ -32,6 +32,7 @@ describe('2F.4 - Physical count', () => {
     await fireEvent.press(await screen.findByTestId('count-location-w1'));
     await fireEvent.press(screen.getByTestId('count-start'));
     await screen.findByTestId('count-sheet');
+    expect(screen.getByTestId('count-totals')).toHaveTextContent(/^Short ₹0(\.00)? · excess/); // never "-₹0.00"
     expect(mock.calls[0]).toMatchObject({ method: 'POST', path: '/inventory/counts', body: { location: { kind: 'warehouse', id: 'w1' }, scope: { type: 'all' } } });
 
     await fireEvent.changeText(screen.getByTestId('count-qty-MAT-00001'), '92');
@@ -106,12 +107,15 @@ describe('2G - Tools', () => {
     expect(mock.calls[1].body).toEqual({ holder: { kind: 'employee', name: 'Cool Fitters' }, projectId: 'p1', expectedReturn: '2026-12-01', condition: 'fair' });
 
     await fireEvent.press(screen.getByTestId('tool-return-TL-0001'));
+    await fireEvent.changeText(screen.getByTestId('tool-date'), '2026-11-18');
+    await fireEvent.press(screen.getByTestId('tool-return-save'));
+    expect(await screen.findByTestId('tool-problem-TL-0001')).toHaveTextContent(/cannot be before the issue date/); // shown on the card, not only at the top
     await fireEvent.changeText(screen.getByTestId('tool-date'), '2026-11-20');
     await fireEvent.press(screen.getByTestId('tool-condition-damaged'));
     await fireEvent.changeText(screen.getByTestId('tool-text'), 'Motor burnt');
     await fireEvent.press(screen.getByTestId('tool-return-save'));
     await screen.findByTestId('tool-repair-TL-0001');
-    expect(mock.calls[2].body).toEqual({ condition: 'damaged', returnedAt: '2026-11-20', remarks: 'Motor burnt' });
+    expect(mock.calls[3].body).toEqual({ condition: 'damaged', returnedAt: '2026-11-20', remarks: 'Motor burnt' });
     expect(screen.queryByTestId('tool-issue-TL-0001')).toBeNull(); // a damaged tool is repaired before it is issued
 
     await fireEvent.press(screen.getByTestId('tool-repair-TL-0001'));
@@ -122,7 +126,7 @@ describe('2G - Tools', () => {
     await fireEvent.press(screen.getByTestId('tool-project-p1'));
     await fireEvent.press(screen.getByTestId('tool-repaired-save'));
     await screen.findByTestId('tool-issue-TL-0001');
-    expect(mock.calls[4].body).toMatchObject({ cost: 3500, projectId: 'p1' });
+    expect(mock.calls[5].body).toMatchObject({ cost: 3500, projectId: 'p1' });
 
     await fireEvent.press(screen.getByTestId('tool-history-TL-0001'));
     expect(await screen.findByTestId('tool-maint-tm1')).toHaveTextContent(/repair · ₹3,500(.00)? · P-001 Worli/);

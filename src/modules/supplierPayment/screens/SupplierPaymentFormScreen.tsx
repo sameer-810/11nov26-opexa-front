@@ -127,6 +127,8 @@ export function SupplierPaymentFormScreen({ navigation, route }: Props) {
         <Text style={s.title} testID="spay-summary">Against invoices {formatMoney(allocated)} · payment + TDS {formatMoney(round(paid + tdsValue))}</Text>
         <AttachmentPicker picked={files} onPick={setFiles} />
         {advance > 0.005 ? <Text style={s.warn} testID="spay-advance">{formatMoney(advance)} will be an advance on account, to adjust against invoices later</Text> : null}
+        {/* Repeated by the buttons: on a long form the banner at the top is scrolled out of view. */}
+        {problem ? <ErrorBanner message={problem} testID="spay-problem-bottom" /> : null}
         <View style={s.row}>
           <Button title="Submit for approval" onPress={() => void save(true)} loading={busy === 'submit'} testID="spay-submit" />
           <Button title="Save draft" variant="outline" onPress={() => void save(false)} loading={busy === 'save'} testID="spay-save" />
