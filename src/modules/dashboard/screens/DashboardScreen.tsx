@@ -11,7 +11,7 @@ import { hm, type Today } from '../../attendance/types';
 import type { RootStackParamList } from '../../../navigation/types';
 import { routeForLink } from '../../../navigation/routeForLink';
 import { useAuth } from '../../../shared/store/useAuthStore';
-import { can, PERMS } from '../../../shared/permissions';
+import { can, canSeeApprovals, PERMS } from '../../../shared/permissions';
 import { lit, Backdrop } from '../../../shared/ui/Glass';
 import { Icon, type IconName } from '../../../shared/ui/Icon';
 import { formatShortMoney as short } from '../../../shared/format';
@@ -286,7 +286,7 @@ function quickTiles(navigation: Nav, user: ReturnType<typeof useAuth>['user'], s
   return [
     { show: true, title: 'Projects', body: 'Sites, work orders (BOQ) and teams', icon: 'folder', tint: glass.indigo, onPress: go('Projects'), testID: 'tile-projects' },
     { show: true, title: s.unread ? `Notifications (${s.unread})` : 'Notifications', body: s.unread ? `${s.unread} unread` : 'You are up to date', icon: 'bell', tint: glass.violet, onPress: go('Notifications'), testID: 'tile-notifications' },
-    { show: can(user, PERMS.APPROVAL_ACT), title: 'My approvals', body: 'Requests waiting for your decision', icon: 'check', tint: glass.green, onPress: go('Approvals'), testID: 'tile-approvals' },
+    { show: canSeeApprovals(user), title: 'My approvals', body: 'Requests waiting for your decision', icon: 'check', tint: glass.green, onPress: go('Approvals'), testID: 'tile-approvals' },
     {
       show: site,
       title: toReceive?.length ? `Deliveries to check in (${toReceive.length})` : 'Deliveries to check in',

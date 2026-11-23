@@ -1,5 +1,5 @@
 import type { User } from '../modules/auth/types';
-import { can, PERMS } from '../shared/permissions';
+import { can, canSeeApprovals, PERMS } from '../shared/permissions';
 import type { RootStackParamList } from './types';
 
 export type RouteTarget = { [K in keyof RootStackParamList]: { name: K; params: RootStackParamList[K] } }[keyof RootStackParamList];
@@ -20,6 +20,7 @@ export function routeForLink(link: string | null | undefined, user: User | null)
   if ((m = l.match(/^\/app\/selections\/([a-f0-9]{24})$/)) && can(user, PERMS.PURCHASE_MANAGE)) return { name: 'SelectionDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/supplier-invoices\/([a-f0-9]{24})$/)) && (can(user, PERMS.PURCHASE_MANAGE) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY))) return { name: 'SupplierInvoiceDetail', params: { id: m[1] } };
   if (l.startsWith('/app/store') && (can(user, PERMS.STORE_MANAGE) || can(user, PERMS.PURCHASE_MANAGE) || can(user, PERMS.PROJECT_MANAGE))) return { name: 'Store', params: undefined };
+  if (/^\/app\/approvals(\/[a-f0-9]{24})?$/.test(l) && canSeeApprovals(user)) return { name: 'Approvals', params: undefined };
   if (l === '/app/subcontract') return { name: 'Subcontract', params: undefined };
   if (l === '/app/commitments') return { name: 'Commitments', params: undefined };
   if (l === '/app/procurement' && can(user, PERMS.PURCHASE_MANAGE)) return { name: 'Procurement', params: undefined };

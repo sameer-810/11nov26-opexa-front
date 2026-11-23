@@ -19,6 +19,7 @@ import { useTeamMeta } from '../hooks/useTeamMeta';
 import { generateTempPassword } from '../team.validation';
 import { ROLE_HINT, ROLE_LABEL, type TeamMember } from '../types';
 import type { Role } from '../../auth/types';
+import { DepartmentPicker } from '../../department/DepartmentPicker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MemberDetail'>;
 
@@ -32,6 +33,7 @@ export function MemberDetailScreen({ navigation, route }: Props) {
   const [loadError, setLoadError] = useState('');
   const [role, setRole] = useState<Role | ''>('');
   const [perms, setPerms] = useState<string[]>([]);
+  const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [message, setMessage] = useState(tempPassword ? `Member added. Share the temporary password: ${tempPassword}` : '');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<'' | 'save' | 'active' | 'reset'>('');
@@ -43,6 +45,7 @@ export function MemberDetailScreen({ navigation, route }: Props) {
     setMember(m);
     setRole(m.role);
     setPerms(m.permissions);
+    setDepartmentId(m.departmentId ?? null);
   };
 
   const load = useCallback(async () => {
@@ -77,7 +80,8 @@ export function MemberDetailScreen({ navigation, route }: Props) {
 
   const isOwner = member.role === 'owner';
   const isSelf = member.id === me?.id;
-  const changed = role !== member.role || !sameSet(perms, member.permissions);
+  const deptChanged = departmentId !== (member.departmentId ?? null);
+  const changed = deptChanged || role !== member.role || !sameSet(perms, member.permissions);
 
   const onRoleChange = (r: string) => {
     setRole(r as Role);
@@ -85,7 +89,7 @@ export function MemberDetailScreen({ navigation, route }: Props) {
   };
 
   const save = () =>
-    run('save', () => teamApi.update(member.id, { ...(role !== member.role ? { role: role as Role } : {}), permissions: perms }), 'Changes saved');
+    run('save', () => teamApi.update(member.id, { ...(role !== member.role ? { role: role as Role } : {}), ...(isOwner ? {} : { permissions: perms }), ...(deptChanged ? { departmentId } : {}) }), 'Changes saved');
 
   const toggleActive = () =>
     run('active', () => teamApi.update(member.id, { isActive: !member.isActive }), member.isActive ? 'Member deactivated and signed out' : 'Member re-activated').then(() =>
@@ -119,8 +123,12 @@ export function MemberDetailScreen({ navigation, route }: Props) {
       ) : null}
       {error ? <ErrorBanner message={error} testID="member-error" /> : null}
 
+      <DepartmentPicker value={departmentId} onChange={setDepartmentId} testID="member-department" />
       {isOwner ? (
-        <Text style={styles.muted}>The owner always has full access. Their role and access cannot be changed.</Text>
+        <>
+          <Text style={styles.muted}>The owner always has full access. Their role and access cannot be changed.</Text>
+          <Button title="Save department" onPress={save} loading={busy === 'save'} disabled={!deptChanged} testID="save-member-department" />
+        </>
       ) : (
         <>
           <ChoiceChips

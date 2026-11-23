@@ -5,7 +5,7 @@ export type PermissionInfo = { key: string; group: string; label: string };
 export type TeamMeta = { roles: Exclude<Role, 'owner'>[]; roleDefaults: Record<Role, string[]>; permissions: PermissionInfo[] };
 
 export type NewMemberInput = { name: string; email: string; phone: string; role: Exclude<Role, 'owner'> | ''; password: string };
-export type MemberUpdate = Partial<{ name: string; phone: string; role: Role; permissions: string[]; isActive: boolean }>;
+export type MemberUpdate = Partial<{ name: string; phone: string; role: Role; permissions: string[]; isActive: boolean; departmentId: string | null }>;
 
 export const ROLE_LABEL: Record<Role, string> = {
   owner: 'Owner',

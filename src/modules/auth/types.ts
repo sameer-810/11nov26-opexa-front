@@ -10,6 +10,8 @@ export type User = {
   permissions: string[];
   isActive: boolean;
   mustChangePassword: boolean;
+  departmentId?: string | null;
+  emailNotifications?: boolean;
   lastLoginAt?: string | null;
   createdAt?: string | null;
 };

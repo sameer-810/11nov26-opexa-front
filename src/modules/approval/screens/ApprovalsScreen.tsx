@@ -16,6 +16,10 @@ import { approvalApi, type ApprovalAction, type ApprovalDetail, type PendingAppr
 import { decisionsFor, draftsFor, RequisitionLineDecisions, type LineDraft } from '../components/RequisitionLineDecisions';
 import { AttachmentList } from '../../requisition/components/Attachments';
 import { requisitionApi } from '../../requisition/api/requisitionApi';
+import { ChoiceChips } from '../../../shared/ui/ChoiceChips';
+import { useAuth } from '../../../shared/store/useAuthStore';
+import { can, PERMS } from '../../../shared/permissions';
+import { ApprovalHistory } from '../components/ApprovalHistory';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approvals'>;
 const message = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
@@ -33,7 +37,11 @@ function Details({ d }: { d: ApprovalDetail['details'] }) {
   );
 }
 
+type Tab = 'waiting' | 'completed';
+
 export function ApprovalsScreen({ navigation }: Props) {
+  const { user } = useAuth();
+  const [tab, setTab] = useState<Tab>('waiting');
   const [items, setItems] = useState<PendingApproval[] | null>(null);
   const [error, setError] = useState('');
   const [open, setOpen] = useState<ApprovalDetail | null>(null);
@@ -41,7 +49,10 @@ export function ApprovalsScreen({ navigation }: Props) {
   const [comment, setComment] = useState('');
   const [problem, setProblem] = useState('');
   const [acting, setActing] = useState('');
-  const load = useCallback(async () => { setError(''); try { setItems(await approvalApi.pending()); } catch (e) { setError(message(e, 'Could not load approvals')); } }, []);
+  const load = useCallback(async () => {
+    setError(''); setItems(null);
+    try { setItems(await (tab === 'waiting' ? approvalApi.pending() : approvalApi.completed())); } catch (e) { setError(message(e, 'Could not load approvals')); }
+  }, [tab]);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   const expand = async (id: string) => {
@@ -61,17 +72,29 @@ export function ApprovalsScreen({ navigation }: Props) {
   };
 
   return (
-    <AppScreen title="My approvals" onBack={() => navigation.navigate('Dashboard')} testID="approvals-screen">
+    <AppScreen
+      title="My approvals"
+      onBack={() => navigation.navigate('Dashboard')}
+      right={
+        <View style={styles.row}>
+          <Button title="Delegate" variant="ghost" onPress={() => navigation.navigate('Delegations')} testID="open-delegations" />
+          {can(user, PERMS.APPROVAL_MANAGE) ? <Button title="Settings" variant="ghost" onPress={() => navigation.navigate('ApprovalSettings')} testID="open-approval-settings" /> : null}
+        </View>
+      }
+      testID="approvals-screen"
+    >
+      <ChoiceChips label="Show" value={tab} onChange={(v) => { setOpen(null); setTab(v as Tab); }} options={[{ value: 'waiting', label: 'Waiting for me' }, { value: 'completed', label: 'Completed by me' }]} testID="approvals-tab" />
       {error ? <ErrorState message={error} onRetry={load} /> : null}
       {!items && !error ? <ActivityIndicator /> : null}
-      {items?.length === 0 ? <EmptyState title="No approvals waiting" /> : null}
+      {items?.length === 0 ? <EmptyState title={tab === 'waiting' ? 'No approvals waiting' : 'Nothing decided by you yet'} /> : null}
       {problem ? <ErrorBanner message={problem} testID="approval-problem" /> : null}
       <View style={styles.list}>
         {items?.map((item) => (
           <View key={item.id} style={styles.card}>
             <Text style={styles.title}>{item.transactionNumber}</Text>
-            <Text style={[styles.text, styles.cap]}>{item.transactionType.replace(/_/g, ' ')} · Level {item.currentSequence} · {formatMoney(item.amount)}</Text>
-            {open?.id === item.id ? (
+            <Text style={[styles.text, styles.cap]}>{item.transactionType.replace(/_/g, ' ')} · {tab === 'waiting' ? `Level ${item.currentSequence}` : item.status.replace(/_/g, ' ')} · {formatMoney(item.amount)}</Text>
+            <ApprovalHistory items={item.history ?? []} testID={`history-${item.id}`} />
+            {tab === 'completed' ? null : open?.id === item.id ? (
               <View style={styles.gap}>
                 <Details d={open.details} />
                 {open.details?.lines ? <RequisitionLineDecisions lines={open.details.lines} drafts={drafts} onChange={(lineId, d) => setDrafts((x) => ({ ...x, [lineId]: d }))} /> : null}

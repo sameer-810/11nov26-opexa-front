@@ -13,6 +13,7 @@ import { ErrorState } from '../../../shared/ui/ErrorState';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { notificationApi, type AppNotification } from '../api/notificationApi';
+import { EmailPreference } from '../components/EmailPreference';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Notifications'>;
 
@@ -50,6 +51,7 @@ export function NotificationsScreen({ navigation }: Props) {
       right={items?.some((i) => !i.read) ? <Button title="Mark all read" variant="ghost" onPress={readAll} testID="read-all" /> : null}
       testID="notifications-screen"
     >
+      <EmailPreference />
       {error ? <ErrorState message={error} onRetry={load} /> : null}
       {!items && !error ? <ActivityIndicator /> : null}
       {items && items.length === 0 ? <EmptyState title="No notifications yet" /> : null}

@@ -65,7 +65,7 @@ export type NewRequisition = {
 };
 
 export type TimelineEvent = {
-  type: 'created' | 'submitted' | 'approved' | 'rejected' | 'sent_back' | 'resubmitted' | 'cancelled' | 'ordered' | 'dispatched' | 'received' | 'challan' | 'challan_cancelled';
+  type: 'created' | 'submitted' | 'approved' | 'rejected' | 'sent_back' | 'resubmitted' | 'skipped' | 'cancelled' | 'ordered' | 'dispatched' | 'received' | 'challan' | 'challan_cancelled';
   at: string;
   by: { id: string; name: string; role: string } | null;
   comment: string;

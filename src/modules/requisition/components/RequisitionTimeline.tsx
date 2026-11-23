@@ -12,6 +12,7 @@ const LABEL: Record<TimelineEvent['type'], string> = {
   rejected: 'Rejected',
   sent_back: 'Sent back for changes',
   resubmitted: 'Changed and resubmitted',
+  skipped: 'Approval level skipped',
   cancelled: 'Cancelled',
   ordered: 'Purchase order raised',
   dispatched: 'Dispatched by supplier',

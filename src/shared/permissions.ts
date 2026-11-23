@@ -24,4 +24,7 @@ export const PERMS = {
 
 export const can = (user: User | null | undefined, permission: string) => Boolean(user?.permissions?.includes(permission));
 
+// Approvals screen: approvers, approval admins, and purchasers (first level of the default chain, Q10).
+export const canSeeApprovals = (user: User | null | undefined) => [PERMS.APPROVAL_ACT, PERMS.APPROVAL_MANAGE, PERMS.PURCHASE_MANAGE].some((p) => can(user, p));
+
 export const canEditBoq = (user: User | null | undefined) => can(user, PERMS.BOQ_EDIT) || can(user, PERMS.PROJECT_MANAGE);

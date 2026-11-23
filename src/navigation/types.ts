@@ -22,6 +22,8 @@ export type RootStackParamList = {
   ChallanDetail: { id: string; justCreated?: boolean; attachFailed?: number };
   Notifications: undefined;
   Approvals: undefined;
+  ApprovalSettings: undefined;
+  Delegations: undefined;
   Vendors: undefined;
   PurchaseOrders: undefined;
   NewPurchaseOrder: { requisitionId: string };
@@ -78,6 +80,6 @@ export type RootStackParamList = {
 };
 
 // Screens that need a signed-in user.
-export const PROTECTED_ROUTES = ['Dashboard', 'Team', 'AddMember', 'MemberDetail', 'ChangePassword', 'SetPassword', 'Projects', 'NewProject', 'ProjectDetail', 'EditProject', 'ProjectTeam', 'BoqImport', 'Requisitions', 'NewRequisition', 'RequisitionDetail', 'MaterialReceived', 'Challans', 'ChallanDetail', 'Notifications', 'Approvals', 'Vendors', 'PurchaseOrders', 'NewPurchaseOrder', 'PurchaseOrderDetail', 'ProjectLots', 'LotDetail', 'MaterialStatus', 'LocalPurchases', 'Usage', 'Returns', 'ProjectReturns', 'NewReturn', 'ReturnDetail', 'StockCount', 'Overview', 'Outbox', 'Attendance', 'TeamAttendance', 'Payroll', 'PayrollRun', 'PayrollPeople', 'Payslips', 'Invoices', 'InvoiceForm', 'InvoiceDetail', 'Costing', 'ProjectCost', 'Service', 'NewTicket', 'TicketDetail', 'ServiceAssets', 'Sales', 'NewLead', 'LeadDetail', 'QuoteForm', 'Procurement', 'PendingQuantities', 'Rfqs', 'NewRfq', 'RfqDetail', 'RfqComparison', 'SelectionDetail', 'FollowUps', 'SupplierInvoices', 'SupplierInvoiceDetail', 'Store', 'ProjectFinance', 'Subcontract', 'ProjectBilling', 'Commitments', 'ProjectDocuments', 'HandoverAmc', 'Tally'] as const;
+export const PROTECTED_ROUTES = ['Dashboard', 'Team', 'AddMember', 'MemberDetail', 'ChangePassword', 'SetPassword', 'Projects', 'NewProject', 'ProjectDetail', 'EditProject', 'ProjectTeam', 'BoqImport', 'Requisitions', 'NewRequisition', 'RequisitionDetail', 'MaterialReceived', 'Challans', 'ChallanDetail', 'Notifications', 'Approvals', 'ApprovalSettings', 'Delegations', 'Vendors', 'PurchaseOrders', 'NewPurchaseOrder', 'PurchaseOrderDetail', 'ProjectLots', 'LotDetail', 'MaterialStatus', 'LocalPurchases', 'Usage', 'Returns', 'ProjectReturns', 'NewReturn', 'ReturnDetail', 'StockCount', 'Overview', 'Outbox', 'Attendance', 'TeamAttendance', 'Payroll', 'PayrollRun', 'PayrollPeople', 'Payslips', 'Invoices', 'InvoiceForm', 'InvoiceDetail', 'Costing', 'ProjectCost', 'Service', 'NewTicket', 'TicketDetail', 'ServiceAssets', 'Sales', 'NewLead', 'LeadDetail', 'QuoteForm', 'Procurement', 'PendingQuantities', 'Rfqs', 'NewRfq', 'RfqDetail', 'RfqComparison', 'SelectionDetail', 'FollowUps', 'SupplierInvoices', 'SupplierInvoiceDetail', 'Store', 'ProjectFinance', 'Subcontract', 'ProjectBilling', 'Commitments', 'ProjectDocuments', 'HandoverAmc', 'Tally'] as const;
 
 export type NavMode = 'signedOut' | 'setPassword' | 'app';

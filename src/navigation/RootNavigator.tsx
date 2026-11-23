@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { PROTECTED_ROUTES, type NavMode, type RootStackParamList } from './types';
 import { useAuth } from '../shared/store/useAuthStore';
-import { can, PERMS } from '../shared/permissions';
+import { can, canSeeApprovals, PERMS } from '../shared/permissions';
 import { colors } from '../shared/designSystem';
 import { LandingScreen } from '../modules/landing/screens/LandingScreen';
 import { SignInScreen } from '../modules/auth/screens/SignInScreen';
@@ -23,6 +23,8 @@ import { NewRequisitionScreen } from '../modules/requisition/screens/NewRequisit
 import { RequisitionDetailScreen } from '../modules/requisition/screens/RequisitionDetailScreen';
 import { NotificationsScreen } from '../modules/notification/screens/NotificationsScreen';
 import { ApprovalsScreen } from '../modules/approval/screens/ApprovalsScreen';
+import { ApprovalSettingsScreen } from '../modules/approval/screens/ApprovalSettingsScreen';
+import { DelegationsScreen } from '../modules/approval/screens/DelegationsScreen';
 import { VendorsScreen } from '../modules/vendor/screens/VendorsScreen';
 import { PurchaseOrdersScreen } from '../modules/purchaseOrder/screens/PurchaseOrdersScreen';
 import { ProcurementDashboardScreen } from '../modules/procurement/screens/ProcurementDashboardScreen';
@@ -123,7 +125,9 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {CHALLAN_VIEWERS.some((p) => can(user, p)) && <Stack.Screen name="Challans" component={ChallansScreen} options={{ title: 'Opexa - Delivery challans' }} />}
         <Stack.Screen name="ChallanDetail" component={ChallanDetailScreen} options={{ title: 'Opexa - Delivery challan' }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Opexa - Notifications' }} />
-        {can(user, PERMS.APPROVAL_ACT) && <Stack.Screen name="Approvals" component={ApprovalsScreen} options={{ title: 'Opexa - My approvals' }} />}
+        {canSeeApprovals(user) && <Stack.Screen name="Approvals" component={ApprovalsScreen} options={{ title: 'Opexa - My approvals' }} />}
+        {canSeeApprovals(user) && <Stack.Screen name="Delegations" component={DelegationsScreen} options={{ title: 'Opexa - Delegate approvals' }} />}
+        {can(user, PERMS.APPROVAL_MANAGE) && <Stack.Screen name="ApprovalSettings" component={ApprovalSettingsScreen} options={{ title: 'Opexa - Approval settings' }} />}
         <Stack.Screen name="ProjectLots" component={ProjectLotsScreen} options={{ title: 'Opexa - Deliveries' }} />
         <Stack.Screen name="LotDetail" component={LotDetailScreen} options={{ title: 'Opexa - Lot' }} />
         <Stack.Screen name="MaterialStatus" component={MaterialStatusScreen} options={{ title: 'Opexa - Material status' }} />
