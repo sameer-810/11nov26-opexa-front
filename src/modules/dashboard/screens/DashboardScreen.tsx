@@ -22,6 +22,7 @@ import { AreaChart, BarList, Donut, Funnel } from '../components/charts';
 import { PayChip, Panel, StatCard, Tile } from '../components/widgets';
 import { ActivityList, HeroCard, MobileHeader, SectionTitle, type HeroChip } from '../components/mobile';
 import type { AppNotification } from '../../notification/api/notificationApi';
+import { canSeePayables } from '../../supplierPayment/supplierPaymentApi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 type Nav = Props['navigation'];
@@ -329,6 +330,7 @@ function quickTiles(navigation: Nav, user: ReturnType<typeof useAuth>['user'], s
     { show: !buyer && can(user, PERMS.SUPPLIER_INVOICE_VERIFY), title: 'Supplier invoices', body: 'Verify invoices against POs and goods receipts', icon: 'file', tint: glass.violet, onPress: go('SupplierInvoices'), testID: 'tile-supplier-invoices' },
     { show: buyer, title: 'Purchase orders', body: 'POs and deliveries (lots)', icon: 'file', tint: glass.sky, onPress: go('PurchaseOrders'), testID: 'tile-pos' },
     { show: buyer, title: 'Vendors', body: 'Suppliers you buy from', icon: 'store', tint: glass.green, onPress: go('Vendors'), testID: 'tile-vendors' },
+    { show: canSeePayables(user), title: 'Supplier payables', body: 'What we owe suppliers, ageing, payments and ledgers', icon: 'rupee', tint: glass.amber, onPress: go('Payables'), testID: 'tile-payables' },
     {
       show: manager, title: 'Over BOQ', body: s.overBoq === null ? 'PO amendments needed' : `${s.overBoq} request${s.overBoq === 1 ? '' : 's'} beyond the work order`,
       icon: 'alert', tint: glass.amber, onPress: () => navigation.navigate('Requisitions', { overBoq: 'true' }), testID: 'tile-overboq',

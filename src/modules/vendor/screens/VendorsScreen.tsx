@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
@@ -41,7 +41,7 @@ export function VendorsScreen({ navigation }: Props) {
   };
 
   return (
-    <AppScreen title="Vendors" subtitle="Suppliers you raise purchase orders to" onBack={() => navigation.navigate('Dashboard')} right={!adding ? <Button title="Add vendor" onPress={() => setAdding(true)} testID="add-vendor" /> : null} testID="vendors-screen">
+    <AppScreen title="Vendors" subtitle="Suppliers you raise purchase orders to" onBack={() => navigation.navigate('Dashboard')} right={!adding ? <View style={styles.actions}><Button title="Performance" variant="outline" onPress={() => navigation.navigate('VendorRanking')} testID="vendor-ranking" /><Button title="Add vendor" onPress={() => setAdding(true)} testID="add-vendor" /></View> : null} testID="vendors-screen">
       {adding ? <VendorForm onSaved={() => { setAdding(false); load(); }} onCancel={() => setAdding(false)} /> : null}
       <TextField label="Search suppliers" value={search} onChangeText={setSearch} placeholder="Name, GSTIN, city, material or SUP code" testID="vendor-search" />
       {error ? <ErrorState message={error} onRetry={load} /> : null}
@@ -50,11 +50,11 @@ export function VendorsScreen({ navigation }: Props) {
       <View style={styles.list}>
         {vendors?.map((v) => (
           <View key={v.id} style={[styles.card, !v.isActive && styles.off]} testID={`vendor-${v.name}`}>
-            <View style={styles.flex}>
+            <Pressable style={styles.flex} onPress={() => navigation.navigate('VendorDetail', { id: v.id })} accessibilityRole="button" testID={`open-vendor-${v.name}`}>
               <Text style={styles.name}>{v.code ? `${v.code} · ` : ''}{v.name}</Text>
               <Text style={styles.muted}>{[v.contactPerson, v.phone, v.gstin && `GSTIN ${v.gstin}`, v.city, v.category, v.paymentTerms].filter(Boolean).join(' · ') || 'No contact details'}</Text>
               {v.materials.length ? <Text style={styles.muted}>Supplies: {v.materials.join(', ')}</Text> : null}
-            </View>
+            </Pressable>
             {!v.isActive ? <StatusChip label="Inactive" tone="neutral" /> : null}
             <Button title={v.isActive ? 'Deactivate' : 'Activate'} variant="ghost" onPress={() => toggle(v)} />
           </View>
@@ -68,6 +68,7 @@ const styles = StyleSheet.create({
   list: { gap: spacing.sm },
   card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, flexWrap: 'wrap' },
   off: { opacity: 0.6 },
+  actions: { flexDirection: 'row', gap: spacing.sm },
   flex: { flex: 1, minWidth: 200, gap: 2 },
   name: { fontSize: 16, fontWeight: '700', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },

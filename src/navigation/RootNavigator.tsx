@@ -93,6 +93,14 @@ import { ChallansScreen } from '../modules/deliveryChallan/screens/ChallansScree
 import { ChallanDetailScreen } from '../modules/deliveryChallan/screens/ChallanDetailScreen';
 import { CHALLAN_VIEWERS } from './navItems';
 import { RedirectToSignIn } from './RedirectToSignIn';
+import { canPaySuppliers, canSeePayables } from '../modules/supplierPayment/supplierPaymentApi';
+import { PayablesScreen } from '../modules/supplierPayment/screens/PayablesScreen';
+import { SupplierPaymentsScreen } from '../modules/supplierPayment/screens/SupplierPaymentsScreen';
+import { SupplierPaymentFormScreen } from '../modules/supplierPayment/screens/SupplierPaymentFormScreen';
+import { SupplierPaymentDetailScreen } from '../modules/supplierPayment/screens/SupplierPaymentDetailScreen';
+import { SupplierLedgerScreen } from '../modules/supplierPayment/screens/SupplierLedgerScreen';
+import { VendorDetailScreen } from '../modules/vendor/screens/VendorDetailScreen';
+import { VendorRankingScreen } from '../modules/vendor/screens/VendorRankingScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const screenOptions = { headerShown: false, contentStyle: { backgroundColor: colors.surface } };
@@ -175,6 +183,13 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {canSeeActivityLog(user) && <Stack.Screen name="ActivityLog" component={ActivityLogScreen} options={{ title: 'Opexa - Activity log' }} />}
         {can(user, PERMS.PROJECT_MANAGE) && <Stack.Screen name="Overview" component={OverviewScreen} options={{ title: 'Opexa - Business overview' }} />}
         {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="Vendors" component={VendorsScreen} options={{ title: 'Opexa - Vendors' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="VendorDetail" component={VendorDetailScreen} options={{ title: 'Opexa - Supplier' }} />}
+        {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="VendorRanking" component={VendorRankingScreen} options={{ title: 'Opexa - Supplier performance' }} />}
+        {canSeePayables(user) && <Stack.Screen name="Payables" component={PayablesScreen} options={{ title: 'Opexa - Supplier payables' }} />}
+        {canSeePayables(user) && <Stack.Screen name="SupplierPayments" component={SupplierPaymentsScreen} options={{ title: 'Opexa - Supplier payments' }} />}
+        {canSeePayables(user) && <Stack.Screen name="SupplierPaymentDetail" component={SupplierPaymentDetailScreen} options={{ title: 'Opexa - Supplier payment' }} />}
+        {canSeePayables(user) && <Stack.Screen name="SupplierLedger" component={SupplierLedgerScreen} options={{ title: 'Opexa - Supplier ledger' }} />}
+        {canPaySuppliers(user) && <Stack.Screen name="SupplierPaymentForm" component={SupplierPaymentFormScreen} options={{ title: 'Opexa - Supplier payment' }} />}
         {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="PurchaseOrders" component={PurchaseOrdersScreen} options={{ title: 'Opexa - Purchase orders' }} />}
         {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="NewPurchaseOrder" component={NewPurchaseOrderScreen} options={{ title: 'Opexa - New purchase order' }} />}
         {can(user, PERMS.PURCHASE_MANAGE) && <Stack.Screen name="PurchaseOrderDetail" component={PurchaseOrderDetailScreen} options={{ title: 'Opexa - Purchase order' }} />}

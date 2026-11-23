@@ -15,11 +15,14 @@ export type PurchaseOrder = {
   cancelReason: string | null;
   createdAt: string;
   total: number;
+  // Store that holds direct-to-site deliveries on its books (Q14); null = Central Store.
+  custodyWarehouseId?: string | null;
+  custodyWarehouseName?: string;
   lines: PoLine[];
   lots: Lot[];
 };
 
-export type NewPo = { requisitionId: string; vendorId: string; lines: { requisitionLineId: string; qty: number; rate?: number }[]; notes?: string };
+export type NewPo = { requisitionId: string; vendorId: string; lines: { requisitionLineId: string; qty: number; rate?: number }[]; notes?: string; custodyWarehouseId?: string };
 export type NewDispatch = { challanNo: string; dispatchDate: string; vehicleNo?: string; lines: { poLineId: string; qty: number }[] };
 
 export type ProjectLot = { id: string; lotNo: number; challanNo: string; dispatchDate: string; poNumber: string | null; vendorName: string | null; lines: { serialNo: string; description: string; unit: string; qty: number }[] };

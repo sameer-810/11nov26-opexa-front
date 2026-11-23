@@ -21,6 +21,8 @@ import { ChoiceChips } from '../../../shared/ui/ChoiceChips';
 import { useAuth } from '../../../shared/store/useAuthStore';
 import { can, PERMS } from '../../../shared/permissions';
 import { ApprovalHistory } from '../components/ApprovalHistory';
+import { StockAvailabilityPanel } from '../../stockPlan/StockAvailabilityPanel';
+import { SupplierPaymentApprovalDetails } from '../../supplierPayment/components/SupplierPaymentApprovalDetails';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approvals'>;
 const message = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
@@ -36,6 +38,14 @@ function Details({ d }: { d: ApprovalDetail['details'] }) {
       {d.attachments?.length ? null : <Text style={styles.text}>No receipt attached (category needs none)</Text>}
     </View>
   );
+  if (d.kind === 'over_receipt') return (
+    <View style={styles.gap} testID="approval-over-receipt">
+      <Text style={styles.text}>{d.poNumber} · Lot {d.lotNo} · challan {d.challanNo} · Reason: {d.reason}</Text>
+      {d.excess?.map((l, i) => <Text key={i} style={styles.text}>S.No {l.serialNo} {l.description}: {formatNumber(l.qty)} {l.unit} extra (PO {l.ordered === null ? '—' : formatNumber(l.ordered)}) @ {formatMoney(l.rate)}</Text>)}
+      <Text style={styles.text}>Approve to raise the PO and take it into stock; reject to return it to the supplier.</Text>
+    </View>
+  );
+  if (d.kind === 'supplier_payment') return <SupplierPaymentApprovalDetails d={d} />;
   if (d.kind === 'po_revision') return <View style={styles.gap}><Text style={styles.text}>Reason: {d.reason}</Text>{d.changes?.map((c, i) => <Text key={i} style={styles.text}>{c.field}: {String(c.from ?? '—').slice(0, 10)} → {String(c.to ?? '—').slice(0, 10)}</Text>)}</View>;
   return (
     <View style={styles.gap}>
@@ -106,6 +116,7 @@ export function ApprovalsScreen({ navigation }: Props) {
             {tab === 'completed' ? null : open?.id === item.id ? (
               <View style={styles.gap}>
                 <Details d={open.details} />
+                {open.details?.kind === 'requisition' && open.details.requisitionId ? <StockAvailabilityPanel requisitionId={open.details.requisitionId} /> : null}
                 {open.details?.lines ? <RequisitionLineDecisions lines={open.details.lines} drafts={drafts} onChange={(lineId, d) => setDrafts((x) => ({ ...x, [lineId]: d }))} /> : null}
                 {open.details?.requisitionId && open.details.attachments?.length ? <AttachmentList items={open.details.attachments} onError={setProblem} fetchFile={(a) => requisitionApi.downloadAttachment(open.details?.requisitionId ?? '', a)} /> : null}
                 {open.details?.expenseId && open.details.attachments?.length ? <AttachmentList items={open.details.attachments} onError={setProblem} fetchFile={(a) => expenseApi.downloadAttachment(open.details?.expenseId ?? '', a)} /> : null}

@@ -16,6 +16,8 @@ import { vendorApi } from '../../vendor/api/vendorApi';
 import { VendorForm } from '../../vendor/VendorForm';
 import type { Vendor } from '../../vendor/types';
 import { purchaseOrderApi } from '../api/purchaseOrderApi';
+import { inventoryApi } from '../../inventory/api/inventoryApi';
+import type { Warehouse } from '../../inventory/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NewPurchaseOrder'>;
 
@@ -28,6 +30,8 @@ export function NewPurchaseOrderScreen({ navigation, route }: Props) {
   const [qtys, setQtys] = useState<Record<string, string>>({});
   const [rates, setRates] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState('');
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [custodyId, setCustodyId] = useState('');
   const [error, setError] = useState('');
   const [lineErrors, setLineErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -41,6 +45,8 @@ export function NewPurchaseOrderScreen({ navigation, route }: Props) {
         setQtys(Object.fromEntries(r.lines.filter((l) => (l.toOrder ?? 0) > 0).map((l) => [l.id, String(l.toOrder)])));
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load'));
+    // Custody store for direct-to-site deliveries (Q14); without store access the PO keeps the Central Store.
+    inventoryApi.warehouses().then((w) => setWarehouses(w.filter((x) => x.isActive))).catch(() => setWarehouses([]));
   }, [requisitionId]);
 
   const back = () => navigation.navigate('RequisitionDetail', { id: requisitionId });
@@ -67,6 +73,7 @@ export function NewPurchaseOrderScreen({ navigation, route }: Props) {
         vendorId,
         lines: chosen.map((x) => ({ requisitionLineId: x.l.id, qty: x.qty, ...(x.rate !== null ? { rate: x.rate } : {}) })),
         notes: notes.trim() || undefined,
+        ...(custodyId ? { custodyWarehouseId: custodyId } : {}),
       });
       navigation.replace('PurchaseOrderDetail', { id: po.id });
     } catch (e) {
@@ -113,6 +120,15 @@ export function NewPurchaseOrderScreen({ navigation, route }: Props) {
           </View>
         </View>
       ))}
+      {warehouses.length > 1 ? (
+        <ChoiceChips
+          label="Custody store for site deliveries"
+          testID="po-custody"
+          value={custodyId || warehouses.find((w) => w.isCentral)?.id || ''}
+          onChange={(v) => setCustodyId(warehouses.find((w) => w.id === v)?.isCentral ? '' : v)}
+          options={warehouses.map((w) => ({ value: w.id, label: w.name, hint: w.isCentral ? 'default' : undefined }))}
+        />
+      ) : null}
       <TextField label="Notes for the vendor (optional)" value={notes} onChangeText={setNotes} multiline />
       {total > 0 ? <Text style={styles.total}>Total at entered rates: {formatMoney(total)}</Text> : null}
       {error ? <ErrorBanner message={error} testID="po-error" /> : null}

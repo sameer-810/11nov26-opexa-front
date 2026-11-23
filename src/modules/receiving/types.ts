@@ -3,15 +3,24 @@ export type LotStatus = 'in-transit' | 'received' | 'received-short';
 export type LotLine = {
   id: string; serialNo: string; description: string; unit: string; qty: number;
   qtyReceived: number | null; qtyDamaged: number; qtyShort: number | null; remark: string;
+  qtyOverReceived?: number; // extra approved through an over-receipt (included in qtyReceived)
+};
+
+// Quantity beyond the lot / PO held for approval (Q15).
+export type OverReceipt = {
+  id: string; number: string; status: 'pending_approval' | 'approved' | 'rejected'; disposition: 'stocked' | 'return_to_supplier' | null;
+  reason: string; lines: { lotLineId: string; serialNo: string; description: string; unit: string; qty: number }[];
+  poAmendments: { poLineId: string; oldQty: number; newQty: number }[];
 };
 
 export type Lot = {
   id: string; lotNo: number; challanNo: string; dispatchDate: string; vehicleNo: string | null;
   poNumber: string | null; vendorName: string | null; status: LotStatus; daysInTransit: number | null;
   receivedAt: string | null; receivedBy: { id: string; name: string } | null; receiptNotes: string; lines: LotLine[];
+  overReceipts?: OverReceipt[];
 };
 
-export type ReceiveInput = { receivedAt?: string; notes?: string; lines: { lineId: string; qtyReceived: number; qtyDamaged?: number; remark?: string }[] };
+export type ReceiveInput = { receivedAt?: string; notes?: string; overReceiptReason?: string; lines: { lineId: string; qtyReceived: number; qtyDamaged?: number; remark?: string }[] };
 
 export type LocalPurchase = {
   id: string; number: string; workOrderItemId: string; serialNo: string; description: string; unit: string;

@@ -105,6 +105,7 @@ export function PurchaseOrderDetailScreen({ navigation, route }: Props) {
     >
       {message ? <View style={styles.ok} testID="po-message"><Text style={styles.okText}>{message}</Text></View> : null}
       {po.status === 'cancelled' ? <Text style={styles.cancelled}>Cancelled: {po.cancelReason}</Text> : null}
+      {po.custodyWarehouseName ? <Text style={styles.muted} testID="po-custody">Custody store for site deliveries: {po.custodyWarehouseName}</Text> : null}
       <ScrollView horizontal>
         <View style={styles.table}>
           <View style={[styles.tr, styles.head]}>

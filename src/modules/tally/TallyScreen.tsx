@@ -15,15 +15,18 @@ import { TextField } from '../../shared/ui/TextField';
 import { s, useAction, useData } from '../inventory/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Tally'>;
-type Reversal = { id: string; number: string; amount: number; paidDate: string | null; reason: string };
+type Reversal = { id: string; number: string; amount: number; paidDate: string | null; reason: string; path: 'expense-reversals' | 'supplier-payment-reversals' };
 type Exp = { id: string; kind: string; from: string; to: string; vouchers: number; total: number; status: string; reexportReason: string; confirmation: { importedCount: number } | null; createdAt: string };
 
 // Sales, purchase and receipt vouchers for Tally; each document is exported once; the import is reconciled.
 export function TallyScreen({ navigation }: Props) {
   const fetcher = useCallback(() => api<Exp[]>('/tally/exports'), []);
   const { data, error, reload } = useData(fetcher);
-  // Paid expense vouchers voided after export: the accountant reverses them in Tally, then marks them done.
-  const reversalFetcher = useCallback(() => api<Reversal[]>('/tally/expense-reversals'), []);
+  // Paid expense vouchers voided (and supplier payments cancelled) after export: the accountant reverses them in Tally, then marks them done.
+  const reversalFetcher = useCallback(async () => {
+    const lists = await Promise.all((['expense-reversals', 'supplier-payment-reversals'] as const).map(async (path) => (await api<Omit<Reversal, 'path'>[]>(`/tally/${path}`)).map((r) => ({ ...r, path }))));
+    return lists.flat();
+  }, []);
   const reversals = useData(reversalFetcher);
   const { busy, problem, run } = useAction(() => { void reload(); void reversals.reload(); });
   const [kind, setKind] = useState('sales');
@@ -37,7 +40,7 @@ export function TallyScreen({ navigation }: Props) {
     <AppScreen title="Tally export" subtitle="Vouchers are checked to balance before export; each document goes to Tally once" onBack={() => navigation.navigate('Dashboard')} testID="tally-screen">
       {problem ? <ErrorBanner message={problem} testID="tally-problem" /> : null}
       <View style={s.form}>
-        <ChoiceChips label="Vouchers" options={[{ value: 'sales', label: 'Sales (client invoices)' }, { value: 'purchase', label: 'Purchase (supplier invoices)' }, { value: 'receipt', label: 'Receipts' }, { value: 'expense', label: 'Payments (paid expenses)' }]} value={kind} onChange={setKind} testID="tally-kind" />
+        <ChoiceChips label="Vouchers" options={[{ value: 'sales', label: 'Sales (client invoices)' }, { value: 'purchase', label: 'Purchase (supplier invoices)' }, { value: 'receipt', label: 'Receipts' }, { value: 'expense', label: 'Payments (paid expenses)' }, { value: 'supplier_payment', label: 'Payments (supplier payments)' }]} value={kind} onChange={setKind} testID="tally-kind" />
         <View style={s.row}>
           <View style={s.cell}><TextField label="From (YYYY-MM-DD)" value={from} onChangeText={setFrom} /></View>
           <View style={s.cell}><TextField label="To (YYYY-MM-DD)" value={to} onChangeText={setTo} /></View>
@@ -47,11 +50,11 @@ export function TallyScreen({ navigation }: Props) {
       </View>
       {reversals.data?.length ? (
         <View style={s.card} testID="tally-reversals">
-          <Text style={s.danger}>Voided after export: reverse these in Tally (Opexa does not delete anything there)</Text>
+          <Text style={s.danger}>Voided or cancelled after export: reverse these in Tally (Opexa does not delete anything there)</Text>
           {reversals.data.map((r) => (
             <View key={r.id} style={s.row} testID={`tally-reversal-${r.number}`}>
               <Text style={s.muted}>{r.number} · {formatMoney(r.amount)} · paid {formatDate(r.paidDate)} · {r.reason}</Text>
-              <Button title="Reversed in Tally" variant="ghost" onPress={() => run(`rev-${r.id}`, () => api(`/tally/expense-reversals/${r.id}/done`, { method: 'POST' }))} loading={busy === `rev-${r.id}`} />
+              <Button title="Reversed in Tally" variant="ghost" onPress={() => run(`rev-${r.id}`, () => api(`/tally/${r.path}/${r.id}/done`, { method: 'POST' }))} loading={busy === `rev-${r.id}`} />
             </View>
           ))}
         </View>

@@ -35,5 +35,6 @@ export const s = StyleSheet.create({
   warn: { fontSize: 13, color: '#B45309', fontWeight: '600' },
   danger: { fontSize: 13, color: colors.danger, fontWeight: '600' },
   cell: { flexGrow: 1, flexBasis: 160 },
+  self: { alignSelf: 'flex-start' },
   form: { borderWidth: 1, borderColor: colors.primary, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm, backgroundColor: '#F8FAFF' },
 });

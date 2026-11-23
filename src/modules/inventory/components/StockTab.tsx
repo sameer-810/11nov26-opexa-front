@@ -6,12 +6,20 @@ import { ErrorState } from '../../../shared/ui/ErrorState';
 import { StatusChip } from '../../../shared/ui/StatusChip';
 import { inventoryApi } from '../api/inventoryApi';
 import { s, useData } from '../ui';
+import { Button } from '../../../shared/ui/Button';
+import { useAuth } from '../../../shared/store/useAuthStore';
+import { can, PERMS } from '../../../shared/permissions';
+import { DamagedStockActions } from './DamagedStockActions';
+import { ReceiptSettings } from './ReceiptSettings';
 
 const VIEWS = [{ value: '', label: 'All locations' }, { value: 'warehouse', label: 'Warehouses' }, { value: 'site', label: 'Sites' }, { value: 'transit', label: 'In transit' }, { value: 'low', label: 'Low stock' }];
 
 // Stock by warehouse / site / in transit, with reserved and available quantity and value.
 export function StockTab() {
   const [view, setView] = useState('');
+  const [acting, setActing] = useState('');
+  const { user } = useAuth();
+  const storeStaff = can(user, PERMS.STORE_MANAGE) || can(user, PERMS.SETTINGS_MANAGE);
   const fetcher = useCallback(async () => {
     const [rows, val, rec] = await Promise.all([inventoryApi.stock(view === 'low' ? { low: 'true' } : { kind: view || undefined }), inventoryApi.valuation(), inventoryApi.reconciliation().catch(() => null)]);
     return { rows, val, rec };
@@ -21,6 +29,7 @@ export function StockTab() {
     <View style={s.list} testID="stock-tab">
       <ChoiceChips label="Show" options={VIEWS} value={view} onChange={setView} testID="stock-view" />
       {error ? <ErrorState message={error} onRetry={reload} /> : null}
+      {can(user, PERMS.SETTINGS_MANAGE) ? <ReceiptSettings /> : null}
       {data ? (
         <>
           <View style={s.row}>
@@ -28,12 +37,19 @@ export function StockTab() {
             {data.rec ? <StatusChip label={data.rec.ok ? 'Ledger reconciled' : `${data.rec.mismatches.length} ledger mismatch(es)`} tone={data.rec.ok ? 'success' : 'danger'} /> : null}
           </View>
           {data.rows.length === 0 ? <Text style={s.muted}>Nothing in stock here.</Text> : null}
-          {data.rows.map((r) => (
-            <View key={`${r.materialId}-${r.location.kind}-${r.location.id}`} style={s.card} testID={`stock-${r.code}-${r.location.kind}`}>
-              <View style={s.row}><Text style={s.title}>{r.name}</Text>{r.low ? <StatusChip label={`Below minimum ${formatNumber(r.minStock)}`} tone="danger" /> : null}</View>
-              <Text style={s.muted}>{r.location.name} · on hand {formatNumber(r.onHand)} {r.unit}{r.reserved ? ` · reserved ${formatNumber(r.reserved)} · available ${formatNumber(r.available)}` : ''} · {formatMoney(r.value)} (avg {formatMoney(r.avgRate)})</Text>
-            </View>
-          ))}
+          {data.rows.map((r) => {
+            const key = `${r.materialId}-${r.location.kind}-${r.location.id}`;
+            return (
+              <View key={key} style={s.card} testID={`stock-${r.code}-${r.location.kind}`}>
+                <View style={s.row}><Text style={s.title}>{r.name}</Text>{r.low ? <StatusChip label={`Below minimum ${formatNumber(r.minStock)}`} tone="danger" /> : null}</View>
+                <Text style={s.muted}>{r.location.name} · on hand {formatNumber(r.onHand)} {r.unit}{r.reserved ? ` · reserved ${formatNumber(r.reserved)} · available ${formatNumber(r.available)}` : ''}{r.damaged ? ` · damaged ${formatNumber(r.damaged)}` : ''} · {formatMoney(r.value)} (avg {formatMoney(r.avgRate)})</Text>
+                {storeStaff && r.location.kind === 'warehouse' ? (
+                  <Button title={acting === key ? 'Close' : 'Damaged stock'} variant="ghost" onPress={() => setActing(acting === key ? '' : key)} testID={`damaged-open-${r.code}`} style={s.self} />
+                ) : null}
+                {acting === key ? <DamagedStockActions row={r} onDone={reload} /> : null}
+              </View>
+            );
+          })}
         </>
       ) : null}
     </View>

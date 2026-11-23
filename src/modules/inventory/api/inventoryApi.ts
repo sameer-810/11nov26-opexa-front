@@ -1,5 +1,5 @@
 import { api } from '../../../shared/api/apiClient';
-import type { Adjustment, Issue, LedgerRow, Material, MaterialInput, StockRow, Tool, Transfer, Warehouse } from '../types';
+import type { Adjustment, DamagedInput, Issue, LedgerRow, Material, MaterialInput, StockRow, Tool, Transfer, Warehouse } from '../types';
 
 const qs = (q: Record<string, string | undefined>) => {
   const p = new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][]).toString();
@@ -32,6 +32,11 @@ export const inventoryApi = {
   adjustments: (q: { status?: string } = {}) => api<Adjustment[]>(`/inventory/adjustments${qs(q)}`),
   createAdjustment: (body: { location: Loc; reason: string; lines: (Omit<LineIn, 'qty'> & { physicalQty: number })[] }) => api<Adjustment>('/inventory/adjustments', { method: 'POST', body }),
   decideAdjustment: (id: string, decision: 'approved' | 'rejected', note?: string) => api<Adjustment>(`/inventory/adjustments/${id}/decision`, { method: 'POST', body: { decision, note } }),
+  markDamaged: (body: DamagedInput) => api<{ id: string; number: string }>('/inventory/damaged/mark', { method: 'POST', body }),
+  writeOffDamaged: (body: DamagedInput) => api<{ id: string; number: string; status: string }>('/inventory/damaged/write-off', { method: 'POST', body }),
+  returnDamaged: (body: DamagedInput) => api<{ id: string; number: string }>('/inventory/damaged/return', { method: 'POST', body }),
+  settings: () => api<{ overReceiptTolerancePercent: number }>('/inventory/settings'),
+  saveSettings: (body: { overReceiptTolerancePercent: number }) => api<{ overReceiptTolerancePercent: number }>('/inventory/settings', { method: 'PUT', body }),
   tools: (q: { status?: string; q?: string } = {}) => api<Tool[]>(`/inventory/tools${qs(q)}`),
   createTool: (body: { name: string; serialNo?: string; category?: string }) => api<Tool>('/inventory/tools', { method: 'POST', body }),
   issueTool: (id: string, body: { holder: { kind: 'employee' | 'subcontractor' | 'other'; name: string }; projectId?: string; expectedReturn?: string }) => api<Tool>(`/inventory/tools/${id}/issue`, { method: 'POST', body }),

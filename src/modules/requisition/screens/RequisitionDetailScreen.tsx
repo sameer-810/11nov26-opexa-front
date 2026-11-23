@@ -21,6 +21,7 @@ import { RequisitionTimeline } from '../components/RequisitionTimeline';
 import { challanApi } from '../../deliveryChallan/api/challanApi';
 import { ChallanList } from '../../deliveryChallan/components/ChallanList';
 import type { DeliveryChallan } from '../../deliveryChallan/types';
+import { StockAvailabilityPanel } from '../../stockPlan/StockAvailabilityPanel';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RequisitionDetail'>;
 
@@ -54,6 +55,8 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
   const canCancel = req.status === 'open' && (req.raisedBy.id === user?.id || can(user, PERMS.PROJECT_MANAGE));
   // Site / store staff record material received on an approved request (Q7).
   const canReceive = req.status === 'open' && [PERMS.PROJECT_MANAGE, PERMS.STORE_MANAGE, PERMS.RECEIVING_RECORD].some((p) => can(user, p)) && req.lines.some((l) => (l.receivable ?? 0) > 0);
+  // Purchaser, store, managers and approvers see the stock position (Q13); the purchaser / store act on it.
+  const seesStock = !['cancelled', 'rejected'].includes(req.status) && [PERMS.PURCHASE_MANAGE, PERMS.STORE_MANAGE, PERMS.PROJECT_MANAGE, PERMS.APPROVAL_ACT].some((p) => can(user, p));
   const canResubmit = req.status === 'sent_back' && req.raisedBy.id === user?.id && can(user, PERMS.REQUISITION_CREATE);
 
   const doCancel = async () => {
@@ -141,6 +144,7 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
           ))}
         </View>
       </ScrollView>
+      {seesStock ? <StockAvailabilityPanel requisitionId={req.id} onChanged={load} /> : null}
       {can(user, PERMS.PURCHASE_MANAGE) && req.status === 'open' && req.lines.some((l) => (l.toOrder ?? 0) > 0) ? (
         <View style={styles.actions}>
           <Button title="Request quotations (RFQ)" onPress={() => navigation.navigate('NewRfq', { requisitionId: req.id })} testID="create-rfq" />

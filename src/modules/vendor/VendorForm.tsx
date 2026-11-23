@@ -8,7 +8,7 @@ import { colors, radius, spacing } from '../../shared/designSystem';
 import { vendorApi } from './api/vendorApi';
 import type { Vendor, VendorInput } from './types';
 
-const FIELDS = ['name', 'contactPerson', 'phone', 'email', 'gstin', 'pan', 'address', 'city', 'state', 'paymentTerms', 'category', 'materials', 'accountName', 'bankName', 'ifsc', 'accountNumber'] as const;
+const FIELDS = ['name', 'contactPerson', 'phone', 'email', 'gstin', 'pan', 'address', 'city', 'state', 'paymentTerms', 'paymentTermsDays', 'category', 'materials', 'accountName', 'bankName', 'ifsc', 'accountNumber'] as const;
 type Key = (typeof FIELDS)[number];
 type Form = Record<Key, string>;
 const BANK: Key[] = ['accountName', 'bankName', 'ifsc', 'accountNumber'];
@@ -28,6 +28,8 @@ export function VendorForm({ onSaved, onCancel }: { onSaved: (v: Vendor) => void
 
   const save = async () => {
     if (form.name.trim().length < 2) return setErrors({ name: 'Enter the vendor name' });
+    const days = form.paymentTermsDays.trim() ? Number(form.paymentTermsDays.trim()) : null;
+    if (days !== null && !(Number.isInteger(days) && days >= 0 && days <= 365)) return setErrors({ paymentTermsDays: 'Whole days, 0 to 365' });
     setBusy(true);
     setError('');
     try {
@@ -35,7 +37,7 @@ export function VendorForm({ onSaved, onCancel }: { onSaved: (v: Vendor) => void
       const bank = Object.fromEntries(BANK.map((k) => [k, t(k)]).filter(([, v]) => v));
       const body: VendorInput = {
         name: form.name.trim(), contactPerson: t('contactPerson'), phone: t('phone'), email: t('email'), gstin: t('gstin'), pan: t('pan'), address: t('address'),
-        city: t('city'), state: t('state'), paymentTerms: t('paymentTerms'), category: t('category'),
+        city: t('city'), state: t('state'), paymentTerms: t('paymentTerms'), paymentTermsDays: days, category: t('category'),
         materials: form.materials.split(',').map((m) => m.trim()).filter(Boolean),
         ...(Object.keys(bank).length ? { bank } : {}),
       };
@@ -59,7 +61,7 @@ export function VendorForm({ onSaved, onCancel }: { onSaved: (v: Vendor) => void
       <View style={styles.row}>{field('phone', 'Mobile', { keyboardType: 'phone-pad' })}{field('email', 'E-mail', { keyboardType: 'email-address', autoCapitalize: 'none' })}</View>
       <View style={styles.row}>{field('gstin', 'GSTIN', { autoCapitalize: 'characters' })}{field('pan', 'PAN', { autoCapitalize: 'characters' })}</View>
       <View style={styles.row}>{field('address', 'Office address')}{field('city', 'City')}{field('state', 'State')}</View>
-      <View style={styles.row}>{field('category', 'Category (e.g. Copper, Ducting)')}{field('materials', 'Materials supplied (comma separated)')}{field('paymentTerms', 'Payment terms')}</View>
+      <View style={styles.row}>{field('category', 'Category (e.g. Copper, Ducting)')}{field('materials', 'Materials supplied (comma separated)')}{field('paymentTerms', 'Payment terms')}{field('paymentTermsDays', 'Credit days (default 30)', { keyboardType: 'number-pad' })}</View>
       <Text style={styles.sub}>Bank details (visible in full only to finance)</Text>
       <View style={styles.row}>{field('accountName', 'Account name')}{field('bankName', 'Bank')}{field('ifsc', 'IFSC', { autoCapitalize: 'characters' })}{field('accountNumber', 'Account number', { keyboardType: 'number-pad' })}</View>
       <View style={styles.row}>

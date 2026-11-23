@@ -28,6 +28,7 @@ export function LotDetailScreen({ navigation, route }: Props) {
   const [canRecord, setCanRecord] = useState(false);
   const [rows, setRows] = useState<Record<string, Row>>({});
   const [notes, setNotes] = useState('');
+  const [overReason, setOverReason] = useState('');
   const [error, setError] = useState('');
   const [lineErrors, setLineErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -58,7 +59,8 @@ export function LotDetailScreen({ navigation, route }: Props) {
       const good = parseNumber(rows[x.id]?.good ?? '');
       const damaged = parseNumber(rows[x.id]?.damaged ?? '') ?? 0;
       if (good === null || good < 0) errs[x.id] = 'Enter the good quantity (0 if nothing came)';
-      else if (good + damaged > x.qty) errs[x.id] = `Only ${formatNumber(x.qty)} ${x.unit} came in this lot`;
+      // More than the lot: allowed within the company tolerance, beyond it only with a reason (sent for approval).
+      else if (good + damaged > x.qty && overReason.trim().length < 3) errs[x.id] = `Only ${formatNumber(x.qty)} ${x.unit} came in this lot. Give a reason below to send the extra for approval.`;
       return { lineId: x.id, qtyReceived: good ?? 0, qtyDamaged: damaged, remark: rows[x.id]?.remark.trim() || undefined };
     });
     if (Object.keys(errs).length) {
@@ -67,7 +69,7 @@ export function LotDetailScreen({ navigation, route }: Props) {
     }
     setBusy(true);
     try {
-      const r = await submitOrQueue<Lot>(`Check in Lot ${lot.lotNo}`, 'POST', `/projects/${projectId}/lots/${lotId}/receive`, { notes: notes.trim() || undefined, lines });
+      const r = await submitOrQueue<Lot>(`Check in Lot ${lot.lotNo}`, 'POST', `/projects/${projectId}/lots/${lotId}/receive`, { notes: notes.trim() || undefined, overReceiptReason: overReason.trim() || undefined, lines });
       if (r.queued) {
         setCanRecord(false);
         setMessage('No network. Saved on this phone - it will be sent automatically when you are back online.');
@@ -76,7 +78,7 @@ export function LotDetailScreen({ navigation, route }: Props) {
       }
       const done = r.data;
       setLot(done);
-      setMessage(done.status === 'received' ? 'Checked in. Everything arrived.' : 'Checked in. The buyer has been told what was short or damaged.');
+      setMessage(done.overReceipts?.some((o) => o.status === 'pending_approval') ? 'Checked in. The extra quantity is held for approval.' : done.status === 'received' ? 'Checked in. Everything arrived.' : 'Checked in. The buyer has been told what was short or damaged.');
     } catch (e) {
       if (e instanceof ApiError) {
         setLineErrors(Object.fromEntries(e.details.map((d) => [d.field, d.message])));
@@ -131,9 +133,20 @@ export function LotDetailScreen({ navigation, route }: Props) {
         </View>
       ))}
 
+      {lot.overReceipts?.map((o) => (
+        <View key={o.id} style={styles.item} testID={`over-receipt-${o.number}`}>
+          <Text style={styles.itemTitle}>{o.number}: extra quantity {o.status === 'pending_approval' ? 'held for approval' : o.status === 'approved' ? 'approved and taken into stock' : 'rejected: return it to the supplier'}</Text>
+          <Text style={styles.muted}>{o.lines.map((l) => `S.No ${l.serialNo}: ${formatNumber(l.qty)} ${l.unit}`).join('; ')} · {o.reason}</Text>
+          {o.poAmendments.length ? <Text style={styles.muted}>PO raised: {o.poAmendments.map((a) => `${formatNumber(a.oldQty)} → ${formatNumber(a.newQty)}`).join(', ')}</Text> : null}
+        </View>
+      ))}
+
       {open && canRecord ? (
         <>
           <TextField label="Notes (optional)" value={notes} onChangeText={setNotes} testID="rcv-notes" />
+          {lot.lines.some((x) => (parseNumber(rows[x.id]?.good ?? '') ?? 0) + (parseNumber(rows[x.id]?.damaged ?? '') ?? 0) > x.qty) ? (
+            <TextField label="Reason for the extra quantity (sent for over-receipt approval)" value={overReason} onChangeText={setOverReason} testID="rcv-over-reason" />
+          ) : null}
           {error ? <ErrorBanner message={error} testID="rcv-error" /> : null}
           <Button title="Check in this lot" onPress={submit} loading={busy} testID="rcv-submit" style={styles.self} />
         </>

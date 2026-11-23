@@ -27,7 +27,7 @@ export type ActivityFilters = { projectId?: string; entityType?: string; userId?
 export const ENTITY_LABEL: Record<string, string> = {
   project: 'Project', boq: 'BOQ', boq_item: 'BOQ item', boq_revision: 'BOQ revision', milestone: 'Milestone', requisition: 'Material request',
   purchase_order: 'Purchase order', rfq: 'RFQ', selection: 'Supplier selection', quote: 'Quotation', supplier_invoice: 'Supplier invoice', vendor: 'Vendor',
-  delivery_challan: 'Delivery challan', stock_transfer: 'Stock transfer', stock_adjustment: 'Stock adjustment', material_return: 'Return',
+  delivery_challan: 'Delivery challan', stock_transfer: 'Stock transfer', stock_adjustment: 'Stock adjustment', material_return: 'Return', over_receipt: 'Over-receipt', stock_damage: 'Damaged stock',
   invoice: 'Invoice', expense: 'Expense', subcontract_certificate: 'Subcontract certificate', amc: 'AMC', asset: 'Equipment', user: 'Team member',
   attendance: 'Attendance', transfer: 'Stock transfer', additional_work: 'Additional work', work_certificate: 'Subcontract certificate', work_order: 'Subcontract work order',
 };
