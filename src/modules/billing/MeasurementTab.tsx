@@ -1,73 +1,72 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { formatNumber, parseNumber, todayLocal } from '../../shared/format';
+import { parseNumber, todayLocal } from '../../shared/format';
 import { Button } from '../../shared/ui/Button';
 import { ChoiceChips } from '../../shared/ui/ChoiceChips';
 import { ErrorBanner } from '../../shared/ui/Banner';
 import { ErrorState } from '../../shared/ui/ErrorState';
-import { StatusChip } from '../../shared/ui/StatusChip';
 import { TextField } from '../../shared/ui/TextField';
 import { colors } from '../../shared/designSystem';
 import { s, useAction, useData } from '../inventory/ui';
 import { billingApi } from './billingApi';
+import { QuantityLadder } from './components/QuantityLadder';
+import { SheetCard } from './components/SheetCard';
 
-type Row = { description: string; nos: string; length: string; breadth: string; height: string };
-const blank: Row = { description: '', nos: '1', length: '', breadth: '', height: '' };
+type Row = { description: string; nos: string; length: string; breadth: string; height: string; formula: string; deduct: boolean };
+const blank: Row = { description: '', nos: '1', length: '', breadth: '', height: '', formula: '', deduct: false };
+const FIELDS = ['description', 'nos', 'length', 'breadth', 'height', 'formula'] as const;
+const ALL = '';
 
-// Low-side measurement (back) sheets: measure zone-wise, client engineer corrects, approve, then bill.
+// Low-side measurement (back) sheets: measure zone / department / floor wise, correct (history kept), approve, then bill.
 export function MeasurementTab({ projectId, onInvoice }: { projectId: string; onInvoice: (id: string) => void }) {
   const fetcher = useCallback(async () => ({ sheets: await billingApi.sheets(projectId), position: await billingApi.position(projectId) }), [projectId]);
   const { data, error, reload } = useData(fetcher);
-  const { busy, problem, run } = useAction(() => void reload());
+  const { busy, problem, run, setProblem } = useAction(() => void reload());
   const [item, setItem] = useState('');
-  const [zone, setZone] = useState('');
+  const [where, setWhere] = useState({ zone: '', department: '', floor: '' });
   const [rows, setRows] = useState<Row[]>([{ ...blank }]);
-  const [fix, setFix] = useState<Record<string, string>>({});
-  const [engineer, setEngineer] = useState('');
   const [pick, setPick] = useState<string[]>([]);
+  const [filter, setFilter] = useState<{ key: 'zone' | 'department' | 'floor'; value: string }>({ key: 'floor', value: ALL });
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return null;
   const n = (v: string) => parseNumber(v) ?? undefined;
   const create = () => run('sheet', async () => {
-    await billingApi.createSheet(projectId, { workOrderItemId: item, zone, measuredOn: todayLocal(), rows: rows.map((r) => ({ description: r.description, nos: n(r.nos), length: n(r.length), breadth: n(r.breadth), height: n(r.height) })) });
+    await billingApi.createSheet(projectId, { workOrderItemId: item, ...where, measuredOn: todayLocal(), rows: rows.map((r) => ({ description: r.description, nos: n(r.nos), length: n(r.length), breadth: n(r.breadth), height: n(r.height), formula: r.formula, deduct: r.deduct })) });
     setRows([{ ...blank }]);
   });
-  const label = (itemId: string) => data.position.lowSide.find((x) => x.workOrderItemId === itemId);
+  const line = (itemId: string) => data.position.lowSide.find((x) => x.workOrderItemId === itemId);
+  const values = [...new Set(data.sheets.map((sh) => sh[filter.key]).filter(Boolean))];
+  const shown = data.sheets.filter((sh) => filter.value === ALL || sh[filter.key] === filter.value);
+  const setRow = (i: number, patch: Partial<Row>) => setRows(rows.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   return (
     <View style={s.list} testID="measure-tab">
       {problem ? <ErrorBanner message={problem} testID="ms-problem" /> : null}
-      {data.position.lowSide.map((l) => <Text key={l.workOrderItemId} style={s.muted}>S.No {l.serialNo} {l.description}: BOQ {formatNumber(l.boqQty)}{l.variationQty != null ? ` · variation ${formatNumber(l.variationQty)}` : ''} · executed {formatNumber(l.executedQty)} · measured {formatNumber(l.measuredQty)} · approved {formatNumber(l.approvedQty)} · billed {formatNumber(l.billedQty)} {l.unit}</Text>)}
+      {data.position.lowSide.map((l) => <QuantityLadder key={l.workOrderItemId} line={l} />)}
       <View style={s.form}>
         <Text style={s.title}>New measurement sheet</Text>
-        <ChoiceChips label="BOQ item (low-side)" options={data.position.lowSide.map((l) => ({ value: l.workOrderItemId, label: `${l.serialNo} ${l.description.slice(0, 25)}` }))} value={item} onChange={setItem} testID="ms-item" />
-        <TextField label="Zone / floor" value={zone} onChangeText={setZone} testID="ms-zone" />
+        <ChoiceChips label="BOQ item (low-side)" options={data.position.lowSide.map((l) => ({ value: l.workOrderItemId, label: `${l.serialNo} ${l.description.slice(0, 25)} (${l.unit})` }))} value={item} onChange={setItem} testID="ms-item" />
+        <View style={s.row}>
+          {(['zone', 'department', 'floor'] as const).map((k) => <View key={k} style={s.cell}><TextField label={k[0].toUpperCase() + k.slice(1)} value={where[k]} onChangeText={(v) => setWhere({ ...where, [k]: v })} testID={`ms-${k}`} /></View>)}
+        </View>
         {rows.map((r, i) => (
           <View key={`${i}`} style={s.row}>
-            {(['description', 'nos', 'length', 'breadth', 'height'] as const).map((k) => <View key={k} style={s.cell}><TextField label={k} value={r[k]} onChangeText={(v) => setRows(rows.map((x, j) => (j === i ? { ...x, [k]: v } : x)))} keyboardType={k === 'description' ? 'default' : 'decimal-pad'} testID={`ms-${k}-${i}`} /></View>)}
+            {FIELDS.map((k) => <View key={k} style={s.cell}><TextField label={k === 'formula' ? 'working / formula' : k} value={r[k]} onChangeText={(v) => setRow(i, { [k]: v })} keyboardType={k === 'description' || k === 'formula' ? 'default' : 'decimal-pad'} testID={`ms-${k}-${i}`} /></View>)}
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: r.deduct }} onPress={() => setRow(i, { deduct: !r.deduct })} testID={`ms-deduct-${i}`}>
+              <Text style={[s.muted, { color: r.deduct ? colors.danger : colors.textMuted }]}>{r.deduct ? '☑' : '☐'} Deduction</Text>
+            </Pressable>
           </View>
         ))}
-        <View style={s.row}><Button title="Add row" variant="ghost" onPress={() => setRows([...rows, { ...blank }])} /><Button title="Save sheet" onPress={create} loading={busy === 'sheet'} testID="ms-save" /></View>
+        <View style={s.row}><Button title="Add row" variant="ghost" onPress={() => setRows([...rows, { ...blank }])} testID="ms-add-row" /><Button title="Save sheet" onPress={create} loading={busy === 'sheet'} testID="ms-save" /></View>
       </View>
-      {data.sheets.map((sh) => (
-        <View key={sh.id} style={s.card} testID={`sheet-${sh.number}`}>
-          <View style={s.row}>
-            {sh.status === 'approved' && !sh.invoiceId ? <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: pick.includes(sh.id) }} onPress={() => setPick(pick.includes(sh.id) ? pick.filter((x) => x !== sh.id) : [...pick, sh.id])} testID={`ms-pick-${sh.number}`}><Text style={[s.title, { color: colors.primary }]}>{pick.includes(sh.id) ? '☑' : '☐'}</Text></Pressable> : null}
-            <Text style={s.number}>{sh.number}</Text><StatusChip label={sh.invoiceId ? 'billed' : sh.status.replace('_', ' ')} tone={sh.status === 'approved' ? 'success' : 'info'} />
-            <Text style={s.muted}>S.No {label(sh.workOrderItemId)?.serialNo} · {sh.zone} · measured {formatNumber(sh.measuredQty)} → final {formatNumber(sh.finalQty)}{sh.clientEngineer ? ` · verified by ${sh.clientEngineer}` : ''}</Text>
-          </View>
-          {sh.rows.map((r) => (
-            <View key={r.id} style={s.row}>
-              <Text style={[s.muted, s.cell]}>{r.description || 'Row'}: {formatNumber(r.qty)}{r.correctedQty != null ? ` → ${formatNumber(r.correctedQty)} (client)` : ''}</Text>
-              {sh.status === 'submitted' ? <TextField label="Client figure" value={fix[r.id] ?? ''} onChangeText={(v) => setFix((x) => ({ ...x, [r.id]: v }))} keyboardType="decimal-pad" testID={`ms-fix-${r.id}`} /> : null}
-            </View>
-          ))}
-          <View style={s.row}>
-            {sh.status === 'draft' ? <Button title="Send to client" variant="outline" onPress={() => run(`s-${sh.id}`, () => billingApi.sheetAction(projectId, sh.id, { action: 'submit' }))} testID={`ms-submit-${sh.number}`} /> : null}
-            {sh.status === 'submitted' ? <><TextField label="Client engineer" value={engineer} onChangeText={setEngineer} testID="ms-engineer" /><Button title="Record client verification" onPress={() => run(`v-${sh.id}`, () => billingApi.sheetAction(projectId, sh.id, { action: 'client_verify', clientEngineer: engineer, corrections: sh.rows.filter((r) => parseNumber(fix[r.id] ?? '') !== null).map((r) => ({ rowId: r.id, correctedQty: parseNumber(fix[r.id] ?? '') ?? r.qty })) }))} testID={`ms-verify-${sh.number}`} /></> : null}
-            {sh.status === 'client_verified' ? <Button title="Approve" onPress={() => run(`a-${sh.id}`, () => billingApi.sheetAction(projectId, sh.id, { action: 'approve' }))} testID={`ms-approve-${sh.number}`} /> : null}
-          </View>
+      {data.sheets.length ? (
+        <View style={s.row}>
+          <ChoiceChips label="Group by" options={[{ value: 'zone', label: 'Zone' }, { value: 'department', label: 'Department' }, { value: 'floor', label: 'Floor' }]} value={filter.key} onChange={(v) => setFilter({ key: v as typeof filter.key, value: ALL })} testID="ms-group" />
+          <ChoiceChips label="Show" options={[{ value: ALL, label: 'All' }, ...values.map((v) => ({ value: v, label: v }))]} value={filter.value} onChange={(v) => setFilter({ ...filter, value: v })} testID="ms-filter" />
         </View>
+      ) : null}
+      {shown.map((sh) => (
+        <SheetCard key={sh.id} sheet={sh} projectId={projectId} serialNo={line(sh.workOrderItemId)?.serialNo ?? ''} picked={pick.includes(sh.id)} onPick={() => setPick(pick.includes(sh.id) ? pick.filter((x) => x !== sh.id) : [...pick, sh.id])} run={run} busy={busy} onError={setProblem} />
       ))}
       {pick.length ? <Button title={`Invoice ${pick.length} approved sheet(s)`} onPress={() => run('inv', async () => { const x = await billingApi.measurementInvoice(projectId, pick, todayLocal()); setPick([]); onInvoice(x.id); })} loading={busy === 'inv'} testID="ms-invoice" /> : null}
     </View>
