@@ -23,6 +23,7 @@ import { PayChip, Panel, StatCard, Tile } from '../components/widgets';
 import { ActivityList, HeroCard, MobileHeader, SectionTitle, type HeroChip } from '../components/mobile';
 import type { AppNotification } from '../../notification/api/notificationApi';
 import { canSeePayables } from '../../supplierPayment/supplierPaymentApi';
+import { RoleDashboard } from '../components/RoleDashboard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 type Nav = Props['navigation'];
@@ -142,6 +143,8 @@ export function DashboardScreen({ navigation }: Props) {
         )}
 
         {ov ? <ManagerPanels ov={ov} navigation={navigation} invoices={invoices} user={user} /> : null}
+
+        <RoleDashboard onDrill={(t) => { if (navigation.getState()?.routeNames.includes(t.screen as keyof RootStackParamList)) (navigation.navigate as (n: string, p?: object) => void)(t.screen, t.params); }} />
 
         <Text style={styles.h2} accessibilityRole="header">Quick access</Text>
         <View style={styles.row}>

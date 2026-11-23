@@ -3,7 +3,9 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
-import { ApiError } from '../../../shared/api/apiClient';
+import { api, ApiError } from '../../../shared/api/apiClient';
+import { Button } from '../../../shared/ui/Button';
+import { openPrint } from '../../invoice/invoiceApi';
 import { formatMoney } from '../../../shared/format';
 import { AppScreen } from '../../../shared/ui/AppScreen';
 import { ErrorState } from '../../../shared/ui/ErrorState';
@@ -45,6 +47,7 @@ export function MyPayslipsScreen({ navigation }: Props) {
           {row('Other deduction', p.otherDeduction, true)}
           <View style={[styles.line, styles.total]}><Text style={styles.bold}>Net pay</Text><Text style={styles.bold}>{formatMoney(p.net)}</Text></View>
           {p.note ? <Text style={styles.muted}>Note: {p.note}</Text> : null}
+          <Button title="Print / save as PDF" variant="outline" onPress={async () => { try { await openPrint((await api<{ url: string }>(`/payroll/payslips/${p.month}/print-link`)).url); } catch (e) { setError(e instanceof ApiError ? e.message : 'Could not open'); } }} testID={`payslip-print-${p.month}`} />
         </View>
       ))}
     </AppScreen>

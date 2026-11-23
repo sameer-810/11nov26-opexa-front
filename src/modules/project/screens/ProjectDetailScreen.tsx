@@ -114,6 +114,7 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
         <Button title="Deliveries (lots)" variant="outline" onPress={() => navigation.navigate('ProjectLots', { id })} testID="project-lots" />
         {CHALLAN_VIEWERS.some((p) => can(user, p)) ? <Button title="Delivery challans" variant="outline" onPress={() => navigation.navigate('Challans', { projectId: id })} testID="project-challans" /> : null}
         <Button title="Material status" variant="outline" onPress={() => navigation.navigate('MaterialStatus', { id })} testID="project-material" />
+        <Button title="Quantities" variant="outline" onPress={() => navigation.navigate('ProjectQuantities', { id })} testID="project-quantities" />
         <Button title="Local purchase" variant="outline" onPress={() => navigation.navigate('LocalPurchases', { id })} testID="project-local-purchase" />
         <Button title="Installation log" variant="outline" onPress={() => navigation.navigate('Usage', { id })} testID="project-usage" />
         <Button title="Returns & transfers" variant="outline" onPress={() => navigation.navigate('ProjectReturns', { id })} testID="project-returns" />

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
-import { ApiError } from '../../../shared/api/apiClient';
+import { api, ApiError } from '../../../shared/api/apiClient';
 import { useAuth } from '../../../shared/store/useAuthStore';
 import { formatDate, formatDateTime, formatNumber, parseNumber } from '../../../shared/format';
 import { AppScreen } from '../../../shared/ui/AppScreen';
@@ -101,6 +101,7 @@ export function LotDetailScreen({ navigation, route }: Props) {
       ) : null}
 
       <Button title="Print lot report" variant="outline" onPress={async () => { try { await openPrint((await invoiceApi.lotPrintLink(projectId, lotId)).url); } catch (e) { setError(e instanceof ApiError ? e.message : 'Could not open'); } }} testID="lot-print" style={styles.self} />
+      {lot.receivedAt ? <Button title="Print GRN" variant="outline" onPress={async () => { try { await openPrint((await api<{ url: string }>(`/projects/${projectId}/lots/${lotId}/grn-print-link`)).url); } catch (e) { setError(e instanceof ApiError ? e.message : 'Could not open'); } }} testID="lot-grn-print" style={styles.self} /> : null}
       {open && canRecord ? <Text style={styles.hint}>Count what arrived. Change the numbers only for items that came short or damaged.</Text> : null}
       {open && !canRecord ? <Text style={styles.muted}>Waiting for the site team to check this lot in.</Text> : null}
 

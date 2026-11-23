@@ -91,6 +91,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       ProjectBilling: 'app/projects/:id/billing',
       Commitments: 'app/commitments',
       ProjectDocuments: 'app/projects/:id/documents',
+      ProjectQuantities: 'app/projects/:id/quantities',
       HandoverAmc: 'app/projects/:id/handover',
       Tally: 'app/tally',
       Notes: 'app/notes',

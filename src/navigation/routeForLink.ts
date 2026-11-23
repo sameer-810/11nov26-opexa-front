@@ -2,6 +2,7 @@ import type { User } from '../modules/auth/types';
 import { can, canSeeApprovals, PERMS } from '../shared/permissions';
 import type { RootStackParamList } from './types';
 import { canPayExpenses } from '../modules/expense/expenseApi';
+import { canSeePayables } from '../modules/supplierPayment/supplierPaymentApi';
 
 export type RouteTarget = { [K in keyof RootStackParamList]: { name: K; params: RootStackParamList[K] } }[keyof RootStackParamList];
 
@@ -31,6 +32,12 @@ export function routeForLink(link: string | null | undefined, user: User | null)
   if ((m = l.match(/^\/app\/projects\/([a-f0-9]{24})$/))) return { name: 'ProjectDetail', params: { id: m[1] } };
   if ((m = l.match(/^\/app\/projects\/([a-f0-9]{24})\/milestones$/))) return { name: 'ProjectMilestones', params: { id: m[1] } };
   if (l === '/app/service') return { name: 'Service', params: undefined };
+  // 5D drive: sources of transaction attachments (same permission rules as the screens are registered with).
+  if ((m = l.match(/^\/app\/projects\/([a-f0-9]{24})\/billing$/)) && [PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.RECEIVING_RECORD].some((p) => can(user, p))) return { name: 'ProjectBilling', params: { id: m[1] } };
+  if ((m = l.match(/^\/app\/projects\/([a-f0-9]{24})\/finance$/)) && (can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.REPORTS_VIEW))) return { name: 'ProjectFinance', params: { id: m[1] } };
+  if ((m = l.match(/^\/app\/projects\/([a-f0-9]{24})\/handover$/)) && [PERMS.PROJECT_MANAGE, PERMS.SERVICE_MANAGE, PERMS.SERVICE_VIEW, PERMS.PROJECT_VIEW].some((p) => can(user, p))) return { name: 'HandoverAmc', params: { id: m[1] } };
+  if ((m = l.match(/^\/app\/invoices\/([a-f0-9]{24})$/)) && (can(user, PERMS.INVOICE_CREATE) || can(user, PERMS.INVOICE_EDIT))) return { name: 'InvoiceDetail', params: { id: m[1] } };
+  if ((m = l.match(/^\/app\/supplier-payments\/([a-f0-9]{24})$/)) && canSeePayables(user)) return { name: 'SupplierPaymentDetail', params: { id: m[1] } };
   if (l === '/app/expenses/to-pay' && canPayExpenses(user)) return { name: 'ExpensesToPay', params: undefined };
   if ((m = l.match(/^\/app\/expenses\/([a-f0-9]{24})$/))) return { name: 'ExpenseForm', params: { id: m[1] } };
   if (l === '/app/payslips') return { name: 'Payslips', params: undefined };

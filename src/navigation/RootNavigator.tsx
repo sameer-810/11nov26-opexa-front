@@ -43,6 +43,7 @@ import { SubcontractScreen } from '../modules/subcontract/SubcontractScreen';
 import { ProjectBillingScreen } from '../modules/billing/ProjectBillingScreen';
 import { CommitmentsScreen } from '../modules/commitments/CommitmentsScreen';
 import { ProjectDocumentsScreen } from '../modules/documents/ProjectDocumentsScreen';
+import { QuantityViewScreen } from '../modules/project/screens/QuantityViewScreen';
 import { HandoverAmcScreen } from '../modules/service/screens/HandoverAmcScreen';
 import { TallyScreen } from '../modules/tally/TallyScreen';
 import { NotesScreen } from '../modules/receivables/NotesScreen';
@@ -219,6 +220,7 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {canSeeExpenseReport(user) && <Stack.Screen name="ExpenseReport" component={ExpenseReportScreen} options={{ title: 'Opexa - Expense report' }} />}
         {can(user, PERMS.SETTINGS_MANAGE) && <Stack.Screen name="ExpenseCategories" component={ExpenseCategoriesScreen} options={{ title: 'Opexa - Expense categories' }} />}
         <Stack.Screen name="ProjectDocuments" component={ProjectDocumentsScreen} options={{ title: 'Opexa - Project documents' }} />
+        <Stack.Screen name="ProjectQuantities" component={QuantityViewScreen} options={{ title: 'Opexa - Quantities' }} />
         {[PERMS.PROJECT_MANAGE, PERMS.SERVICE_MANAGE, PERMS.SERVICE_VIEW, PERMS.PROJECT_VIEW].some((p) => can(user, p)) && <Stack.Screen name="HandoverAmc" component={HandoverAmcScreen} options={{ title: 'Opexa - Handover & AMC' }} />}
         {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Commitments" component={CommitmentsScreen} options={{ title: 'Opexa - Retention & guarantees' }} />}
         {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.RECEIVING_RECORD].some((p) => can(user, p)) && <Stack.Screen name="ProjectBilling" component={ProjectBillingScreen} options={{ title: 'Opexa - Client billing' }} />}

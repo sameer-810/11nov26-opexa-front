@@ -16,7 +16,7 @@ export const CHALLAN_VIEWERS = [PERMS.RECEIVING_RECORD, PERMS.STORE_MANAGE, PERM
 // Sidebar entries. `show` must match the screen registration in RootNavigator.
 export const NAV_ITEMS: NavItem[] = [
   { route: 'Dashboard', label: 'Dashboard', icon: 'home', show: always },
-  { route: 'Projects', label: 'Projects', icon: 'folder', show: always, also: ['ProjectDetail', 'NewProject', 'EditProject', 'ProjectTeam', 'BoqImport', 'ProjectLots', 'LotDetail', 'MaterialStatus', 'Usage', 'ProjectBilling', 'ProjectFinance', 'ProjectDocuments', 'ProjectMilestones', 'ProjectActivity'] },
+  { route: 'Projects', label: 'Projects', icon: 'folder', show: always, also: ['ProjectDetail', 'NewProject', 'EditProject', 'ProjectTeam', 'BoqImport', 'ProjectLots', 'LotDetail', 'MaterialStatus', 'Usage', 'ProjectBilling', 'ProjectFinance', 'ProjectDocuments', 'ProjectQuantities', 'ProjectMilestones', 'ProjectActivity'] },
   { route: 'Requisitions', label: 'Material requests', icon: 'clipboard', show: always, also: ['NewRequisition', 'RequisitionDetail', 'MaterialReceived'] },
   { route: 'Challans', label: 'Delivery challans', icon: 'receipt', show: (u) => any(u, CHALLAN_VIEWERS), also: ['ChallanDetail'] },
   { route: 'Approvals', label: 'Approvals', icon: 'check', show: canSeeApprovals, also: ['ApprovalSettings', 'Delegations'] },
