@@ -17,7 +17,7 @@ export function adminRoutes(st: AdminState, path: string, method: string, body: 
   if (path.startsWith('/projects')) {
     const manage = perms(me).includes('project.manage');
     const editBoq = manage || perms(me).includes('boq.edit');
-    const visible = (p: MockProject) => manage || perms(me).includes('purchase.manage') || p.memberIds.includes(me.id);
+    const visible = (p: MockProject) => manage || ['purchase.manage', 'invoice.create', 'invoice.edit'].some((x) => perms(me).includes(x)) || p.memberIds.includes(me.id);
     const withTotals = (p: MockProject) => {
       const items = boq.filter((i) => i.projectId === p.id);
       return { ...p, boqItemCount: items.length, boqValue: items.reduce((s, i) => s + i.amount, 0) };

@@ -127,7 +127,7 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
         <Button title="Documents" variant="outline" onPress={() => navigation.navigate('ProjectDocuments', { id })} testID="project-documents" />
         <Button title="Schedule" variant="outline" onPress={() => navigation.navigate('ProjectMilestones', { id })} testID="project-milestones" />
         <Button title="Activity" variant="outline" onPress={() => navigation.navigate('ProjectActivity', { id })} testID="project-activity" />
-        {can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.SERVICE_MANAGE) ? <Button title="Handover & AMC" variant="outline" onPress={() => navigation.navigate('HandoverAmc', { id })} testID="project-handover" /> : null}
+        {[PERMS.PROJECT_MANAGE, PERMS.SERVICE_MANAGE, PERMS.SERVICE_VIEW, PERMS.REPORTS_VIEW].some((p) => can(user, p)) ? <Button title="Handover & AMC" variant="outline" onPress={() => navigation.navigate('HandoverAmc', { id })} testID="project-handover" /> : null}
         {can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.REPORTS_VIEW) ? <Button title="Estimate & profit" variant="outline" onPress={() => navigation.navigate('ProjectFinance', { id })} testID="project-finance" /> : null}
         {manage ? <Button title="Manage project team" variant="outline" onPress={() => navigation.navigate('ProjectTeam', { id })} testID="manage-team" /> : null}
       </View>
