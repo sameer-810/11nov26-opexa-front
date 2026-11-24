@@ -56,10 +56,35 @@ async function send<T>(path: string, { method = 'GET', body, auth = true, header
 
 export const CACHE_PREFIX = 'opexa.cache:';
 
-// Calls the API. If the access token has expired, refreshes it once and retries.
-// Signed-in GET answers are saved on the device; without network the saved copy is
-// returned instead (the offline bar tells the person they are seeing saved data).
+// Screen data reopened within FRESH_MS is shown at once from memory while a fresh copy loads in
+// the background, and identical GETs running at the same time share one request. Any write (and
+// sign-out) empties it, so saved changes show at once.
+const FRESH_MS = 15000;
+const recent = new Map<string, { at: number; data: unknown }>();
+const inFlight = new Map<string, Promise<unknown>>();
+export const clearApiMemory = () => { recent.clear(); inFlight.clear(); };
+
+function fetchShared<T>(path: string, options: Options): Promise<T> {
+  const pending = inFlight.get(path);
+  if (pending) return pending as Promise<T>;
+  const p = load<T>(path, options)
+    .then((data) => { if (inFlight.get(path) === p) recent.set(path, { at: Date.now(), data }); return data; })
+    .finally(() => { if (inFlight.get(path) === p) inFlight.delete(path); });
+  inFlight.set(path, p);
+  return p;
+}
+
 export async function api<T>(path: string, options: Options = {}): Promise<T> {
+  if ((options.method ?? 'GET') !== 'GET') { clearApiMemory(); return load<T>(path, options); }
+  const hit = recent.get(path);
+  if (hit && Date.now() - hit.at < FRESH_MS) {
+    fetchShared<T>(path, options).catch(() => undefined); // refresh in the background
+    return hit.data as T;
+  }
+  return fetchShared<T>(path, options);
+}
+
+async function load<T>(path: string, options: Options): Promise<T> {
   const auth = options.auth ?? true;
   const cacheable = auth && (options.method ?? 'GET') === 'GET';
   try {

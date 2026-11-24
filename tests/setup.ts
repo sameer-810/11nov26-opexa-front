@@ -44,3 +44,6 @@ afterEach(async () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('../src/shared/offline/kvStore').kvStore.__data.clear();
 });
+
+// The API client's short memory cache must not carry one test's answers into the next.
+afterEach(() => require('../src/shared/api/apiClient').clearApiMemory());

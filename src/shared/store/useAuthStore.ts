@@ -3,7 +3,7 @@ import { setTokenHandlers } from '../api/apiClient';
 import { kvStore } from '../offline/kvStore';
 import { registerForPush, unregisterPush } from '../push/push';
 import { localStore } from '../offline/localStore';
-import { CACHE_PREFIX, ApiError } from '../api/apiClient';
+import { CACHE_PREFIX, ApiError, clearApiMemory } from '../api/apiClient';
 import { setOutboxUser } from '../offline/outbox';
 
 const ME_KEY = 'opexa.me'; // last signed-in profile, so the app opens without network
@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshing = useRef<Promise<string | null> | null>(null);
 
   const clear = useCallback(async () => {
+    clearApiMemory();
     accessToken.current = null;
     setUser(null);
     setOrganization(null);
