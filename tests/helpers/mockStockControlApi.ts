@@ -7,7 +7,7 @@ import type { SupplierPayment } from '../../src/modules/supplierPayment/supplier
 
 type BaseApi = ReturnType<typeof installMockApi>;
 type Init = { method?: string; body?: unknown; headers?: Record<string, string> };
-type Body = Record<string, unknown> & { lines?: { materialId: string; countedQty: number; damagedQty?: number; reason?: string }[] };
+type Body = Record<string, unknown> & { lines?: { materialId: string; countedQty: number; damagedQty?: number; rate?: number; reason?: string }[] };
 const ok = (data: unknown, status = 200) => ({ ok: true, status, json: async () => ({ success: true, data }) });
 const fail = (status: number, code: string, message: string) => ({ ok: false, status, json: async () => ({ success: false, error: { code, message, details: [] } }) });
 
@@ -22,6 +22,7 @@ export function installStockControlMock(api: BaseApi, { payments = [] as Supplie
   const counts: StockCount[] = [];
   const tools: ToolHistory[] = [];
   const levels: Body[] = [];
+  const warehouses = WAREHOUSES.map((w) => ({ ...w }));
 
   const totals = (c: StockCount) => {
     const value = (f: (v: number) => number) => c.lines.reduce((t, l) => t + f(l.varianceValue ?? 0), 0);
@@ -31,7 +32,7 @@ export function installStockControlMock(api: BaseApi, { payments = [] as Supplie
   const newCount = (b: Body): StockCount => {
     const loc = b.location as { kind: 'warehouse' | 'site'; id: string };
     const lines = api.inventory.stock.filter((r: { location: { id: string } }) => r.location.id === loc.id).map((r: { materialId: string; code: string; name: string; unit: string; onHand: number; avgRate: number }, i: number) => ({
-      id: `cl${i + 1}`, materialId: r.materialId, code: r.code, name: r.name, unit: r.unit, category: '', systemQty: r.onHand, rate: r.avgRate, countedQty: null, damagedQty: 0, reason: '', variance: null, varianceValue: null, damagedValue: 0,
+      id: `cl${i + 1}`, materialId: r.materialId, code: r.code, name: r.name, unit: r.unit, category: '', systemQty: r.onHand, rate: r.avgRate, systemRate: r.avgRate, enteredRate: null, countedQty: null, damagedQty: 0, reason: '', variance: null, varianceValue: null, damagedValue: 0,
     }));
     const name = WAREHOUSES.find((w) => w.id === loc.id)?.name ?? 'Site';
     return totals({ id: `c${counts.length + 1}`, number: `PV-000${counts.length + 1}`, status: 'open', location: { ...loc, name }, countDate: String(b.countDate ?? '2026-11-23'), countedBy: { id: 'u2', name: 'Store' }, scope: { type: 'all', category: '', materialIds: [] }, note: '', adjustmentId: null, createdAt: new Date().toISOString(), lines, totals: { lines: 0, counted: 0, withVariance: 0, shortValue: 0, excessValue: 0, netValue: 0, damagedValue: 0 } });
@@ -46,7 +47,10 @@ export function installStockControlMock(api: BaseApi, { payments = [] as Supplie
     const b: Body = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
     const record = () => calls.push({ method, path: p, body: init?.body instanceof FormData ? 'file' : b });
 
-    if (p === '/inventory/warehouses') return ok(WAREHOUSES);
+    if (p === '/inventory/warehouses' && method === 'POST') { record(); const w = { id: `w${warehouses.length + 1}`, code: `WH-00${warehouses.length + 1}`, address: '', isCentral: false, managerIds: [], isActive: true, ...b } as typeof warehouses[number]; warehouses.push(w); return ok(w, 201); }
+    const wm = p.match(/^\/inventory\/warehouses\/([^/]+)$/);
+    if (wm && method === 'PATCH') { record(); const w = warehouses.find((x) => x.id === wm[1]); return w ? ok(Object.assign(w, b)) : fail(404, 'NOT_FOUND', 'Warehouse not found'); }
+    if (p === '/inventory/warehouses') return ok(warehouses);
     const att = p.match(/^\/supplier-payments\/([^/]+)\/attachments$/);
     if (att && method === 'POST') {
       record();
@@ -74,6 +78,7 @@ export function installStockControlMock(api: BaseApi, { payments = [] as Supplie
         for (const r of b.lines ?? []) {
           const l = c.lines.find((x) => x.materialId === r.materialId);
           if (!l) continue;
+          if (r.rate !== undefined && !l.systemRate) Object.assign(l, { enteredRate: r.rate || null, rate: r.rate });
           const v = r.countedQty + (r.damagedQty ?? 0) - l.systemQty;
           Object.assign(l, { countedQty: r.countedQty, damagedQty: r.damagedQty ?? 0, reason: r.reason ?? '', variance: v, varianceValue: v * l.rate, damagedValue: (r.damagedQty ?? 0) * l.rate });
         }
@@ -124,5 +129,5 @@ export function installStockControlMock(api: BaseApi, { payments = [] as Supplie
     }
     return base(url, init as never);
   });
-  return { calls, counts, tools, levels };
+  return { calls, counts, tools, levels, warehouses };
 }

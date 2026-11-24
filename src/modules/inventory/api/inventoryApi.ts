@@ -1,5 +1,5 @@
 import { api, apiBlob } from '../../../shared/api/apiClient';
-import type { Adjustment, DamagedInput, Issue, LedgerRow, Material, MaterialInput, Party, StockCount, StockLevel, StockRow, Tool, ToolHistory, ToolMaintenance, Transfer, Warehouse } from '../types';
+import type { Adjustment, DamagedInput, Issue, LedgerRow, Material, MaterialInput, Party, StockCount, StockLevel, StockRow, Tool, ToolHistory, ToolMaintenance, Transfer, Warehouse, WarehouseInput } from '../types';
 
 const qs = (q: Record<string, string | undefined>) => {
   const p = new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][]).toString();
@@ -16,7 +16,8 @@ export const inventoryApi = {
   mergeMaterial: (id: string, intoId: string) => api<Material>(`/inventory/materials/${id}/merge`, { method: 'POST', body: { intoId } }),
   updateMaterial: (id: string, body: Partial<Material>) => api<Material>(`/inventory/materials/${id}`, { method: 'PATCH', body }),
   warehouses: () => api<Warehouse[]>('/inventory/warehouses'),
-  createWarehouse: (body: { name: string; address?: string }) => api<Warehouse>('/inventory/warehouses', { method: 'POST', body }),
+  createWarehouse: (body: WarehouseInput) => api<Warehouse>('/inventory/warehouses', { method: 'POST', body }),
+  updateWarehouse: (id: string, body: Partial<WarehouseInput>) => api<Warehouse>(`/inventory/warehouses/${id}`, { method: 'PATCH', body }),
   stock: (q: { kind?: string; locationId?: string; low?: string } = {}) => api<StockRow[]>(`/inventory/stock${qs(q)}`),
   movements: (q: Record<string, string | undefined> = {}) => api<LedgerRow[]>(`/inventory/movements${qs(q)}`),
   valuation: () => api<{ locations: { location: { kind: string; id: string; name: string }; items: number; value: number }[]; total: number }>('/inventory/reports/valuation'),
@@ -49,7 +50,8 @@ export const inventoryApi = {
   counts: (q: { status?: string; kind?: string } = {}) => api<StockCount[]>(`/inventory/counts${qs(q)}`),
   count: (id: string) => api<StockCount>(`/inventory/counts/${id}`),
   startCount: (body: { location: Loc; countDate?: string; scope?: { type: 'all' | 'category' | 'selected'; category?: string; materialIds?: string[] }; note?: string }) => api<StockCount>('/inventory/counts', { method: 'POST', body }),
-  saveCount: (id: string, lines: { materialId: string; countedQty: number; damagedQty?: number; reason?: string }[]) => api<StockCount>(`/inventory/counts/${id}/lines`, { method: 'PUT', body: { lines } }),
+  // rate: only for lines with no known rate (systemRate 0); 0 clears an entered rate.
+  saveCount: (id: string, lines: { materialId: string; countedQty: number; damagedQty?: number; rate?: number; reason?: string }[]) => api<StockCount>(`/inventory/counts/${id}/lines`, { method: 'PUT', body: { lines } }),
   submitCount: (id: string) => api<StockCount>(`/inventory/counts/${id}/submit`, { method: 'POST' }),
   cancelCount: (id: string, reason: string) => api<StockCount>(`/inventory/counts/${id}/cancel`, { method: 'POST', body: { reason } }),
   countExcel: (id: string) => apiBlob(`/inventory/counts/${id}/report.xlsx`),

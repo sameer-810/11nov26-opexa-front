@@ -64,6 +64,58 @@ describe('2F.4 - Physical count', () => {
     await waitFor(() => expect(screen.getByTestId('count-status')).toHaveTextContent('Waiting for approval'));
     expect(screen.queryByTestId('count-approve')).toBeNull();
   });
+
+  test('a rate can be entered only for stock with no known rate', async () => {
+    const { api, mock } = setup();
+    api.inventory.stock.push({ ...PIPE, materialId: 'm3', code: 'MAT-00003', name: 'Insulation tape', unit: 'Nos', onHand: 0, available: 0, value: 0, avgRate: 0 });
+    await signIn('owner@airtech.in', 'Owner12345');
+    await fireEvent.press(await screen.findByTestId('store-tab-counts'));
+    await fireEvent.press(await screen.findByTestId('count-location-w1'));
+    await fireEvent.press(screen.getByTestId('count-start'));
+    expect(await screen.findByTestId('count-rate-MAT-00003')).toHaveTextContent(/no rate known/);
+    expect(screen.queryByTestId('count-rate-input-MAT-00001')).toBeNull();
+    expect(screen.getByLabelText('Rate ₹ (no rate known)')).toBeTruthy();
+    await fireEvent.changeText(screen.getByTestId('count-qty-MAT-00001'), '100');
+    await fireEvent.changeText(screen.getByTestId('count-qty-MAT-00003'), '4');
+    await fireEvent.changeText(screen.getByTestId('count-rate-input-MAT-00003'), '250');
+    await fireEvent.press(screen.getByTestId('count-save'));
+    expect(await screen.findByTestId('count-var-MAT-00003')).toHaveTextContent(/Variance \+4 Nos \(₹1,000/);
+    expect(screen.getByTestId('count-rate-MAT-00003')).toHaveTextContent(/₹250.*\(entered\)/);
+    expect(mock.calls[1].body).toEqual({ lines: [{ materialId: 'm1', countedQty: 100 }, { materialId: 'm3', countedQty: 4, rate: 250 }] });
+  });
+});
+
+describe('Warehouses - add and edit (admin)', () => {
+  test('owner adds a warehouse and edits one', async () => {
+    const { mock } = setup();
+    await signIn('owner@airtech.in', 'Owner12345');
+    await fireEvent.press(await screen.findByTestId('store-tab-warehouses'));
+    await fireEvent.press(await screen.findByTestId('warehouse-add'));
+    await fireEvent.press(screen.getByTestId('warehouse-save'));
+    expect(screen.getByTestId('warehouse-problem')).toHaveTextContent('Enter the warehouse name');
+    await fireEvent.changeText(screen.getByTestId('warehouse-name'), 'Thane');
+    await fireEvent.changeText(screen.getByTestId('warehouse-code'), 'THN');
+    await fireEvent.changeText(screen.getByTestId('warehouse-address'), 'Wagle Estate');
+    await fireEvent.press(screen.getByTestId('warehouse-save'));
+    expect(await screen.findByTestId('warehouse-THN')).toHaveTextContent(/Thane.*Wagle Estate/);
+    expect(mock.calls[0]).toEqual({ method: 'POST', path: '/inventory/warehouses', body: { name: 'Thane', code: 'THN', address: 'Wagle Estate' } });
+
+    await fireEvent.press(screen.getByTestId('warehouse-edit-BHW'));
+    await fireEvent.changeText(screen.getByTestId('warehouse-name'), 'Bhiwandi Store');
+    await fireEvent.press(screen.getByTestId('warehouse-active-no'));
+    await fireEvent.press(screen.getByTestId('warehouse-save'));
+    expect(await screen.findByTestId('warehouse-BHW')).toHaveTextContent(/Bhiwandi Store.*Inactive/);
+    expect(mock.calls[1]).toEqual({ method: 'PATCH', path: '/inventory/warehouses/w2', body: { name: 'Bhiwandi Store', code: 'BHW', address: '', isActive: false } });
+    await fireEvent.press(screen.getByTestId('warehouse-edit-CS'));
+    expect(screen.queryByTestId('warehouse-active-no')).toBeNull(); // the Central Store stays active
+  });
+
+  test('store staff do not get the warehouses section', async () => {
+    setup();
+    await signIn('store@airtech.in', 'Store12345');
+    await screen.findByTestId('store-tab-counts');
+    expect(screen.queryByTestId('store-tab-warehouses')).toBeNull();
+  });
 });
 
 describe('2F.5 and Q16 - minimum per store and damaged stock (store in-charge)', () => {

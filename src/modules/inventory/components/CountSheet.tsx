@@ -17,8 +17,8 @@ export const COUNT_STATUS: Record<StockCount['status'], { label: string; tone: '
   open: { label: 'Counting', tone: 'info' }, submitted: { label: 'Waiting for approval', tone: 'warning' }, approved: { label: 'Approved, posted', tone: 'success' },
   rejected: { label: 'Rejected', tone: 'danger' }, completed: { label: 'Matched the books', tone: 'success' }, cancelled: { label: 'Cancelled', tone: 'neutral' },
 };
-type Entry = { counted: string; damaged: string; reason: string };
-const entryOf = (l: CountLine): Entry => ({ counted: l.countedQty === null ? '' : String(l.countedQty), damaged: l.damagedQty ? String(l.damagedQty) : '', reason: l.reason });
+type Entry = { counted: string; damaged: string; rate: string; reason: string };
+const entryOf = (l: CountLine): Entry => ({ counted: l.countedQty === null ? '' : String(l.countedQty), damaged: l.damagedQty ? String(l.damagedQty) : '', rate: l.enteredRate === null ? '' : String(l.enteredRate), reason: l.reason });
 
 // One count: enter counted (and damaged found) quantities, see the variance, submit; approver decides here too.
 export function CountSheet({ id, onClose }: { id: string; onClose: () => void }) {
@@ -37,13 +37,15 @@ export function CountSheet({ id, onClose }: { id: string; onClose: () => void })
   const set = (l: CountLine, patch: Partial<Entry>) => setEdits((e) => ({ ...e, [l.id]: { ...entry(l), ...patch } }));
 
   const save = () => {
-    const lines: { materialId: string; countedQty: number; damagedQty?: number; reason?: string }[] = [];
+    const lines: { materialId: string; countedQty: number; damagedQty?: number; rate?: number; reason?: string }[] = [];
     for (const l of c.lines.filter((x) => edits[x.id])) {
       const e = edits[l.id];
       const counted = parseNumber(e.counted);
       const damaged = e.damaged.trim() ? parseNumber(e.damaged) : 0;
       if (counted === null || counted < 0 || damaged === null || damaged < 0) return setProblem(`${l.name}: enter the quantity counted`);
-      lines.push({ materialId: l.materialId, countedQty: counted, damagedQty: damaged || undefined, reason: e.reason.trim() || undefined });
+      const rate = l.systemRate || !e.rate.trim() ? 0 : parseNumber(e.rate);
+      if (rate === null || rate < 0) return setProblem(`${l.name}: enter a rate of 0 or more`);
+      lines.push({ materialId: l.materialId, countedQty: counted, damagedQty: damaged || undefined, rate: l.systemRate ? undefined : rate, reason: e.reason.trim() || undefined });
     }
     if (!lines.length) return setProblem('Enter at least one counted quantity');
     return run('save', () => inventoryApi.saveCount(c.id, lines));
@@ -66,11 +68,12 @@ export function CountSheet({ id, onClose }: { id: string; onClose: () => void })
       {c.lines.map((l) => (
         <View key={l.id} style={s.card} testID={`count-line-${l.code}`}>
           <Text style={s.title}>{l.name}</Text>
-          <Text style={s.muted}>System {formatNumber(l.systemQty)} {l.unit} @ {formatMoney(l.rate)}</Text>
+          <Text style={s.muted} testID={`count-rate-${l.code}`}>System {formatNumber(l.systemQty)} {l.unit} @ {l.rate ? formatMoney(l.rate) : 'no rate known'}{!l.systemRate && l.enteredRate ? ' (entered)' : ''}</Text>
           {l.variance !== null ? <Text style={l.variance ? s.warn : s.muted} testID={`count-var-${l.code}`}>Variance {l.variance > 0 ? '+' : ''}{formatNumber(l.variance)} {l.unit} ({formatMoney(l.varianceValue ?? 0)}){l.damagedQty ? ` · ${formatNumber(l.damagedQty)} found damaged` : ''}</Text> : null}
           {open ? (
             <View style={s.row}>
               <View style={s.cell}><TextField label={`Counted good (${l.unit})`} value={entry(l).counted} onChangeText={(v) => set(l, { counted: v })} keyboardType="decimal-pad" testID={`count-qty-${l.code}`} /></View>
+              {!l.systemRate ? <View style={s.cell}><TextField label="Rate ₹ (no rate known)" value={entry(l).rate} onChangeText={(v) => set(l, { rate: v })} keyboardType="decimal-pad" testID={`count-rate-input-${l.code}`} /></View> : null}
               {c.location.kind === 'warehouse' ? <View style={s.cell}><TextField label="Found damaged" value={entry(l).damaged} onChangeText={(v) => set(l, { damaged: v })} keyboardType="decimal-pad" testID={`count-dmg-${l.code}`} /></View> : null}
               <View style={s.cell}><TextField label="Reason for difference" value={entry(l).reason} onChangeText={(v) => set(l, { reason: v })} maxLength={200} /></View>
             </View>

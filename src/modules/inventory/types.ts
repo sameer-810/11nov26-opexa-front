@@ -1,6 +1,7 @@
 export type Material = { id: string; code: string; name: string; unit: string; category: string | null; minStock: number; isActive: boolean; description?: string; specifications?: string; verification?: 'pending' | 'verified'; mergedInto?: string | null };
 export type MaterialInput = { name: string; unit: string; category?: string; minStock?: number; description?: string; specifications?: string };
 export type Warehouse = { id: string; code: string; name: string; address: string; isCentral: boolean; managerIds: string[]; isActive: boolean };
+export type WarehouseInput = { name: string; code?: string; address?: string; isActive?: boolean };
 export type Location = { kind: 'warehouse' | 'site' | 'transit' | 'custody' | 'damaged'; id: string; name: string };
 // damaged: quantity in the warehouse's damaged holding area (Q16); never part of on hand or available.
 export type StockRow = { materialId: string; code: string; name: string; unit: string; location: Location; onHand: number; reserved: number; available: number; damaged?: number; value: number; avgRate: number; minStock: number; reorderQty?: number; low: boolean };
@@ -23,7 +24,8 @@ export type ToolHistory = Tool & {
   maintenance: ToolMaintenance[];
 };
 // Physical verification (2F.4): system qty from the ledger at count start; variance = counted + damaged - system.
-export type CountLine = { id: string; materialId: string; code: string; name: string; unit: string; category: string; systemQty: number; rate: number; countedQty: number | null; damagedQty: number; reason: string; variance: number | null; varianceValue: number | null; damagedValue: number };
+// rate = systemRate (location average, else the latest ledger rate), else the rate the counter entered (enteredRate).
+export type CountLine = { id: string; materialId: string; code: string; name: string; unit: string; category: string; systemQty: number; rate: number; systemRate: number; enteredRate: number | null; countedQty: number | null; damagedQty: number; reason: string; variance: number | null; varianceValue: number | null; damagedValue: number };
 export type StockCount = {
   id: string; number: string; status: 'open' | 'submitted' | 'approved' | 'rejected' | 'completed' | 'cancelled'; location: { kind: 'warehouse' | 'site'; id: string; name: string };
   countDate: string; countedBy: { id: string; name: string }; scope: { type: 'all' | 'category' | 'selected'; category: string; materialIds: string[] }; note: string; adjustmentId: string | null; createdAt: string;
