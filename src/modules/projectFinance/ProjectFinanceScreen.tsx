@@ -11,7 +11,7 @@ import { ErrorState } from '../../shared/ui/ErrorState';
 import { StatusChip } from '../../shared/ui/StatusChip';
 import { TextField } from '../../shared/ui/TextField';
 import { useAuth } from '../../shared/store/useAuthStore';
-import { can, PERMS } from '../../shared/permissions';
+import { can, canEditBoq, PERMS } from '../../shared/permissions';
 import { s, useAction, useData } from '../inventory/ui';
 import { BoqProfitTab } from './BoqProfitTab';
 import { ChangeRequestsTab } from './ChangeRequestsTab';
@@ -45,7 +45,7 @@ function Profit({ id }: { id: string }) {
   );
 }
 
-function EstimateTab({ id }: { id: string }) {
+function EstimateTab({ id, editable }: { id: string; editable: boolean }) {
   const fetcher = useCallback(() => projectFinanceApi.estimate(id), [id]);
   const { data: e, error, reload } = useData(fetcher);
   const { busy, problem, run } = useAction(() => void reload());
@@ -64,18 +64,18 @@ function EstimateTab({ id }: { id: string }) {
     <View style={s.list} testID="pf-estimate">
       {problem ? <ErrorBanner message={problem} /> : null}
       <Text style={s.title} testID="pf-est-summary">Estimated cost {formatMoney(e.cost)} on revenue {formatMoney(e.revenue)} · margin {formatMoney(e.margin)} ({pct(e.marginPct)})</Text>
-      <TextField label="Project overheads (₹)" value={overhead || (e.overheadEstimate ? String(e.overheadEstimate) : '')} onChangeText={setOverhead} keyboardType="decimal-pad" />
+      <TextField label="Project overheads (₹)" value={overhead || (e.overheadEstimate ? String(e.overheadEstimate) : '')} onChangeText={setOverhead} keyboardType="decimal-pad" editable={editable} />
       <Text style={s.muted}>Project-level amounts (not per BOQ line, e.g. transport), added to the line estimates:</Text>
-      <View style={s.row}>{LUMP_CATS.map((c) => <View key={c} style={s.cell}><TextField label={`${c} (₹)`} value={lump[c] ?? (e.lumpSum?.[c] ? String(e.lumpSum[c]) : '')} onChangeText={(t) => setLump((x) => ({ ...x, [c]: t }))} keyboardType="decimal-pad" testID={`est-lump-${c}`} /></View>)}</View>
+      <View style={s.row}>{LUMP_CATS.map((c) => <View key={c} style={s.cell}><TextField label={`${c} (₹)`} value={lump[c] ?? (e.lumpSum?.[c] ? String(e.lumpSum[c]) : '')} onChangeText={(t) => setLump((x) => ({ ...x, [c]: t }))} keyboardType="decimal-pad" editable={editable} testID={`est-lump-${c}`} /></View>)}</View>
       {e.lines.map((l) => (
         <View key={l.workOrderItemId} style={s.card}>
           <Text style={s.title}>S.No {l.serialNo} {l.description} · {formatNumber(l.quantity)} {l.unit} @ {formatMoney(l.rate)}</Text>
           <Text style={s.muted}>Cost per {l.unit}:</Text>
-          <View style={s.row}>{LINE_CATS.map((c) => <View key={c} style={s.cell}><TextField label={c} value={v(l.workOrderItemId, c, l.perUnit[c] ?? 0)} onChangeText={(t) => setVals((x) => ({ ...x, [`${l.workOrderItemId}:${c}`]: t }))} keyboardType="decimal-pad" testID={`est-${l.serialNo}-${c}`} /></View>)}</View>
+          <View style={s.row}>{LINE_CATS.map((c) => <View key={c} style={s.cell}><TextField label={c} value={v(l.workOrderItemId, c, l.perUnit[c] ?? 0)} onChangeText={(t) => setVals((x) => ({ ...x, [`${l.workOrderItemId}:${c}`]: t }))} keyboardType="decimal-pad" editable={editable} testID={`est-${l.serialNo}-${c}`} /></View>)}</View>
           <Text style={l.margin < 0 ? s.danger : s.muted}>Line cost {formatMoney(l.totalCost)} · margin {formatMoney(l.margin)} ({pct(l.marginPct)})</Text>
         </View>
       ))}
-      <Button title="Save estimate" onPress={save} loading={busy === 'save'} testID="est-save" />
+      {editable ? <Button title="Save estimate" onPress={save} loading={busy === 'save'} testID="est-save" /> : <Text style={s.muted} testID="est-readonly">Read only: the PM or a BOQ editor sets the estimate.</Text>}
     </View>
   );
 }
@@ -138,7 +138,7 @@ export function ProjectFinanceScreen({ navigation, route }: Props) {
     <AppScreen title="Estimate & profit" subtitle="Estimated vs actual cost, BOQ revisions and additional work" onBack={() => navigation.navigate('ProjectDetail', { id })} testID="project-finance-screen">
       <ChoiceChips label="Section" options={[{ value: 'profit', label: 'Profit' }, { value: 'lines', label: 'BOQ-wise profit' }, { value: 'estimate', label: 'Estimate' }, { value: 'extras', label: 'Extra materials' }, { value: 'changes', label: 'Change requests' }, { value: 'boq', label: 'BOQ changes' }]} value={tab} onChange={setTab} />
       {tab === 'profit' ? <Profit id={id} /> : null}
-      {tab === 'estimate' ? <EstimateTab id={id} /> : null}
+      {tab === 'estimate' ? <EstimateTab id={id} editable={canEditBoq(user)} /> : null}
       {tab === 'boq' ? <BoqChanges id={id} /> : null}
       {tab === 'lines' ? <BoqProfitTab id={id} /> : null}
       {tab === 'extras' ? <ExtraMaterialsTab id={id} canLink={pm || can(user, PERMS.PURCHASE_MANAGE)} /> : null}

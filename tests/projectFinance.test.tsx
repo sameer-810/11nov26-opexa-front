@@ -29,3 +29,21 @@ test('Phase 5 - owner sees estimated vs forecast margin and saves a line estimat
   await screen.findByTestId('pf-estimate');
   expect(api.finance.saved[0].lines[0]).toMatchObject({ workOrderItemId: 'i1', material: 60000, labour: 2500 });
 });
+
+test('Phase 5 - a report viewer sees the estimate read only, with no save button', async () => {
+  const api = installMockApi();
+  api.addUser({ email: 'kavita@airtech.in', password: 'Kavita12345', role: 'accounts', name: 'Kavita' });
+  api.projects.push({ id: 'p1', code: 'P-001', name: 'Worli', clientName: 'Lodha', status: 'active', siteAddress: null, clientPoNumber: null, poDate: null, location: null, geofenceRadiusM: 200, memberIds: [] });
+  api.finance.estimate = { revenue: 1000000, cost: 880000, margin: 120000, marginPct: 12, overheadEstimate: 0, costAlertPct: 5, boqLocked: false, boqRevision: 0, lines: [{ workOrderItemId: 'i1', serialNo: '1', description: 'Split AC', unit: 'Nos', quantity: 10, rate: 100000, tendered: true, perUnit: { material: 60000, labour: 0, subcontract: 0, equipment: 0, other: 0 }, totalCost: 600000, revenue: 1000000, margin: 400000, marginPct: 40 }] };
+  await renderApp({ showLanding: false });
+  await fireEvent.changeText(await screen.findByTestId('signin-email'), 'kavita@airtech.in');
+  await fireEvent.changeText(screen.getByTestId('signin-password'), 'Kavita12345');
+  await fireEvent.press(screen.getByTestId('signin-submit'));
+  await fireEvent.press(await screen.findByTestId('tile-projects'));
+  await fireEvent.press(await screen.findByTestId('project-P-001'));
+  await fireEvent.press(await screen.findByTestId('project-finance'));
+  await fireEvent.press(await screen.findByText('Estimate'));
+  expect(await screen.findByTestId('est-readonly')).toBeTruthy();
+  expect(screen.queryByTestId('est-save')).toBeNull();
+  expect(screen.getByTestId('est-1-labour').props.editable).toBe(false);
+});
