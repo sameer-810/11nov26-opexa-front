@@ -11,6 +11,7 @@ import { s, useData } from '../../inventory/ui';
 import { canSeePayables } from '../../supplierPayment/supplierPaymentApi';
 import { vendorApi } from '../api/vendorApi';
 import { VendorContacts } from '../components/VendorContacts';
+import { VendorDocumentUpload } from '../components/VendorDocumentUpload';
 import { VendorHistorySection, VendorPerformanceSection } from '../components/VendorInsights';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VendorDetail'>;
@@ -50,6 +51,7 @@ export function VendorDetailScreen({ navigation, route }: Props) {
           const e = expiry(d.validUntil);
           return <Text key={d.id} style={e?.style ?? s.muted} testID={`vendor-doc-${d.id}`}>{d.label || d.name}{e ? ` · ${e.text}` : ''}</Text>;
         })}
+        <VendorDocumentUpload vendorId={v.id} onUploaded={() => void reload()} />
       </View>
       <View style={s.card}><VendorPerformanceSection p={data.performance} /></View>
       <View style={s.card}><VendorHistorySection h={data.history} /></View>
