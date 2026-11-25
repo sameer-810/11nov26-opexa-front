@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { PROTECTED_ROUTES, type NavMode, type RootStackParamList } from './types';
 import { useAuth } from '../shared/store/useAuthStore';
-import { can, canSeeApprovals, PERMS } from '../shared/permissions';
+import { can, canSeeApprovals, PERMS, canSeeCosting, canSeeReceivables } from '../shared/permissions';
 import { colors } from '../shared/designSystem';
 import { LandingScreen } from '../modules/landing/screens/LandingScreen';
 import { SignInScreen } from '../modules/auth/screens/SignInScreen';
@@ -168,8 +168,8 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {(can(user, PERMS.INVOICE_CREATE) || can(user, PERMS.INVOICE_EDIT)) && <Stack.Screen name="Invoices" component={InvoicesScreen} options={{ title: 'Opexa - Invoices' }} />}
         {(can(user, PERMS.INVOICE_CREATE) || can(user, PERMS.INVOICE_EDIT)) && <Stack.Screen name="InvoiceForm" component={InvoiceFormScreen} options={{ title: 'Opexa - Invoice' }} />}
         {(can(user, PERMS.INVOICE_CREATE) || can(user, PERMS.INVOICE_EDIT)) && <Stack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} options={{ title: 'Opexa - Invoice' }} />}
-        {(can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.REPORTS_VIEW)) && <Stack.Screen name="Costing" component={CostingScreen} options={{ title: 'Opexa - Project costing' }} />}
-        {(can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.REPORTS_VIEW)) && <Stack.Screen name="ProjectCost" component={ProjectCostScreen} options={{ title: 'Opexa - Costing' }} />}
+        {canSeeCosting(user) && <Stack.Screen name="Costing" component={CostingScreen} options={{ title: 'Opexa - Project costing' }} />}
+        {canSeeCosting(user) && <Stack.Screen name="ProjectCost" component={ProjectCostScreen} options={{ title: 'Opexa - Costing' }} />}
         <Stack.Screen name="Service" component={ServiceScreen} options={{ title: 'Opexa - Service' }} />
         <Stack.Screen name="TicketDetail" component={TicketDetailScreen} options={{ title: 'Opexa - Service job' }} />
         {can(user, PERMS.SERVICE_MANAGE) && <Stack.Screen name="NewTicket" component={NewTicketScreen} options={{ title: 'Opexa - New complaint' }} />}
@@ -212,8 +212,8 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {[PERMS.PROJECT_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.SUPPLIER_INVOICE_VERIFY, PERMS.RECEIVING_RECORD, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Subcontract" component={SubcontractScreen} options={{ title: 'Opexa - Subcontractors' }} />}
         {(can(user, PERMS.INVOICE_EDIT) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY)) && <Stack.Screen name="Tally" component={TallyScreen} options={{ title: 'Opexa - Tally export' }} />}
         {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.SUPPLIER_INVOICE_VERIFY, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="Notes" component={NotesScreen} options={{ title: 'Opexa - Credit & debit notes' }} />}
-        {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="ClientReceipts" component={ClientReceiptsScreen} options={{ title: 'Opexa - Client receipts' }} />}
-        {[PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.REPORTS_VIEW].some((p) => can(user, p)) && <Stack.Screen name="ClientLedger" component={ClientLedgerScreen} options={{ title: 'Opexa - Client ledger' }} />}
+        {canSeeReceivables(user) && <Stack.Screen name="ClientReceipts" component={ClientReceiptsScreen} options={{ title: 'Opexa - Client receipts' }} />}
+        {canSeeReceivables(user) && <Stack.Screen name="ClientLedger" component={ClientLedgerScreen} options={{ title: 'Opexa - Client ledger' }} />}
         <Stack.Screen name="MyExpenses" component={MyExpensesScreen} options={{ title: 'Opexa - My expenses' }} />
         <Stack.Screen name="NewExpense" component={ExpenseFormScreen} options={{ title: 'Opexa - New expense' }} />
         <Stack.Screen name="ExpenseForm" component={ExpenseFormScreen} options={{ title: 'Opexa - Expense' }} />

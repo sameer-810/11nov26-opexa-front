@@ -49,3 +49,24 @@ describe('Phase 10 - Attendance (technician)', () => {
     expect(api.attendance.punches).toHaveLength(1);
   });
 });
+
+test('Phase 3 - a project with two sites asks which site, and sends it with the check-in', async () => {
+  const api = installMockApi();
+  api.addUser({ email: 'owner@airtech.in', password: 'Owner12345' });
+  const tech = api.addUser({ email: 'raju@airtech.in', password: 'Raju123456', role: 'staff', name: 'Raju' });
+  api.projects.push({ id: 'p1', code: 'P-001', name: 'Worli', clientName: 'Lodha', status: 'active', siteAddress: null, clientPoNumber: null, poDate: null, location: { lat: 19.0176, lng: 72.8172 }, geofenceRadiusM: 200, memberIds: [tech.id] });
+  api.sites.p1 = [
+    { id: 'sA', projectId: 'p1', code: 'S-01', name: 'Main site', address: '', location: null, geofenceRadiusM: 200, isMain: true, isActive: true },
+    { id: 'sB', projectId: 'p1', code: 'S-02', name: 'Tower B', address: '', location: null, geofenceRadiusM: 100, isMain: false, isActive: true },
+  ];
+  await renderApp({ showLanding: false });
+  await fireEvent.changeText(await screen.findByTestId('signin-email'), 'raju@airtech.in');
+  await fireEvent.changeText(screen.getByTestId('signin-password'), 'Raju123456');
+  await fireEvent.press(screen.getByTestId('signin-submit'));
+  await fireEvent.press(await screen.findByTestId('tile-attendance'));
+  gps(19.0177);
+  await fireEvent.press(await screen.findByText('Tower B'));
+  await fireEvent.press(screen.getByTestId('att-check-in'));
+  await screen.findByTestId('att-message');
+  expect(api.attendance.punches[0].fields).toMatchObject({ projectId: 'p1', siteId: 'sB' });
+});

@@ -1,12 +1,13 @@
 import { api, apiBlob } from '../../../shared/api/apiClient';
 import type { AttendanceRecord, AttendanceReport, Mine, Office, ReportFilters, TeamDay, TeamMonth, Today } from '../types';
 
-export type PunchInput = { place: 'project' | 'office'; projectId?: string | null; lat: number; lng: number; accuracy: number; mocked: boolean };
+export type PunchInput = { place: 'project' | 'office'; projectId?: string | null; siteId?: string | null; lat: number; lng: number; accuracy: number; mocked: boolean };
 
 function form(p: PunchInput, selfie: Blob | { uri: string; name: string; type: string } | null) {
   const f = new FormData();
   f.append('place', p.place);
   if (p.projectId) f.append('projectId', p.projectId);
+  if (p.siteId) f.append('siteId', p.siteId);
   f.append('lat', String(p.lat));
   f.append('lng', String(p.lng));
   f.append('accuracy', String(p.accuracy));

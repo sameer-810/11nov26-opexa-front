@@ -34,3 +34,7 @@ export const can = (user: User | null | undefined, permission: string) => Boolea
 export const canSeeApprovals = (user: User | null | undefined) => [PERMS.APPROVAL_ACT, PERMS.APPROVAL_MANAGE, PERMS.PURCHASE_MANAGE].some((p) => can(user, p)) || user?.role === 'accounts';
 
 export const canEditBoq = (user: User | null | undefined) => can(user, PERMS.BOQ_EDIT) || can(user, PERMS.PROJECT_MANAGE);
+
+// Phase 4 (department isolation), same rules as the server: margins and client money are not for every report viewer.
+export const canSeeCosting = (user: User | null | undefined) => [PERMS.PROJECT_MANAGE, PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_VIEW].some((p) => can(user, p));
+export const canSeeReceivables = (user: User | null | undefined) => [PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_VIEW].some((p) => can(user, p));

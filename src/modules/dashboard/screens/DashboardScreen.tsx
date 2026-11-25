@@ -11,7 +11,7 @@ import { hm, type Today } from '../../attendance/types';
 import type { RootStackParamList } from '../../../navigation/types';
 import { routeForLink } from '../../../navigation/routeForLink';
 import { useAuth } from '../../../shared/store/useAuthStore';
-import { can, canSeeApprovals, PERMS } from '../../../shared/permissions';
+import { can, canSeeApprovals, PERMS, canSeeCosting, canSeeReceivables } from '../../../shared/permissions';
 import { lit, Backdrop } from '../../../shared/ui/Glass';
 import { Icon, type IconName } from '../../../shared/ui/Icon';
 import { formatShortMoney as short } from '../../../shared/format';
@@ -316,7 +316,7 @@ function quickTiles(navigation: Nav, user: ReturnType<typeof useAuth>['user'], s
     can(user, PERMS.SERVICE_MANAGE)
       ? { show: true, title: 'Service & warranty', body: 'Complaints, technician visits, AMC and warranty dates', icon: 'tool', tint: glass.sky, onPress: go('Service'), testID: 'tile-service' }
       : { show: can(user, PERMS.ATTENDANCE_SELF), title: 'My service jobs', body: 'Complaints given to you', icon: 'tool', tint: glass.sky, onPress: go('Service'), testID: 'tile-service' },
-    { show: manager || can(user, PERMS.REPORTS_VIEW), title: 'Project costing', body: 'Billed vs material, labour and site costs', icon: 'pie', tint: glass.indigo, onPress: go('Costing'), testID: 'tile-costing' },
+    { show: canSeeCosting(user), title: 'Project costing', body: 'Billed vs material, labour and site costs', icon: 'pie', tint: glass.indigo, onPress: go('Costing'), testID: 'tile-costing' },
     { show: can(user, PERMS.PAYROLL_MANAGE), title: 'Payroll', body: 'Monthly pay from attendance, advances, Tally', icon: 'wallet', tint: glass.green, onPress: go('Payroll'), testID: 'tile-payroll' },
     { show: true, title: 'My expenses', body: 'Claim expenses with the receipt; see approval and payment', icon: 'wallet', tint: glass.amber, onPress: go('MyExpenses'), testID: 'tile-expenses' },
     { show: can(user, PERMS.ATTENDANCE_SELF), title: 'My payslips', body: 'Your monthly pay', icon: 'rupee', tint: glass.violet, onPress: go('Payslips'), testID: 'tile-payslips' },
@@ -326,7 +326,7 @@ function quickTiles(navigation: Nav, user: ReturnType<typeof useAuth>['user'], s
     { show: manager || buyer || can(user, PERMS.STORE_MANAGE), title: s.returnsWaiting ? `Returns to confirm (${s.returnsWaiting})` : 'Returns to confirm', body: 'Material sent back from sites', icon: 'undo', tint: glass.pink, onPress: go('Returns'), testID: 'tile-returns' },
     { show: buyer, title: 'Material requests', body: s.openRequests === null ? 'Requests from all sites' : `${s.openRequests} open request${s.openRequests === 1 ? '' : 's'}`, icon: 'clipboard', tint: glass.indigo, onPress: go('Requisitions'), testID: 'tile-requisitions' },
     { show: can(user, PERMS.INVOICE_EDIT) || can(user, PERMS.SUPPLIER_INVOICE_VERIFY), title: 'Tally export', body: 'Vouchers, credit / debit notes, masters and reversals', icon: 'upload', tint: glass.green, onPress: go('Tally'), testID: 'tile-tally' },
-    { show: [PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.REPORTS_VIEW].some((p) => can(user, p)), title: 'Receivables', body: 'Client receipts, credit / debit notes, client ledger', icon: 'rupee', tint: glass.green, onPress: go('ClientReceipts'), testID: 'tile-receivables' },
+    { show: canSeeReceivables(user), title: 'Receivables', body: 'Client receipts, credit / debit notes, client ledger', icon: 'rupee', tint: glass.green, onPress: go('ClientReceipts'), testID: 'tile-receivables' },
     { show: [PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.PROJECT_MANAGE, PERMS.REPORTS_VIEW].some((p) => can(user, p)), title: 'Retention & guarantees', body: 'Retention to claim, bank guarantee expiries', icon: 'shield', tint: glass.violet, onPress: go('Commitments'), testID: 'tile-commitments' },
     { show: manager || site || can(user, PERMS.SUPPLIER_INVOICE_VERIFY), title: 'Subcontractors', body: 'Work orders, verified progress, payment certificates', icon: 'hardhat', tint: glass.amber, onPress: go('Subcontract'), testID: 'tile-subcontract' },
     { show: can(user, PERMS.STORE_MANAGE) || buyer || manager, title: 'Store', body: 'Stock by warehouse and site, transfers, issues, tools', icon: 'box', tint: glass.sky, onPress: go('Store'), testID: 'tile-store' },

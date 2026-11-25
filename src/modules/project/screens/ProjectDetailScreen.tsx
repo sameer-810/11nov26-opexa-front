@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
 import { ApiError } from '../../../shared/api/apiClient';
 import { useAuth } from '../../../shared/store/useAuthStore';
-import { can, canEditBoq, PERMS } from '../../../shared/permissions';
+import { can, canEditBoq, PERMS, canSeeCosting } from '../../../shared/permissions';
 import { CHALLAN_VIEWERS } from '../../../navigation/navItems';
 import { formatMoney } from '../../../shared/format';
 import { saveBlob } from '../../../shared/download';
@@ -119,7 +119,7 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
         <Button title="Installation log" variant="outline" onPress={() => navigation.navigate('Usage', { id })} testID="project-usage" />
         <Button title="Returns & transfers" variant="outline" onPress={() => navigation.navigate('ProjectReturns', { id })} testID="project-returns" />
         <Button title="Stock count" variant="outline" onPress={() => navigation.navigate('StockCount', { id })} testID="project-stock-count" />
-        {can(user, PERMS.PROJECT_MANAGE) || can(user, PERMS.REPORTS_VIEW) ? <Button title="Costing" variant="outline" onPress={() => navigation.navigate('ProjectCost', { id })} testID="project-costing" /> : null}
+        {canSeeCosting(user) ? <Button title="Costing" variant="outline" onPress={() => navigation.navigate('ProjectCost', { id })} testID="project-costing" /> : null}
         {can(user, PERMS.REQUISITION_CREATE) && project.status !== 'closed' && items.length > 0 ? (
           <Button title="New material request" variant="outline" onPress={() => navigation.navigate('NewRequisition', { projectId: id })} testID="project-new-requisition" />
         ) : null}

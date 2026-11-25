@@ -82,7 +82,7 @@ export function fieldRoutes(st: FieldState, path: string, method: string, body: 
   if (path.startsWith('/attendance/mine')) return ok({ month: '2026-11', daysPresent: attendance.records.length, totalMinutes: 0, records: attendance.records });
   if (path === '/attendance/check-in' || path === '/attendance/check-out') {
     const f = init.body as unknown as FormData;
-    const fields = Object.fromEntries(['place', 'projectId', 'lat', 'lng', 'accuracy', 'mocked'].map((k) => [k, f.get(k)]));
+    const fields = Object.fromEntries(['place', 'projectId', 'siteId', 'lat', 'lng', 'accuracy', 'mocked'].map((k) => [k, f.get(k)]));
     attendance.punches.push({ path, fields, selfie: !!f.get('selfie') });
     if (path === '/attendance/check-in') {
       if (Number(fields.lat) > 19.02) return fail(422, 'OUTSIDE_SITE', 'You are 1400 m from Worli. You must be within 200 m to check in.');

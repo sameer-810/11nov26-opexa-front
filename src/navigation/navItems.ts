@@ -1,5 +1,5 @@
 import type { User } from '../modules/auth/types';
-import { can, canSeeApprovals, PERMS } from '../shared/permissions';
+import { can, canSeeApprovals, PERMS, canSeeCosting, canSeeReceivables } from '../shared/permissions';
 import type { IconName } from '../shared/ui/Icon';
 import type { RootStackParamList } from './types';
 import { canPayExpenses, canSeeExpenseReport } from '../modules/expense/expenseApi';
@@ -27,11 +27,11 @@ export const NAV_ITEMS: NavItem[] = [
   { route: 'Service', label: 'Service & AMC', icon: 'tool', show: always, also: ['TicketDetail', 'NewTicket', 'ServiceAssets', 'HandoverAmc', 'Customers'] },
   { route: 'Sales', label: 'Sales', icon: 'trend', show: (u) => can(u, PERMS.SALES_MANAGE), also: ['NewLead', 'LeadDetail', 'QuoteForm'] },
   { route: 'MyExpenses', label: 'My expenses', icon: 'wallet', show: always, also: ['NewExpense', 'ExpenseForm', 'ExpenseCategories'] },
-  { route: 'ClientReceipts', label: 'Receivables', icon: 'rupee', show: (u) => any(u, [PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT, PERMS.REPORTS_VIEW]), also: ['ClientLedger', 'Notes'] },
+  { route: 'ClientReceipts', label: 'Receivables', icon: 'rupee', show: (u) => canSeeReceivables(u), also: ['ClientLedger', 'Notes'] },
   { route: 'Payables', label: 'Supplier payables', icon: 'rupee', show: canSeePayables, also: ['SupplierPayments', 'SupplierPaymentForm', 'SupplierPaymentDetail', 'SupplierLedger'] },
   { route: 'ExpensesToPay', label: 'Expenses to pay', icon: 'rupee', show: canPayExpenses },
   { route: 'ExpenseReport', label: 'Expense report', icon: 'funnel', show: canSeeExpenseReport },
-  { route: 'Costing', label: 'Costing', icon: 'pie', show: (u) => any(u, [PERMS.PROJECT_MANAGE, PERMS.REPORTS_VIEW]), also: ['ProjectCost'] },
+  { route: 'Costing', label: 'Costing', icon: 'pie', show: (u) => canSeeCosting(u), also: ['ProjectCost'] },
   { route: 'Overview', label: 'Analytics', icon: 'chart', show: (u) => can(u, PERMS.PROJECT_MANAGE) },
   { route: 'ActivityLog', label: 'Activity log', icon: 'shield', show: canSeeActivityLog },
   { route: 'Team', label: 'Team', icon: 'users', show: (u) => can(u, PERMS.TEAM_MANAGE) || can(u, PERMS.TEAM_VIEW), also: ['AddMember', 'MemberDetail'] },

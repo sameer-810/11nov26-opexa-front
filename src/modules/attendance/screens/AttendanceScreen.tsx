@@ -12,6 +12,8 @@ import { ErrorBanner } from '../../../shared/ui/Banner';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { attendanceApi } from '../api/attendanceApi';
+import { projectApi } from '../../project/api/projectApi';
+import type { ProjectSite } from '../../project/types';
 import { CaptureError, currentPosition, takeSelfie } from '../capture';
 import { FLAG_LABEL, hm, type Mine, type Today } from '../types';
 
@@ -22,6 +24,22 @@ export function AttendanceScreen({ navigation }: Props) {
   const [today, setToday] = useState<Today | null>(null);
   const [mine, setMine] = useState<Mine | null>(null);
   const [placeKey, setPlaceKey] = useState('');
+  // Phase 3: a project with several sites asks which one (each has its own location and radius).
+  const [sites, setSites] = useState<ProjectSite[]>([]);
+  const [siteId, setSiteId] = useState('');
+  useEffect(() => {
+    setSites([]);
+    setSiteId('');
+    if (!placeKey || placeKey === 'office') return;
+    let live = true;
+    projectApi.sites(placeKey).then((list) => {
+      if (!live) return;
+      const open = list.filter((x) => x.isActive);
+      setSites(open);
+      setSiteId(open.length === 1 ? open[0].id : '');
+    }).catch(() => undefined);
+    return () => { live = false; };
+  }, [placeKey]);
   const [step, setStep] = useState('');
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
@@ -53,13 +71,14 @@ export function AttendanceScreen({ navigation }: Props) {
     try {
       const place = today!.places.find((p) => (p.projectId ?? 'office') === placeKey);
       if (kind === 'in' && !place) throw new CaptureError('Choose where you are working today.');
+      if (kind === 'in' && sites.length > 1 && !siteId) throw new CaptureError('Choose the site you are at.');
       setStep('Getting your location…');
       const pos = await currentPosition();
       if (pos.mocked) throw new CaptureError('A fake-location app is on. Turn it off to mark attendance.');
       setStep(kind === 'in' ? 'Take a selfie…' : 'Saving…');
       const selfie = kind === 'in' ? await takeSelfie() : null;
       setStep('Saving…');
-      const input = { place: (place?.place ?? today!.open?.place ?? 'project') as 'project' | 'office', projectId: place?.projectId, ...pos };
+      const input = { place: (place?.place ?? today!.open?.place ?? 'project') as 'project' | 'office', projectId: place?.projectId, ...(siteId ? { siteId } : {}), ...pos };
       if (kind === 'in') {
         const r = await attendanceApi.checkIn(input, selfie);
         setMessage(`Checked in at ${r.checkIn.time}${r.project ? ` at ${r.project.name}` : ''}.`);
@@ -100,6 +119,7 @@ export function AttendanceScreen({ navigation }: Props) {
               options={today.places.map((p) => ({ value: p.projectId ?? 'office', label: p.hasLocation ? p.name : `${p.name} (no location set)` }))} />
           )}
           <Text style={styles.muted}>You must be at the site. Your GPS position and a selfie are saved with the check-in.</Text>
+          {sites.length > 1 ? <ChoiceChips label="Which site?" value={siteId} onChange={setSiteId} testID="att-site" options={sites.map((x) => ({ value: x.id, label: x.name }))} /> : null}
           <Button title="Check in" onPress={() => run('in')} loading={busy} disabled={!placeKey || !today.places.find((p) => (p.projectId ?? 'office') === placeKey)?.hasLocation} testID="att-check-in" style={styles.self} />
         </View>
       )}
