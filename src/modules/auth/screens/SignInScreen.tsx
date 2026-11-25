@@ -71,12 +71,7 @@ export function SignInScreen({ navigation }: Props) {
           onSubmitEditing={submit}
         />
         <Button title="Sign in" onPress={submit} loading={busy} testID="signin-submit" />
-        <Text style={styles.footer}>
-          New to Opexa?{' '}
-          <Text style={styles.link} onPress={() => navigation.navigate('SignUp')} accessibilityRole="link" testID="goto-signup">
-            Create a company account
-          </Text>
-        </Text>
+        <Text style={styles.footer} testID="signin-ask-admin">Need an account? Ask your company admin.</Text>
       </View>
     </AuthLayout>
   );
@@ -85,5 +80,4 @@ export function SignInScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   gap: { gap: 16 },
   footer: { textAlign: 'center', color: colors.textMuted, fontSize: 14 },
-  link: { color: colors.primary, fontWeight: '600' },
 });

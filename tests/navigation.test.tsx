@@ -17,10 +17,10 @@ describe('Phase 0 - public flow (web)', () => {
     expect(await screen.findByTestId('signin-screen')).toBeTruthy();
   });
 
-  test('landing -> Sign up', async () => {
+  test('landing -> Sign in (hero button)', async () => {
     await renderApp();
-    await fireEvent.press(await screen.findByTestId('hero-signup'));
-    expect(await screen.findByTestId('signup-screen')).toBeTruthy();
+    await fireEvent.press(await screen.findByTestId('hero-signin'));
+    expect(await screen.findByTestId('signin-screen')).toBeTruthy();
   });
 
   test('protected /app redirects to sign in when signed out', async () => {

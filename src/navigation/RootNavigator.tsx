@@ -6,7 +6,6 @@ import { can, canSeeApprovals, PERMS } from '../shared/permissions';
 import { colors } from '../shared/designSystem';
 import { LandingScreen } from '../modules/landing/screens/LandingScreen';
 import { SignInScreen } from '../modules/auth/screens/SignInScreen';
-import { SignUpScreen } from '../modules/auth/screens/SignUpScreen';
 import { DashboardScreen } from '../modules/dashboard/screens/DashboardScreen';
 import { TeamScreen } from '../modules/team/screens/TeamScreen';
 import { AddMemberScreen } from '../modules/team/screens/AddMemberScreen';
@@ -235,7 +234,6 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
     <Stack.Navigator initialRouteName={showLanding ? 'Landing' : 'SignIn'} screenOptions={screenOptions}>
       {showLanding && <Stack.Screen name="Landing" component={LandingScreen} options={{ title: 'Opexa - HVAC project management' }} />}
       <Stack.Screen name="SignIn" component={SignInScreen} options={{ title: 'Opexa - Sign in' }} />
-      <Stack.Screen name="SignUp" component={SignUpScreen} options={{ title: 'Opexa - Sign up' }} />
       {PROTECTED_ROUTES.map((name) => (
         <Stack.Screen key={name} name={name} component={RedirectToSignIn} />
       ))}

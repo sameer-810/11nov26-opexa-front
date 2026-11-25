@@ -8,7 +8,7 @@ import { setOutboxUser } from '../offline/outbox';
 
 const ME_KEY = 'opexa.me'; // last signed-in profile, so the app opens without network
 import { authApi } from '../../modules/auth/api/authApi';
-import type { AuthResponse, Organization, SignInInput, SignUpInput, User } from '../../modules/auth/types';
+import type { AuthResponse, Organization, SignInInput, User } from '../../modules/auth/types';
 
 const REFRESH_KEY = 'opexa.refreshToken';
 
@@ -20,7 +20,6 @@ type AuthState = {
   user: User | null;
   organization: Organization | null;
   signIn: (input: SignInInput) => Promise<void>;
-  signUp: (input: SignUpInput) => Promise<void>;
   signOut: () => Promise<void>;
   setCurrentUser: (user: User) => void;
 };
@@ -103,7 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshAccessToken]);
 
   const signIn = useCallback(async (input: SignInInput) => apply(await authApi.signIn(input)), [apply]);
-  const signUp = useCallback(async (input: SignUpInput) => apply(await authApi.signUp(input)), [apply]);
   const signOut = useCallback(async () => {
     await unregisterPush(); // needs the session, so before revoking it
     const stored = await kvStore.get(REFRESH_KEY);
@@ -120,8 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setCurrentUser = useCallback((u: User) => setUser(u), []);
 
   const value = useMemo(
-    () => ({ status, isSignedIn: status === 'signedIn', user, organization, signIn, signUp, signOut, setCurrentUser }),
-    [status, user, organization, signIn, signUp, signOut, setCurrentUser],
+    () => ({ status, isSignedIn: status === 'signedIn', user, organization, signIn, signOut, setCurrentUser }),
+    [status, user, organization, signIn, signOut, setCurrentUser],
   );
   return createElement(AuthContext.Provider, { value }, children);
 }

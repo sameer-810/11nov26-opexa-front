@@ -11,53 +11,24 @@ const owner = {
   password: 'Airtech2026',
 };
 
-async function fillSignUp(values = owner, confirm = owner.password) {
-  await fireEvent.changeText(screen.getByTestId('signup-company'), values.companyName);
-  await fireEvent.changeText(screen.getByTestId('signup-name'), values.name);
-  await fireEvent.changeText(screen.getByTestId('signup-email'), values.email);
-  await fireEvent.changeText(screen.getByTestId('signup-phone'), values.phone);
-  await fireEvent.changeText(screen.getByTestId('signup-password'), values.password);
-  await fireEvent.changeText(screen.getByTestId('signup-confirm'), confirm);
+async function signInAsOwner() {
+  await renderApp({ showLanding: false });
+  await fireEvent.changeText(await screen.findByTestId('signin-email'), owner.email);
+  await fireEvent.changeText(screen.getByTestId('signin-password'), owner.password);
+  await fireEvent.press(screen.getByTestId('signin-submit'));
 }
 
-async function openSignUp() {
-  await renderApp();
-  await fireEvent.press(await screen.findByTestId('hero-signup'));
-  await screen.findByTestId('signup-screen');
-}
-
-describe('Phase 1 - Sign up', () => {
-  test('creates the company and opens the dashboard', async () => {
+describe('Sign-up is closed (accounts are created by the company admin)', () => {
+  test('landing and sign-in offer only "Sign in", and the old /signup address is not a screen', async () => {
     installMockApi();
-    await openSignUp();
-    await fillSignUp();
-    await fireEvent.press(screen.getByTestId('signup-submit'));
-    expect(await screen.findByTestId('dashboard-screen')).toBeTruthy();
-    expect(screen.getByTestId('dashboard-company')).toHaveTextContent('Global Airtech');
-    expect(screen.getByTestId('dashboard-welcome')).toHaveTextContent('Welcome, Ehtesham');
-    expect(await kvStore.get('opexa.refreshToken')).toBeTruthy();
-  });
-
-  test('shows field errors and does not call the API when the form is invalid', async () => {
-    const { fetchMock } = installMockApi();
-    await openSignUp();
-    await fillSignUp({ ...owner, email: 'bad', password: 'short' }, 'different');
-    await fireEvent.press(screen.getByTestId('signup-submit'));
-    expect(screen.getByTestId('signup-email-error')).toHaveTextContent('Enter a valid email address');
-    expect(screen.getByTestId('signup-password-error')).toHaveTextContent(/at least 8 characters/);
-    expect(screen.getByTestId('signup-confirm-error')).toHaveTextContent('Passwords do not match');
-    const signupCalls = fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/auth/signup'));
-    expect(signupCalls).toHaveLength(0);
-  });
-
-  test('shows the server error when the email is already registered', async () => {
-    const mock = installMockApi();
-    mock.addUser(owner);
-    await openSignUp();
-    await fillSignUp();
-    await fireEvent.press(screen.getByTestId('signup-submit'));
-    expect(await screen.findByTestId('signup-error')).toHaveTextContent(/already exists/);
-    expect(screen.getByTestId('signup-email-error')).toHaveTextContent('Already registered');
+    const ref = await renderApp();
+    await screen.findByTestId('landing-screen');
+    expect(screen.queryByTestId('hero-signup')).toBeNull();
+    expect(screen.queryByTestId('header-signup')).toBeNull();
+    await fireEvent.press(screen.getByTestId('hero-signin'));
+    expect(await screen.findByTestId('signin-ask-admin')).toHaveTextContent(/Ask your company admin/);
+    expect(screen.queryByTestId('goto-signup')).toBeNull();
+    expect(ref.getRootState()?.routeNames).not.toContain('SignUp');
   });
 });
 
@@ -85,10 +56,8 @@ describe('Phase 1 - Sign in and sign out', () => {
   });
 
   test('a saved session is restored on app start (stays signed in after reload)', async () => {
-    installMockApi();
-    await openSignUp();
-    await fillSignUp();
-    await fireEvent.press(screen.getByTestId('signup-submit'));
+    installMockApi().addUser(owner);
+    await signInAsOwner();
     await screen.findByTestId('dashboard-screen');
     await cleanup();
 

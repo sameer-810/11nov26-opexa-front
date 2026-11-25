@@ -1,14 +1,13 @@
 import type { LinkingOptions } from '@react-navigation/native';
 import type { RootStackParamList } from './types';
 
-// Web URLs: /  /signin  /signup  /app  /app/team  /app/team/new  /app/team/:id  /app/account/password
+// Web URLs: /  /signin  /app  /app/team  /app/team/new  /app/team/:id  /app/account/password
 export const linking: LinkingOptions<RootStackParamList> = {
   prefixes: ['opexa://'],
   config: {
     screens: {
       Landing: '',
       SignIn: 'signin',
-      SignUp: 'signup',
       Dashboard: 'app',
       Team: 'app/team',
       AddMember: 'app/team/new',

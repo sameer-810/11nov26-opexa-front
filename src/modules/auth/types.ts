@@ -19,5 +19,4 @@ export type Organization = { id: string; name: string; phone: string | null };
 
 export type AuthResponse = { accessToken: string; refreshToken: string; user: User; organization: Organization };
 
-export type SignUpInput = { companyName: string; name: string; email: string; phone: string; password: string };
 export type SignInInput = { email: string; password: string };

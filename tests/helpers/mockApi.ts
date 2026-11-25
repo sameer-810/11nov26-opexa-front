@@ -126,11 +126,6 @@ export function installMockApi() {
     const token = init?.headers?.Authorization?.replace('Bearer ', '');
     const me = token ? users.get(accessTokens.get(token) ?? '') : undefined;
 
-    if (path === '/auth/signup') {
-      if (users.has(body.email.toLowerCase())) return fail(409, 'EMAIL_TAKEN', 'An account with this email already exists', [{ field: 'email', message: 'Already registered' }]);
-      addUser({ ...body, role: 'owner' });
-      return ok(session(body.email.toLowerCase()), 201);
-    }
     if (path === '/auth/signin') {
       const u = users.get(body.email.toLowerCase());
       if (!u || u.password !== body.password) return fail(401, 'INVALID_CREDENTIALS', 'Email or password is incorrect');

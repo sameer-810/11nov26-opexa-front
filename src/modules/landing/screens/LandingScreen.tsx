@@ -17,7 +17,6 @@ export function LandingScreen({ navigation }: Props) {
         <Text style={styles.logo} accessibilityRole="header">Opexa</Text>
         <View style={styles.row}>
           <Button title="Sign in" variant="ghost" onPress={() => navigation.navigate('SignIn')} testID="header-signin" />
-          <Button title="Get started" onPress={() => navigation.navigate('SignUp')} testID="header-signup" />
         </View>
       </View>
 
@@ -30,8 +29,7 @@ export function LandingScreen({ navigation }: Props) {
           instead of WhatsApp lists and Excel sheets.
         </Text>
         <View style={styles.row}>
-          <Button title="Create your company account" onPress={() => navigation.navigate('SignUp')} testID="hero-signup" />
-          <Button title="Sign in" variant="outline" onPress={() => navigation.navigate('SignIn')} testID="hero-signin" />
+          <Button title="Sign in" onPress={() => navigation.navigate('SignIn')} testID="hero-signin" />
         </View>
       </View>
 
