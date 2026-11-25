@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
@@ -14,13 +14,18 @@ import { ROLE_HINT, ROLE_LABEL, type NewMemberInput } from '../types';
 import { generateTempPassword, validateNewMember, type MemberErrors } from '../team.validation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddMember'>;
-const ROLES = ['project_manager', 'engineer', 'supervisor', 'purchaser', 'store_incharge', 'service_head', 'accounts', 'hr', 'hod', 'director', 'admin', 'staff'] as const;
+const ROLES = ['project_manager', 'engineer', 'supervisor', 'purchaser', 'store_incharge', 'service_head', 'accounts', 'hr', 'hod', 'director', 'admin', 'staff', 'worker', 'contractor'] as const;
 
 export function AddMemberScreen({ navigation }: Props) {
   const [form, setForm] = useState<NewMemberInput>({ name: '', email: '', phone: '', role: '', password: generateTempPassword() });
   const [errors, setErrors] = useState<MemberErrors>({});
   const [formError, setFormError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [subcontractors, setSubcontractors] = useState<{ id: string; name: string }[]>([]);
+  // A contractor login belongs to one subcontractor (Phase 2 access).
+  useEffect(() => {
+    if (form.role === 'contractor' && !subcontractors.length) void teamApi.assignmentOptions().then((o) => setSubcontractors(o.subcontractors)).catch(() => undefined);
+  }, [form.role, subcontractors.length]);
 
   const set = (k: keyof NewMemberInput) => (v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -34,7 +39,8 @@ export function AddMemberScreen({ navigation }: Props) {
     if (Object.keys(found).length) return;
     setBusy(true);
     try {
-      const member = await teamApi.create({ ...form, email: form.email.trim() });
+      const { subcontractorId, ...rest } = form;
+      const member = await teamApi.create({ ...rest, email: form.email.trim(), ...(form.role === 'contractor' && subcontractorId ? { subcontractorId } : {}) });
       navigation.replace('MemberDetail', { id: member.id, tempPassword: form.password });
     } catch (e) {
       if (e instanceof ApiError) {
@@ -64,6 +70,9 @@ export function AddMemberScreen({ navigation }: Props) {
           error={errors.role}
           options={ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r], hint: ROLE_HINT[r] }))}
         />
+        {form.role === 'contractor' ? (
+          <ChoiceChips label="Subcontractor" testID="member-subcontractor" value={form.subcontractorId ?? ''} onChange={set('subcontractorId')} error={errors.subcontractorId} options={subcontractors.map((s) => ({ value: s.id, label: s.name }))} />
+        ) : null}
         <TextField label="Temporary password" testID="member-password" value={form.password} onChangeText={set('password')} error={errors.password} autoCapitalize="characters" />
         <Button title="Generate a new password" variant="ghost" onPress={() => set('password')(generateTempPassword())} testID="member-generate" />
         <Button title="Add member" onPress={submit} loading={busy} testID="member-submit" />

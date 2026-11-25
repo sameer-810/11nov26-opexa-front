@@ -20,6 +20,8 @@ import { generateTempPassword } from '../team.validation';
 import { ROLE_HINT, ROLE_LABEL, type TeamMember } from '../types';
 import type { Role } from '../../auth/types';
 import { DepartmentPicker } from '../../department/DepartmentPicker';
+import { ProjectAssignments } from '../components/ProjectAssignments';
+import { can, PERMS } from '../../../shared/permissions';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MemberDetail'>;
 
@@ -144,6 +146,8 @@ export function MemberDetailScreen({ navigation, route }: Props) {
           <Button title="Save changes" onPress={save} loading={busy === 'save'} disabled={!changed} testID="save-member" />
         </>
       )}
+
+      {!isOwner ? <ProjectAssignments userId={member.id} canEdit={can(me, PERMS.TEAM_MANAGE)} /> : null}
 
       {!isOwner && !isSelf ? (
         <View style={styles.card}>

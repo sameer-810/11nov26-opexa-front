@@ -87,3 +87,7 @@ export type ImportResult = { rows: ImportRow[]; validCount: number; errorCount: 
 export type AssignableUser = { id: string; name: string; email: string; role: string; canManage?: boolean };
 
 export const STATUS_LABEL: Record<ProjectStatus, string> = { active: 'Active', closing: 'Closing', closed: 'Closed' };
+
+// Phase 2 access: a site of a project (the main site is the project's own address and GPS point).
+export type ProjectSite = { id: string; projectId: string; code: string; name: string; address: string; location: { lat: number; lng: number } | null; geofenceRadiusM: number; isMain: boolean; isActive: boolean };
+export type SiteInput = { name: string; address?: string; location?: { lat: number; lng: number } | null; geofenceRadiusM?: number };

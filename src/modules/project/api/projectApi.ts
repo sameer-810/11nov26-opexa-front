@@ -1,5 +1,5 @@
 import { api, apiBlob } from '../../../shared/api/apiClient';
-import type { AssignableUser, BoqColumn, BoqFormat, BoqItem, BoqItemInput, BoqView, ImportResult, MilestoneInput, MilestoneList, Project, ProjectInput } from '../types';
+import type { AssignableUser, ProjectSite, SiteInput, BoqColumn, BoqFormat, BoqItem, BoqItemInput, BoqView, ImportResult, MilestoneInput, MilestoneList, Project, ProjectInput } from '../types';
 
 export const projectApi = {
   list: () => api<Project[]>('/projects'),
@@ -8,6 +8,10 @@ export const projectApi = {
   update: (id: string, body: Partial<ProjectInput>) => api<Project>(`/projects/${id}`, { method: 'PATCH', body }),
   setMembers: (id: string, memberIds: string[]) => api<Project>(`/projects/${id}/members`, { method: 'PUT', body: { memberIds } }),
   assignableUsers: () => api<AssignableUser[]>('/projects/assignable-users'),
+  // Phase 2 access: a project's sites (people limited to some sites get only theirs).
+  sites: (id: string) => api<ProjectSite[]>(`/projects/${id}/sites`),
+  addSite: (id: string, body: SiteInput) => api<ProjectSite>(`/projects/${id}/sites`, { method: 'POST', body }),
+  updateSite: (id: string, siteId: string, body: Partial<SiteInput> & { isActive?: boolean }) => api<ProjectSite>(`/projects/${id}/sites/${siteId}`, { method: 'PATCH', body }),
 
   boq: (id: string) => api<BoqItem[]>(`/projects/${id}/boq`),
   addItem: (id: string, body: BoqItemInput) => api<BoqItem>(`/projects/${id}/boq`, { method: 'POST', body }),

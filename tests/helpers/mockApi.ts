@@ -9,6 +9,8 @@ export function installMockApi() {
   const accessTokens = new Map<string, string>(); // token -> email
   let n = 0;
   const projects: MockProject[] = [];
+  // Phase 2 access: sites per project id (none = the project has only its main site, not listed).
+  const sites: Record<string, { id: string; projectId: string; code: string; name: string; address: string; location: null; geofenceRadiusM: number; isMain: boolean; isActive: boolean }[]> = {};
   const boq: { id: string; projectId: string; serialNo: string; quantity: number; rate: number; amount: number; tendered?: boolean; additionalStatus?: string | null }[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const reqs: any[] = [];
@@ -175,7 +177,7 @@ export function installMockApi() {
       if (missing.length) {
         return fail(422, 'OVER_BOQ', 'Some items go beyond the work order (BOQ).', missing.map((l: { workOrderItemId: string; serialNo: string; boqQty: number; previouslyRequested: number; qtyRequested: number; overBy: number }) => ({ field: l.workOrderItemId, message: 'over', serialNo: l.serialNo, boqQty: l.boqQty, previouslyRequested: l.previouslyRequested, qtyRequested: l.qtyRequested, overBy: l.overBy })));
       }
-      const header = { note: body.remarks ?? body.note ?? '', remarks: body.remarks ?? body.note ?? '', deliveryAddress: body.deliveryAddress ?? '', neededBy: body.neededBy ?? null, overBoq: lines.some((l: { overBy: number }) => l.overBy > 0), lines };
+      const header = { siteId: body.siteId ?? null, note: body.remarks ?? body.note ?? '', remarks: body.remarks ?? body.note ?? '', deliveryAddress: body.deliveryAddress ?? '', neededBy: body.neededBy ?? null, overBoq: lines.some((l: { overBy: number }) => l.overBy > 0), lines };
       if (editReq) {
         const r = reqs.find((x) => x.id === editReq[1]);
         if (r.status !== 'sent_back') return fail(409, 'NOT_SENT_BACK', 'Only a request sent back for changes can be edited and resubmitted');
@@ -205,6 +207,8 @@ export function installMockApi() {
       vendors.push(v);
       return ok(v, 201);
     }
+    const siteList = path.match(/^\/projects\/([^/]+)\/sites$/);
+    if (siteList && method === 'GET') return ok(sites[siteList[1]] ?? []);
     if (path === '/lots/to-receive') {
       const mine = projects.filter((p) => perms(me).includes('project.manage') || (perms(me).includes('receiving.record') && p.memberIds.includes(me.id)));
       return ok(allLots().filter(({ p, l }) => !l.receivedAt && mine.some((x) => x.id === p.projectId)).map(({ p, l }) => ({ ...lotDto(p, l), projectId: p.projectId, projectName: 'Worli', projectCode: 'P-001' })));
@@ -445,5 +449,5 @@ export function installMockApi() {
   };
 
   (globalThis as unknown as { fetch: unknown }).fetch = fetchMock;
-  return { fetchMock, net, users, addUser, byEmail: (e: string) => users.get(e.toLowerCase()), projects, boq, reqs, approvals, vendors, pos, rfqs, inventory, finance, subcontract, billing, commitments, handover, localPurchases, materialRows, returns, usage, counts, overview, attendance, payroll, service, sales };
+  return { fetchMock, net, users, addUser, byEmail: (e: string) => users.get(e.toLowerCase()), projects, sites, boq, reqs, approvals, vendors, pos, rfqs, inventory, finance, subcontract, billing, commitments, handover, localPurchases, materialRows, returns, usage, counts, overview, attendance, payroll, service, sales };
 }

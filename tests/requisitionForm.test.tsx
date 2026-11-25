@@ -129,3 +129,19 @@ describe('1B - Material request form', () => {
     });
   });
 });
+
+test('Phase 2 access - with two sites the engineer picks the site; the address follows it and the site is sent', async () => {
+  const { api } = setup();
+  api.sites.p1 = [
+    { id: 'sA', projectId: 'p1', code: 'S-01', name: 'Main site', address: 'Worli Sea Face, Mumbai', location: null, geofenceRadiusM: 200, isMain: true, isActive: true },
+    { id: 'sB', projectId: 'p1', code: 'S-02', name: 'Tower B', address: 'Tower B gate 2, Worli', location: null, geofenceRadiusM: 200, isMain: false, isActive: true },
+  ];
+  await openProject();
+  await fireEvent.press(await screen.findByTestId('project-new-requisition'));
+  await fireEvent.press(await screen.findByText('Tower B'));
+  await waitFor(() => expect(screen.getByTestId('req-address').props.value).toBe('Tower B gate 2, Worli'));
+  await fireEvent.changeText(screen.getByTestId('req-qty-1'), '2');
+  await fireEvent.press(screen.getByTestId('req-submit'));
+  expect(await screen.findByTestId('req-created')).toBeTruthy();
+  expect(api.reqs[0]).toMatchObject({ siteId: 'sB', deliveryAddress: 'Tower B gate 2, Worli' });
+});

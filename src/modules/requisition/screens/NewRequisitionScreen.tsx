@@ -16,7 +16,7 @@ import { requisitionApi, type PickedFile } from '../api/requisitionApi';
 import type { Attachment, BalanceRow, NewRequisition, OverBoqLine, Requisition } from '../types';
 import { submitOrQueue } from '../../../shared/offline/outbox';
 import { projectApi } from '../../project/api/projectApi';
-import type { Project } from '../../project/types';
+import type { Project, ProjectSite } from '../../project/types';
 import { PackageMaterialLines, packageLinesFor, type PackageLine } from '../../inventory/components/PackageMaterialLines';
 import { BoqLines, type BoqEntry } from '../components/BoqLines';
 import { ExtraMaterialLines, extraLinesFor, type ExtraLine } from '../components/ExtraMaterialLines';
@@ -40,6 +40,8 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
   const [extras, setExtras] = useState<PackageLine[]>([]);
   const [others, setOthers] = useState<ExtraLine[]>([]);
   const [address, setAddress] = useState('');
+  const [sites, setSites] = useState<ProjectSite[]>([]);
+  const [siteId, setSiteId] = useState('');
   const [neededBy, setNeededBy] = useState('');
   const [remarks, setRemarks] = useState('');
   const [picked, setPicked] = useState<PickedFile[]>([]);
@@ -61,6 +63,13 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
     requisitionApi.balance(projectId).then((r) => { if (live) setRows(r); }).catch((e) => { if (live) setLoadError(e instanceof ApiError ? e.message : 'Could not load the BOQ'); });
     // Delivery address starts as the project's site address; the user may change it.
     if (!editing) projectApi.get(projectId).then((p) => { if (live) setAddress(p.siteAddress ?? ''); }).catch(() => undefined);
+    // The sites this person may raise for: the main site first; with one site there is nothing to choose.
+    if (!editing) projectApi.sites(projectId).then((list) => {
+      if (!live) return;
+      const open = list.filter((x) => x.isActive);
+      setSites(open);
+      setSiteId((open.find((x) => x.isMain) ?? open[0])?.id ?? '');
+    }).catch(() => { if (live) { setSites([]); setSiteId(''); } });
     return () => { live = false; };
   }, [projectId, editing]);
 
@@ -110,6 +119,7 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
         ...packageLinesFor(extras),
         ...extraLinesFor(others),
       ],
+      ...(siteId && !requisitionId ? { siteId } : {}),
       deliveryAddress: address.trim(),
       remarks: remarks.trim(),
       ...(neededBy.trim() ? { neededBy: neededBy.trim() } : {}),
@@ -170,6 +180,9 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
         <ChoiceChips label="1. Project" options={projects.map((p) => ({ value: p.id, label: `${p.code} · ${p.name}` }))} value={projectId} onChange={chooseProject} testID="req-project" />
       ) : current ? (
         <Text style={styles.section} testID="req-project-fixed">1. Project: {current.code} · {current.name}</Text>
+      ) : null}
+      {sites.length > 1 ? (
+        <ChoiceChips label="Site" value={siteId} onChange={(v) => { setSiteId(v); const site = sites.find((x) => x.id === v); if (site?.address) setAddress(site.address); }} options={sites.map((x) => ({ value: x.id, label: x.name }))} testID="req-site" />
       ) : null}
       <TextField label="2. Delivery address" value={address} onChangeText={setAddress} placeholder="Site address, gate, floor…" maxLength={300} multiline testID="req-address" />
 

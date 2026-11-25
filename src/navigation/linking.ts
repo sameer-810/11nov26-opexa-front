@@ -19,6 +19,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       ProjectDetail: 'app/projects/:id',
       EditProject: 'app/projects/:id/edit',
       ProjectTeam: 'app/projects/:id/team',
+      ProjectSites: 'app/projects/:id/sites',
       BoqImport: 'app/projects/:id/boq/import',
       Requisitions: 'app/requisitions',
       NewRequisition: 'app/projects/:projectId/requisitions/new',

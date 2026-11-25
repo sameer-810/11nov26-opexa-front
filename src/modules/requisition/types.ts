@@ -58,6 +58,8 @@ export type Attachment = { id: string; name: string; contentType: string; size: 
 export type NewRequisitionLine = { workOrderItemId?: string; materialId?: string; billable?: boolean; qty: number; reason?: string; specification?: string; extraWorkItemId?: string };
 export type NewRequisition = {
   lines: NewRequisitionLine[];
+  // Phase 2 access: the site the material is for (the project's main site when left out).
+  siteId?: string;
   deliveryAddress?: string;
   neededBy?: string;
   remarks?: string;
