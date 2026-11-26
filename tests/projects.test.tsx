@@ -40,7 +40,8 @@ describe('Phase 3 - Projects (owner)', () => {
 
     await fireEvent.press(screen.getByTestId('add-boq-item'));
     await fireEvent.changeText(screen.getByTestId('bi-desc'), 'Split AC 2 TR');
-    await fireEvent.changeText(screen.getByTestId('bi-unit'), 'Nos');
+    await fireEvent.press(screen.getByTestId('bi-unit'));
+    await fireEvent.press(screen.getByTestId('bi-unit-Nos'));
     await fireEvent.changeText(screen.getByTestId('bi-qty'), '8');
     await fireEvent.changeText(screen.getByTestId('bi-rate'), '52,000');
     await fireEvent.press(screen.getByTestId('bi-save'));
@@ -61,7 +62,8 @@ describe('Phase 3 - Projects (owner)', () => {
     expect(screen.getByTestId('bi-qty-error')).toHaveTextContent('Qty: More than 0');
     await fireEvent.changeText(screen.getByTestId('bi-serial'), '1');
     await fireEvent.changeText(screen.getByTestId('bi-desc'), 'Duplicate');
-    await fireEvent.changeText(screen.getByTestId('bi-unit'), 'Nos');
+    await fireEvent.press(screen.getByTestId('bi-unit'));
+    await fireEvent.press(screen.getByTestId('bi-unit-Nos'));
     await fireEvent.changeText(screen.getByTestId('bi-qty'), '2');
     await fireEvent.press(screen.getByTestId('bi-save'));
     expect(await screen.findByTestId('boq-item-error')).toHaveTextContent(/already exists/);

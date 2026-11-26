@@ -4,6 +4,7 @@ import { installMockApi } from './helpers/mockApi';
 import { installBoqMock } from './helpers/mockBoqApi';
 import { renderApp } from './helpers/renderApp';
 import { BoqTable } from '../src/modules/project/components/BoqTable';
+import { BoqItemForm } from '../src/modules/project/components/BoqItemForm';
 import type { BoqColumn } from '../src/modules/project/types';
 
 jest.mock('expo-location', () => ({
@@ -42,7 +43,8 @@ describe('Q18 - BOQ format choice', () => {
     await fireEvent.press(screen.getByTestId('add-boq-item'));
     expect(screen.queryByTestId('bi-rate')).toBeNull();
     await fireEvent.changeText(screen.getByTestId('bi-desc'), 'Ductable AC 8.5 TR');
-    await fireEvent.changeText(screen.getByTestId('bi-unit'), 'Nos');
+    await fireEvent.press(screen.getByTestId('bi-unit'));
+    await fireEvent.press(screen.getByTestId('bi-unit-Nos'));
     await fireEvent.changeText(screen.getByTestId('bi-qty'), '10');
     await fireEvent.changeText(screen.getByTestId('bi-supply-rate'), '40,000');
     await fireEvent.changeText(screen.getByTestId('bi-installation-rate'), '2,500');
@@ -142,5 +144,18 @@ describe('Q19 - BOQ columns', () => {
     expect(screen.getByTestId('boq-over-1')).toHaveTextContent('Over BOQ by 1 Nos');
     expect(screen.getByTestId('boq-total')).toHaveTextContent(/3,20,000/);
     RN.Dimensions.set({ window: wide, screen: wide });
+  });
+});
+
+describe('BOQ unit dropdown', () => {
+  test('offers the company units, and keeps an imported unit that is not in the list', async () => {
+    const item = { id: 'i1', projectId: 'p1', serialNo: '1', description: 'Duct', unit: 'Set', quantity: 1, rate: 10, amount: 10 };
+    await render(<BoqItemForm initial={item} onSave={async () => undefined} onCancel={() => undefined} />);
+    expect(screen.queryByTestId('bi-unit-menu')).toBeNull();
+    await fireEvent.press(screen.getByTestId('bi-unit'));
+    for (const u of ['Nos', 'RMT', 'sqmtr', 'Rmtr', 'kg', 'Sq.mtr', 'Lot', 'No', 'Set']) expect(screen.getByTestId(`bi-unit-${u}`)).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('bi-unit-RMT'));
+    expect(screen.queryByTestId('bi-unit-menu')).toBeNull();
+    expect(screen.getByTestId('bi-unit')).toHaveTextContent(/RMT/);
   });
 });

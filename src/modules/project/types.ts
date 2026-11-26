@@ -26,6 +26,8 @@ export type Project = {
 };
 
 export type BoqFormat = 'sitc' | 'supply_installation';
+// Units offered in the BOQ item form, as the company writes them.
+export const BOQ_UNITS: string[] = ['Nos', 'RMT', 'sqmtr', 'Rmtr', 'kg', 'Sq.mtr', 'Lot', 'No'];
 export const BOQ_FORMAT_LABEL: Record<BoqFormat, string> = { sitc: 'SITC (one rate)', supply_installation: 'Supply + Installation' };
 export type BoqColumnKey =
   | 'serialNo' | 'description' | 'unit' | 'quantity' | 'supplyRate' | 'installationRate' | 'rate'

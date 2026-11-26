@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError } from '../../../shared/api/apiClient';
 import { formatMoney, parseNumber } from '../../../shared/format';
 import { Button } from '../../../shared/ui/Button';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { validateItemForm, type ItemErrors, type ItemForm } from '../project.validation';
-import type { BoqFormat, BoqItem, BoqItemInput } from '../types';
+import { BOQ_UNITS, type BoqFormat, type BoqItem, type BoqItemInput } from '../types';
 
 type Props = {
   initial?: BoqItem;
@@ -33,6 +33,7 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<'' | 'save' | 'delete'>('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [unitOpen, setUnitOpen] = useState(false);
 
   const set = (k: keyof ItemForm) => (v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -81,6 +82,8 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
     }
   };
 
+  // An item imported with a unit outside the list keeps it as a choice.
+  const unitOptions = form.unit && !BOQ_UNITS.includes(form.unit) ? [...BOQ_UNITS, form.unit] : BOQ_UNITS;
   const qty = parseNumber(form.quantity) ?? 0;
   const amt = (r: string) => formatMoney(qty * (parseNumber(r) ?? 0));
   const input = (k: keyof ItemForm, label: string, testID: string, width: number, num = false) => ({ k, label, testID, width, num });
@@ -113,7 +116,20 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
             {cells.map((c) => <Text key={c.label} style={[styles.th, { width: c.width }]}>{c.label}</Text>)}
           </View>
           <View style={styles.row}>
-            {cells.map((c) => ('k' in c ? (
+            {cells.map((c) => ('k' in c ? (c.k === 'unit' ? (
+              <Pressable
+                key={c.label}
+                testID={c.testID}
+                accessibilityRole="button"
+                accessibilityLabel={`Unit: ${form.unit || 'not chosen'}`}
+                accessibilityState={{ expanded: unitOpen }}
+                onPress={() => setUnitOpen((o) => !o)}
+                style={[styles.input, styles.select, { width: c.width }, errors.unit ? styles.inputError : null]}
+              >
+                <Text style={form.unit ? styles.selectText : styles.placeholder}>{form.unit || 'Choose'}</Text>
+                <Text style={styles.placeholder}>▾</Text>
+              </Pressable>
+            ) : (
               <TextInput
                 key={c.label}
                 testID={c.testID}
@@ -122,16 +138,30 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
                 onChangeText={set(c.k)}
                 keyboardType={c.num ? 'decimal-pad' : 'default'}
                 maxLength={c.k === 'remarks' ? 500 : undefined}
-                placeholder={c.k === 'unit' ? 'Nos' : undefined}
-                placeholderTextColor="#94A3B8"
                 style={[styles.input, { width: c.width }, c.num && styles.right, errors[c.k] ? styles.inputError : null]}
               />
-            ) : (
+            )) : (
               <Text key={c.label} style={[styles.td, styles.right, { width: c.width }]} testID={c.testID}>{c.value}</Text>
             )))}
           </View>
         </View>
       </ScrollView>
+      {unitOpen ? (
+        <View style={styles.menu} accessibilityRole="menu" testID="bi-unit-menu">
+          {unitOptions.map((u) => (
+            <Pressable
+              key={u}
+              accessibilityRole="menuitem"
+              accessibilityState={{ selected: u === form.unit }}
+              onPress={() => { set('unit')(u); setUnitOpen(false); }}
+              style={({ pressed }) => [styles.option, u === form.unit && styles.optionOn, pressed && styles.optionOn]}
+              testID={`bi-unit-${u}`}
+            >
+              <Text style={styles.selectText}>{u}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       {shownErrors.map((e) => <Text key={e.label} style={styles.error} testID={`${e.testID}-error`}>{e.label}: {e.message}</Text>)}
       <View style={styles.actions}>
         <Button title={initial ? 'Save item' : 'Add item'} onPress={save} loading={busy === 'save'} testID="bi-save" />
@@ -157,6 +187,12 @@ const styles = StyleSheet.create({
   inputError: { backgroundColor: '#FEF2F2', borderColor: colors.danger, borderWidth: 1 },
   right: { textAlign: 'right' },
   error: { fontSize: 13, color: colors.danger },
+  select: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  selectText: { fontSize: 14, color: colors.text },
+  placeholder: { fontSize: 14, color: '#94A3B8' },
+  menu: { alignSelf: 'flex-start', minWidth: 160, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surface, paddingVertical: 4 },
+  option: { paddingHorizontal: spacing.md, paddingVertical: 8 },
+  optionOn: { backgroundColor: colors.surfaceAlt },
   actions: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   danger: { backgroundColor: colors.danger },
 });
