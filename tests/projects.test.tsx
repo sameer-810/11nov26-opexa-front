@@ -58,7 +58,7 @@ describe('Phase 3 - Projects (owner)', () => {
     await fireEvent.press(await screen.findByTestId('project-P-001'));
     await fireEvent.press(await screen.findByTestId('add-boq-item'));
     await fireEvent.press(screen.getByTestId('bi-save'));
-    expect(screen.getByTestId('bi-qty-error')).toHaveTextContent('More than 0');
+    expect(screen.getByTestId('bi-qty-error')).toHaveTextContent('Qty: More than 0');
     await fireEvent.changeText(screen.getByTestId('bi-serial'), '1');
     await fireEvent.changeText(screen.getByTestId('bi-desc'), 'Duplicate');
     await fireEvent.changeText(screen.getByTestId('bi-unit'), 'Nos');

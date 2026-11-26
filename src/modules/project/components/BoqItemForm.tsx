@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError } from '../../../shared/api/apiClient';
-import { parseNumber } from '../../../shared/format';
+import { formatMoney, parseNumber } from '../../../shared/format';
 import { Button } from '../../../shared/ui/Button';
-import { TextField } from '../../../shared/ui/TextField';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { validateItemForm, type ItemErrors, type ItemForm } from '../project.validation';
@@ -82,27 +81,58 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
     }
   };
 
+  const qty = parseNumber(form.quantity) ?? 0;
+  const amt = (r: string) => formatMoney(qty * (parseNumber(r) ?? 0));
+  const input = (k: keyof ItemForm, label: string, testID: string, width: number, num = false) => ({ k, label, testID, width, num });
+  // Same column order and names as the BOQ sheet; totals are worked out as you type.
+  const cells: Array<ReturnType<typeof input> | { label: string; width: number; value: string; testID: string }> = [
+    input('serialNo', 'SR. NO.', 'bi-serial', 70),
+    input('description', 'Description', 'bi-desc', 300),
+    input('quantity', 'Qty', 'bi-qty', 90, true),
+    input('unit', 'Unit', 'bi-unit', 80),
+    ...(split
+      ? [
+          input('supplyRate', 'Unit supply rate (₹)', 'bi-supply-rate', 130, true),
+          input('installationRate', 'Unit install. rate (₹)', 'bi-installation-rate', 130, true),
+          { label: 'Total supply', width: 125, value: amt(form.supplyRate), testID: 'bi-total-supply' },
+          { label: 'Total install.', width: 125, value: amt(form.installationRate), testID: 'bi-total-install' },
+          { label: 'Total', width: 125, value: formatMoney(qty * ((parseNumber(form.supplyRate) ?? 0) + (parseNumber(form.installationRate) ?? 0))), testID: 'bi-total' },
+        ]
+      : [input('rate', 'SITC rate (₹)', 'bi-rate', 130, true), { label: 'Total', width: 125, value: amt(form.rate), testID: 'bi-total' }]),
+    input('remarks', 'Remarks', 'bi-remarks', 200),
+  ];
+  const shownErrors = cells.flatMap((c) => ('k' in c && errors[c.k] ? [{ ...c, message: errors[c.k] as string }] : []));
+
   return (
     <View style={styles.box} testID="boq-item-form">
       <Text style={styles.title}>{initial ? `Edit item ${initial.serialNo}` : 'Add BOQ item'}</Text>
       {error ? <ErrorBanner message={error} testID="boq-item-error" /> : null}
-      <View style={styles.row}>
-        <View style={styles.small}><TextField label="S.No" testID="bi-serial" value={form.serialNo} onChangeText={set('serialNo')} error={errors.serialNo} /></View>
-        <View style={styles.big}><TextField label="Description" testID="bi-desc" value={form.description} onChangeText={set('description')} error={errors.description} /></View>
-      </View>
-      <View style={styles.row}>
-        <View style={styles.small}><TextField label="Unit" testID="bi-unit" value={form.unit} onChangeText={set('unit')} error={errors.unit} placeholder="Nos" /></View>
-        <View style={styles.mid}><TextField label="Quantity" testID="bi-qty" value={form.quantity} onChangeText={set('quantity')} error={errors.quantity} keyboardType="decimal-pad" /></View>
-        {split ? (
-          <>
-            <View style={styles.mid}><TextField label="Supply rate (₹)" testID="bi-supply-rate" value={form.supplyRate} onChangeText={set('supplyRate')} error={errors.supplyRate} keyboardType="decimal-pad" /></View>
-            <View style={styles.mid}><TextField label="Installation rate (₹)" testID="bi-installation-rate" value={form.installationRate} onChangeText={set('installationRate')} error={errors.installationRate} keyboardType="decimal-pad" /></View>
-          </>
-        ) : (
-          <View style={styles.mid}><TextField label="SITC rate (₹)" testID="bi-rate" value={form.rate} onChangeText={set('rate')} error={errors.rate} keyboardType="decimal-pad" /></View>
-        )}
-      </View>
-      <TextField label="Remarks" testID="bi-remarks" value={form.remarks} onChangeText={set('remarks')} maxLength={500} />
+      <ScrollView horizontal>
+        <View style={styles.table}>
+          <View style={[styles.row, styles.head]}>
+            {cells.map((c) => <Text key={c.label} style={[styles.th, { width: c.width }]}>{c.label}</Text>)}
+          </View>
+          <View style={styles.row}>
+            {cells.map((c) => ('k' in c ? (
+              <TextInput
+                key={c.label}
+                testID={c.testID}
+                accessibilityLabel={c.label}
+                value={form[c.k]}
+                onChangeText={set(c.k)}
+                keyboardType={c.num ? 'decimal-pad' : 'default'}
+                maxLength={c.k === 'remarks' ? 500 : undefined}
+                placeholder={c.k === 'unit' ? 'Nos' : undefined}
+                placeholderTextColor="#94A3B8"
+                style={[styles.input, { width: c.width }, c.num && styles.right, errors[c.k] ? styles.inputError : null]}
+              />
+            ) : (
+              <Text key={c.label} style={[styles.td, styles.right, { width: c.width }]} testID={c.testID}>{c.value}</Text>
+            )))}
+          </View>
+        </View>
+      </ScrollView>
+      {shownErrors.map((e) => <Text key={e.label} style={styles.error} testID={`${e.testID}-error`}>{e.label}: {e.message}</Text>)}
       <View style={styles.actions}>
         <Button title={initial ? 'Save item' : 'Add item'} onPress={save} loading={busy === 'save'} testID="bi-save" />
         <Button title="Cancel" variant="ghost" onPress={onCancel} />
@@ -118,10 +148,15 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
 const styles = StyleSheet.create({
   box: { borderWidth: 1, borderColor: colors.primary, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md, backgroundColor: '#F8FAFF' },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
-  row: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' },
-  small: { flexBasis: 100, flexGrow: 1 },
-  mid: { flexBasis: 140, flexGrow: 1 },
-  big: { flexBasis: 300, flexGrow: 4 },
+  table: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surface },
+  row: { flexDirection: 'row', alignItems: 'stretch' },
+  head: { backgroundColor: colors.surfaceAlt, borderBottomWidth: 1, borderBottomColor: colors.border },
+  th: { fontSize: 13, fontWeight: '700', color: colors.text, paddingHorizontal: spacing.sm, paddingVertical: 8 },
+  td: { fontSize: 14, color: colors.text, paddingHorizontal: spacing.sm, paddingVertical: 10, backgroundColor: colors.surfaceAlt },
+  input: { fontSize: 14, color: colors.text, paddingHorizontal: spacing.sm, paddingVertical: 10, borderRightWidth: 1, borderRightColor: colors.border },
+  inputError: { backgroundColor: '#FEF2F2', borderColor: colors.danger, borderWidth: 1 },
+  right: { textAlign: 'right' },
+  error: { fontSize: 13, color: colors.danger },
   actions: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   danger: { backgroundColor: colors.danger },
 });

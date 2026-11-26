@@ -46,6 +46,10 @@ describe('Q18 - BOQ format choice', () => {
     await fireEvent.changeText(screen.getByTestId('bi-qty'), '10');
     await fireEvent.changeText(screen.getByTestId('bi-supply-rate'), '40,000');
     await fireEvent.changeText(screen.getByTestId('bi-installation-rate'), '2,500');
+    // The entry row works out the sheet's totals as you type.
+    expect(screen.getByTestId('bi-total-supply')).toHaveTextContent(/4,00,000/);
+    expect(screen.getByTestId('bi-total-install')).toHaveTextContent(/25,000/);
+    expect(screen.getByTestId('bi-total')).toHaveTextContent(/4,25,000/);
     await fireEvent.press(screen.getByTestId('bi-save'));
 
     expect(await screen.findByTestId('boq-row-1')).toBeTruthy();

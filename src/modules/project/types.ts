@@ -33,7 +33,7 @@ export type BoqColumnKey =
 export type BoqColumn = { key: BoqColumnKey; label: string; visible: boolean; order: number };
 // Used only when the server sent no layout (older API): the SITC defaults.
 export const DEFAULT_BOQ_COLUMNS: BoqColumn[] = (
-  [['serialNo', 'Item no.'], ['description', 'Description'], ['unit', 'Unit'], ['quantity', 'BOQ qty'], ['rate', 'SITC rate'], ['variationQty', 'Variation qty'], ['executedQty', 'Execution qty'], ['approvedQty', 'Approved qty'], ['amount', 'Amount'], ['remarks', 'Remarks']] as const
+  [['serialNo', 'SR. NO.'], ['description', 'Description'], ['quantity', 'Qty'], ['unit', 'Unit'], ['rate', 'SITC rate'], ['amount', 'Total'], ['remarks', 'Remarks'], ['variationQty', 'Variation qty'], ['executedQty', 'Execution qty'], ['approvedQty', 'Approved qty']] as const
 ).map(([key, label], order) => ({ key, label, visible: true, order }));
 
 export type MilestoneProgress = { total: number; done: number; delayed: number; progressPct: number };
