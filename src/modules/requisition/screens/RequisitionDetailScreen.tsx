@@ -76,7 +76,7 @@ export function RequisitionDetailScreen({ navigation, route }: Props) {
   return (
     <AppScreen
       title={`Request ${req.number}`}
-      subtitle={`${req.projectCode} · ${req.projectName} · by ${req.raisedBy.name} · ${formatDateTime(req.createdAt)}`}
+      subtitle={`${req.projectCode} · ${req.projectName} · by ${req.raisedBy.name} · ${formatDateTime(req.createdAt)}${req.approver ? ` · sent to ${req.approver.name}` : ''}`}
       onBack={back}
       right={
         <View style={styles.row}>

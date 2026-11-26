@@ -1,4 +1,8 @@
-export type BalanceRow = { workOrderItemId: string; serialNo: string; description: string; unit: string; boqQty: number; requested: number; balance: number; tendered?: boolean; additionalStatus?: string | null };
+// Workflow Phase C: approved BOQ qty (once the MD approved the BOQ), delivered to site so far and still pending.
+export type BalanceRow = { workOrderItemId: string; serialNo: string; description: string; unit: string; boqQty: number; approvedBoqQty?: number | null; delivered?: number; pending?: number; requested: number; balance: number; tendered?: boolean; additionalStatus?: string | null };
+
+// Someone who may approve requests for a project; label = MD, Project Manager or their role.
+export type ApproverOption = { id: string; name: string; role: string; label: string };
 
 export type LineStatus = 'approved' | 'reduced' | 'rejected';
 
@@ -37,6 +41,7 @@ export type Requisition = {
   projectName: string | null;
   projectCode: string | null;
   raisedBy: { id: string; name: string | null };
+  approver?: { id: string; name: string | null } | null;
   note: string;
   remarks?: string;
   deliveryAddress?: string;
@@ -60,6 +65,8 @@ export type NewRequisition = {
   lines: NewRequisitionLine[];
   // Phase 2 access: the site the material is for (the project's main site when left out).
   siteId?: string;
+  // Workflow Phase C: who approves first (then the company rules); left out = rules only.
+  approverId?: string | null;
   deliveryAddress?: string;
   neededBy?: string;
   remarks?: string;

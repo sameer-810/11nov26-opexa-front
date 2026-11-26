@@ -25,6 +25,11 @@ export function BoqLines({ rows, value, onChange }: Props) {
                   BOQ {formatNumber(r.boqQty)} {r.unit} · requested {formatNumber(r.requested)} ·{' '}
                   <Text style={r.balance <= 0 ? styles.extra : styles.balance}>balance {formatNumber(r.balance)}</Text>
                 </Text>
+                {r.delivered !== undefined ? (
+                  <Text style={styles.muted} testID={`req-progress-${r.serialNo}`}>
+                    delivered {formatNumber(r.delivered)} · pending {formatNumber(r.pending ?? 0)}{n > 0 ? ` · total requested with this ${formatNumber(r.requested + n)}` : ''}
+                  </Text>
+                ) : null}
                 {willExceed ? <Text style={styles.extra}>More than the balance: {formatNumber(n - Math.max(r.balance, 0))} extra</Text> : null}
               </View>
               <View style={styles.qtyBox}>

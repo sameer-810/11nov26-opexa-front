@@ -14,6 +14,8 @@ export function installMockApi() {
   const boq: { id: string; projectId: string; serialNo: string; quantity: number; rate: number; amount: number; tendered?: boolean; additionalStatus?: string | null }[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const reqs: any[] = [];
+  // Workflow Phase C: people a requester may send a request to.
+  const approverOptions: { id: string; name: string; role: string; label: string }[] = [];
   // Approval requests are seeded by tests; POST /action stores what was sent in `acted`.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const approvals: any[] = [];
@@ -152,6 +154,7 @@ export function installMockApi() {
       return ok(dto(me));
     }
     if (path === '/notifications') return ok({ items: [], unread: 0 });
+    if (/^\/projects\/[^/]+\/requisition-approvers$/.test(path)) return ok(approverOptions);
     const bal = path.match(/^\/projects\/([^/]+)\/boq-balance$/);
     if (bal) {
       return ok(boq.filter((i) => i.projectId === bal[1]).map((i) => {
@@ -177,7 +180,7 @@ export function installMockApi() {
       if (missing.length) {
         return fail(422, 'OVER_BOQ', 'Some items go beyond the work order (BOQ).', missing.map((l: { workOrderItemId: string; serialNo: string; boqQty: number; previouslyRequested: number; qtyRequested: number; overBy: number }) => ({ field: l.workOrderItemId, message: 'over', serialNo: l.serialNo, boqQty: l.boqQty, previouslyRequested: l.previouslyRequested, qtyRequested: l.qtyRequested, overBy: l.overBy })));
       }
-      const header = { siteId: body.siteId ?? null, note: body.remarks ?? body.note ?? '', remarks: body.remarks ?? body.note ?? '', deliveryAddress: body.deliveryAddress ?? '', neededBy: body.neededBy ?? null, overBoq: lines.some((l: { overBy: number }) => l.overBy > 0), lines };
+      const header = { approverId: body.approverId ?? null, siteId: body.siteId ?? null, note: body.remarks ?? body.note ?? '', remarks: body.remarks ?? body.note ?? '', deliveryAddress: body.deliveryAddress ?? '', neededBy: body.neededBy ?? null, overBoq: lines.some((l: { overBy: number }) => l.overBy > 0), lines };
       if (editReq) {
         const r = reqs.find((x) => x.id === editReq[1]);
         if (r.status !== 'sent_back') return fail(409, 'NOT_SENT_BACK', 'Only a request sent back for changes can be edited and resubmitted');
@@ -449,5 +452,5 @@ export function installMockApi() {
   };
 
   (globalThis as unknown as { fetch: unknown }).fetch = fetchMock;
-  return { fetchMock, net, users, addUser, byEmail: (e: string) => users.get(e.toLowerCase()), projects, sites, boq, reqs, approvals, vendors, pos, rfqs, inventory, finance, subcontract, billing, commitments, handover, localPurchases, materialRows, returns, usage, counts, overview, attendance, payroll, service, sales };
+  return { fetchMock, net, users, addUser, byEmail: (e: string) => users.get(e.toLowerCase()), projects, sites, boq, reqs, approverOptions, approvals, vendors, pos, rfqs, inventory, finance, subcontract, billing, commitments, handover, localPurchases, materialRows, returns, usage, counts, overview, attendance, payroll, service, sales };
 }

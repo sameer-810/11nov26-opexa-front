@@ -1,5 +1,5 @@
 import { api, apiBlob } from '../../../shared/api/apiClient';
-import type { Attachment, BalanceRow, NewRequisition, Requisition, TimelineEvent } from '../types';
+import type { ApproverOption, Attachment, BalanceRow, NewRequisition, Requisition, TimelineEvent } from '../types';
 
 // A file picked on the phone ({ uri, name, type }) or in the browser (Blob).
 export type PickedFile = { name: string; file: Blob | { uri: string; name: string; type: string } };
@@ -14,6 +14,7 @@ export function attachmentForm(picked: PickedFile): FormData {
 }
 
 export const requisitionApi = {
+  approvers: (projectId: string) => api<ApproverOption[]>(`/projects/${projectId}/requisition-approvers`),
   balance: (projectId: string) => api<BalanceRow[]>(`/projects/${projectId}/boq-balance`),
   create: (projectId: string, body: NewRequisition) => api<Requisition>(`/projects/${projectId}/requisitions`, { method: 'POST', body }),
   resubmit: (id: string, body: NewRequisition) => api<Requisition>(`/requisitions/${id}`, { method: 'PUT', body }),

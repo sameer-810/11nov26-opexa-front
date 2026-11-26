@@ -61,6 +61,9 @@ export const approvalApi = {
   pending: () => api<PendingApproval[]>('/approvals/pending'),
   completed: () => api<PendingApproval[]>('/approvals/completed'),
   get: (id: string) => api<ApprovalDetail>(`/approvals/${id}`),
+  // Workflow Phase C: hand the current level to another approver of the project.
+  forwardOptions: (id: string) => api<{ id: string; name: string; label: string }[]>(`/approvals/${id}/forward-options`),
+  forward: (id: string, toUserId: string, comment: string) => api<ApprovalDetail>(`/approvals/${id}/forward`, { method: 'POST', body: { toUserId, comment } }),
   act: (id: string, action: ApprovalAction, comment?: string, approvedLines?: LineDecision[]) =>
     api<ApprovalDetail>(`/approvals/${id}/action`, { method: 'POST', body: { action, comment, approvedLines } }),
   workflows: () => api<Workflow[]>('/approvals/workflows'),

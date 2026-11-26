@@ -13,7 +13,7 @@ import { ErrorState } from '../../../shared/ui/ErrorState';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { requisitionApi, type PickedFile } from '../api/requisitionApi';
-import type { Attachment, BalanceRow, NewRequisition, OverBoqLine, Requisition } from '../types';
+import type { ApproverOption, Attachment, BalanceRow, NewRequisition, OverBoqLine, Requisition } from '../types';
 import { submitOrQueue } from '../../../shared/offline/outbox';
 import { projectApi } from '../../project/api/projectApi';
 import type { Project, ProjectSite } from '../../project/types';
@@ -42,6 +42,8 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
   const [address, setAddress] = useState('');
   const [sites, setSites] = useState<ProjectSite[]>([]);
   const [siteId, setSiteId] = useState('');
+  const [approvers, setApprovers] = useState<ApproverOption[]>([]);
+  const [approverId, setApproverId] = useState('');
   const [neededBy, setNeededBy] = useState('');
   const [remarks, setRemarks] = useState('');
   const [picked, setPicked] = useState<PickedFile[]>([]);
@@ -62,6 +64,9 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
     setRows(null);
     requisitionApi.balance(projectId).then((r) => { if (live) setRows(r); }).catch((e) => { if (live) setLoadError(e instanceof ApiError ? e.message : 'Could not load the BOQ'); });
     // Delivery address starts as the project's site address; the user may change it.
+    // Workflow Phase C: people the requester may send it to (MD, project manager, other managers of this project).
+    requisitionApi.approvers(projectId).then((a) => { if (live) setApprovers(a); }).catch(() => { if (live) setApprovers([]); });
+    if (!editing) setApproverId('');
     if (!editing) projectApi.get(projectId).then((p) => { if (live) setAddress(p.siteAddress ?? ''); }).catch(() => undefined);
     // The sites this person may raise for: the main site first; with one site there is nothing to choose.
     if (!editing) projectApi.sites(projectId).then((list) => {
@@ -79,6 +84,7 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
       setAddress(r.deliveryAddress ?? '');
       setNeededBy(r.neededBy ? r.neededBy.slice(0, 10) : '');
       setRemarks(r.remarks ?? r.note ?? '');
+      setApproverId(r.approver?.id ?? '');
       setExisting(r.attachments ?? []);
       setBoq(Object.fromEntries(r.lines.filter((l) => l.workOrderItemId && l.billable !== false).map((l) => [l.workOrderItemId as string, { qty: String(l.qtyRequested), specification: l.specification ?? '' }])));
       setExtras(r.lines.filter((l) => l.workOrderItemId && l.billable === false && l.materialId).map((l) => ({ workOrderItemId: l.workOrderItemId as string, materialId: l.materialId as string, label: `${l.description} (${l.unit}) for S.No ${l.serialNo}`, qty: String(l.qtyRequested), ...(l.extraWorkItemId ? { extraWorkItemId: l.extraWorkItemId } : {}) })));
@@ -120,6 +126,7 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
         ...extraLinesFor(others),
       ],
       ...(siteId && !requisitionId ? { siteId } : {}),
+      approverId: approverId || null,
       deliveryAddress: address.trim(),
       remarks: remarks.trim(),
       ...(neededBy.trim() ? { neededBy: neededBy.trim() } : {}),
@@ -197,7 +204,7 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
               <Text style={styles.extra}>{formatNumber(o.overBy)} extra</Text>
             </Text>
           ))}
-          <Text style={styles.warnBody}>Do you really need the extra quantity? The owner will be told, and it goes on the PO amendment list.</Text>
+          <Text style={styles.warnBody}>Do you really need the extra quantity? The extra also needs the MD's approval, and it goes on the PO amendment list.</Text>
           <TextField label="Reason" testID="over-reason" value={reason} onChangeText={(v) => { setReason(v); setReasonError(''); }} error={reasonError} placeholder="e.g. Client approved 2 extra on call, PO amendment coming" />
           <View style={styles.row}>
             <Button title="Yes, request anyway" onPress={confirmOver} loading={busy} testID="over-confirm" />
@@ -210,6 +217,15 @@ export function NewRequisitionScreen({ navigation, route }: Props) {
       {rows.length ? <PackageMaterialLines boq={rows} value={extras} onChange={setExtras} /> : null}
       <ExtraMaterialLines value={others} onChange={setOthers} />
 
+      {approvers.length ? (
+        <ChoiceChips
+          label="Send for approval to"
+          value={approverId}
+          onChange={setApproverId}
+          options={[{ value: '', label: 'Company approval rules' }, ...approvers.map((a) => ({ value: a.id, label: `${a.name} · ${a.label}` }))]}
+          testID="req-approver"
+        />
+      ) : null}
       <TextField label="4. Required date (YYYY-MM-DD, optional)" value={neededBy} onChangeText={setNeededBy} placeholder="2026-12-01" maxLength={10} testID="req-needed-by" />
       <TextField label="5. Remarks (optional)" value={remarks} onChangeText={setRemarks} testID="req-note" placeholder="e.g. Needed for floors 1-5" maxLength={500} multiline />
       <AttachmentPicker picked={picked} onPick={setPicked} existing={existing} onRemoveExisting={editing ? removeExisting : undefined} />

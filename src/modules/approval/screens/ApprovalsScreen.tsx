@@ -12,6 +12,7 @@ import { TextField } from '../../../shared/ui/TextField';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { ApiError } from '../../../shared/api/apiClient';
 import { formatDate, formatMoney, formatNumber } from '../../../shared/format';
+import { ForwardApproval } from '../components/ForwardApproval';
 import { approvalApi, type ApprovalAction, type ApprovalDetail, type PendingApproval } from '../api/approvalApi';
 import { decisionsFor, draftsFor, RequisitionLineDecisions, type LineDraft } from '../components/RequisitionLineDecisions';
 import { AttachmentList } from '../../requisition/components/Attachments';
@@ -128,6 +129,7 @@ export function ApprovalsScreen({ navigation }: Props) {
                   <Button title="Send back" variant="outline" onPress={() => act(item.id, 'send_back')} loading={acting === `${item.id}:send_back`} />
                   <Button title="Reject" variant="ghost" onPress={() => act(item.id, 'reject')} loading={acting === `${item.id}:reject`} testID={`reject-${item.id}`} />
                 </View>
+                <ForwardApproval approvalId={item.id} onDone={() => { setOpen(null); void load(); }} />
               </View>
             ) : <Button title="Review" variant="outline" onPress={() => expand(item.id)} testID={`review-${item.id}`} />}
           </View>
