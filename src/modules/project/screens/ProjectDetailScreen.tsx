@@ -16,6 +16,7 @@ import { ErrorState } from '../../../shared/ui/ErrorState';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { projectApi } from '../api/projectApi';
+import { projectFinanceApi } from '../../projectFinance/projectFinanceApi';
 import { BoqTable } from '../components/BoqTable';
 import { BoqItemForm } from '../components/BoqItemForm';
 import { BoqColumnsSheet } from '../components/BoqColumnsSheet';
@@ -43,6 +44,7 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
   const [editing, setEditing] = useState<BoqItem | 'new' | null>(null);
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -70,6 +72,22 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
     await load();
   };
   const format = project.boqFormat ?? 'sitc';
+  // Workflow Phase B: the PM submits the BOQ for MD approval (the MD's own submission locks it at once).
+  const boqStatus = view?.boqStatus ?? (project.boqLocked ? 'approved' : 'draft');
+  const openBoq = boqStatus === 'draft' && !project.boqLocked;
+  const isMd = user?.role === 'owner';
+  const submitBoq = async () => {
+    setViewError('');
+    setSubmitting(true);
+    try {
+      await projectFinanceApi.lock(id);
+      await load();
+    } catch (e) {
+      setViewError(e instanceof ApiError ? e.message : 'Could not submit the BOQ');
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const columns = view?.columns ?? project.boqColumns ?? DEFAULT_BOQ_COLUMNS;
   const exportExcel = async () => {
     setViewError('');
@@ -134,12 +152,16 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
       </View>
 
       <View style={styles.sectionHead}>
-        <Text style={styles.section}>Work order (BOQ)</Text>
         <View style={styles.row}>
+          <Text style={styles.section}>Work order (BOQ)</Text>
+          <StatusChip label={{ draft: 'Draft', submitted: 'Awaiting MD approval', approved: 'Approved by MD' }[boqStatus]} tone={{ draft: 'neutral', submitted: 'warning', approved: 'success' }[boqStatus] as 'neutral' | 'warning' | 'success'} testID="boq-status" />
+        </View>
+        <View style={styles.row}>
+          {manage && openBoq && items.length ? <Button title={isMd ? 'Approve & lock BOQ' : 'Submit BOQ for MD approval'} variant="outline" onPress={submitBoq} loading={submitting} testID="boq-submit" /> : null}
           {items.length ? <Button title="Export to Excel" variant="ghost" onPress={exportExcel} loading={exporting} testID="export-boq" /> : null}
           {manage ? <Button title="Columns" variant="outline" onPress={() => setColumnsOpen(true)} testID="boq-columns" /> : null}
-          {editBoq && !project.boqLocked ? <Button title="Import from Excel" variant="outline" onPress={() => navigation.navigate('BoqImport', { id, format })} testID="import-boq" /> : null}
-          {editBoq && !project.boqLocked ? <Button title="Add item" onPress={() => setEditing('new')} testID="add-boq-item" /> : null}
+          {editBoq && openBoq ? <Button title="Import from Excel" variant="outline" onPress={() => navigation.navigate('BoqImport', { id, format })} testID="import-boq" /> : null}
+          {editBoq && openBoq ? <Button title="Add item" onPress={() => setEditing('new')} testID="add-boq-item" /> : null}
         </View>
       </View>
       {viewError ? <ErrorBanner message={viewError} testID="boq-view-error" /> : null}

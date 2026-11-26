@@ -81,6 +81,7 @@ function EstimateTab({ id, editable }: { id: string; editable: boolean }) {
 }
 
 function BoqChanges({ id }: { id: string }) {
+  const { user } = useAuth();
   const fetcher = useCallback(async () => ({ reg: await projectFinanceApi.regularisation(id), revs: await projectFinanceApi.revisions(id), est: await projectFinanceApi.estimate(id), crs: await projectFinanceApi.changeRequests(id) }), [id]);
   const [crId, setCrId] = useState('');
   const { data, error, reload } = useData(fetcher);
@@ -94,8 +95,8 @@ function BoqChanges({ id }: { id: string }) {
     <View style={s.list} testID="pf-boq">
       {problem ? <ErrorBanner message={problem} /> : null}
       <View style={s.row}>
-        <StatusChip label={data.est.boqLocked ? `BOQ locked · revision ${data.est.boqRevision}` : 'BOQ not locked'} tone={data.est.boqLocked ? 'success' : 'warning'} />
-        {!data.est.boqLocked ? <Button title="Lock BOQ baseline" variant="outline" onPress={() => run('lock', () => projectFinanceApi.lock(id))} testID="boq-lock" /> : null}
+        <StatusChip label={data.est.boqLocked ? `BOQ approved & locked · revision ${data.est.boqRevision}` : 'BOQ not approved yet'} tone={data.est.boqLocked ? 'success' : 'warning'} />
+        {!data.est.boqLocked ? <Button title={user?.role === 'owner' ? 'Approve & lock BOQ' : 'Submit BOQ for MD approval'} variant="outline" onPress={() => run('lock', () => projectFinanceApi.lock(id))} testID="boq-lock" /> : null}
       </View>
       <Text style={s.title} testID="reg-summary">Excess {data.reg.summary.excessLines} line(s) {formatMoney(data.reg.summary.excessValue)} · additional work {data.reg.summary.additionalLines} line(s) {formatMoney(data.reg.summary.additionalValue)} · awaiting client confirmation {data.reg.summary.unconfirmedAdditional}</Text>
       {data.reg.rows.filter((r) => !r.tendered || r.excess > 0).map((r) => (

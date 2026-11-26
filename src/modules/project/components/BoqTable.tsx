@@ -1,21 +1,22 @@
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { formatMoney, formatNumber } from '../../../shared/format';
-import type { BoqColumn, BoqColumnKey, BoqItem, BoqViewLine } from '../types';
+import { LINE_APPROVAL_LABEL, type BoqColumn, type BoqColumnKey, type BoqItem, type BoqViewLine } from '../types';
 
 export type BoqLine = BoqItem & Partial<Omit<BoqViewLine, keyof BoqItem>>;
 type Props = { columns: BoqColumn[]; lines: BoqLine[]; onPressItem?: (item: BoqLine) => void };
 
-const QTY: BoqColumnKey[] = ['quantity', 'variationQty', 'executedQty', 'approvedQty'];
-const MONEY: BoqColumnKey[] = ['rate', 'supplyRate', 'installationRate', 'amount', 'supplyAmount', 'installationAmount'];
-const TOTALLED: BoqColumnKey[] = ['amount', 'supplyAmount', 'installationAmount'];
-const WIDTH: Partial<Record<BoqColumnKey, number>> = { serialNo: 64, description: 300, unit: 70, remarks: 200 };
+const QTY: BoqColumnKey[] = ['quantity', 'variationQty', 'executedQty', 'approvedQty', 'originalQty', 'boqApprovedQty', 'remainingQty'];
+const MONEY: BoqColumnKey[] = ['rate', 'supplyRate', 'installationRate', 'amount', 'supplyAmount', 'installationAmount', 'originalAmount', 'variationAmount', 'executedAmount'];
+const TOTALLED: BoqColumnKey[] = ['amount', 'supplyAmount', 'installationAmount', 'originalAmount', 'variationAmount', 'executedAmount'];
+const WIDTH: Partial<Record<BoqColumnKey, number>> = { serialNo: 64, itemCode: 90, description: 300, unit: 70, remarks: 200, approvalStatus: 150 };
 const widthOf = (k: BoqColumnKey) => WIDTH[k] ?? (MONEY.includes(k) ? 125 : 100);
 const right = (k: BoqColumnKey) => QTY.includes(k) || MONEY.includes(k);
 
 function cell(line: BoqLine, k: BoqColumnKey): string {
   const v = line[k];
   if (v === null || v === undefined || v === '') return '—';
+  if (k === 'approvalStatus') return LINE_APPROVAL_LABEL[line.approvalStatus ?? 'draft'];
   if (QTY.includes(k)) return formatNumber(Number(v));
   if (MONEY.includes(k)) return formatMoney(Number(v));
   return String(v);

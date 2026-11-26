@@ -17,7 +17,7 @@ export function validateProjectForm(f: ProjectForm): ProjectFormErrors {
   return e;
 }
 
-export type ItemForm = { serialNo: string; description: string; unit: string; quantity: string; rate: string; supplyRate: string; installationRate: string; remarks: string };
+export type ItemForm = { serialNo: string; itemCode: string; description: string; unit: string; quantity: string; rate: string; supplyRate: string; installationRate: string; remarks: string };
 export type ItemErrors = Partial<Record<keyof ItemForm, string>>;
 
 export function validateItemForm(f: ItemForm): ItemErrors {

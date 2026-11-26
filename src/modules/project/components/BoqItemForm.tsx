@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError } from '../../../shared/api/apiClient';
-import { formatMoney, parseNumber } from '../../../shared/format';
+import { formatMoney, formatNumber, parseNumber } from '../../../shared/format';
 import { Button } from '../../../shared/ui/Button';
 import { ErrorBanner } from '../../../shared/ui/Banner';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { validateItemForm, type ItemErrors, type ItemForm } from '../project.validation';
-import { BOQ_UNITS, type BoqFormat, type BoqItem, type BoqItemInput } from '../types';
+import { BOQ_UNITS, LINE_APPROVAL_LABEL, type BoqFormat, type BoqItemInput } from '../types';
+import type { BoqLine } from './BoqTable';
+import { BoqLineHistory } from './BoqLineHistory';
 
 type Props = {
-  initial?: BoqItem;
+  initial?: BoqLine;
   format?: BoqFormat;
   suggestedSerial?: string;
   onSave: (input: BoqItemInput) => Promise<void>;
@@ -21,6 +23,7 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
   const split = format === 'supply_installation';
   const [form, setForm] = useState<ItemForm>({
     serialNo: initial?.serialNo ?? suggestedSerial ?? '',
+    itemCode: initial?.itemCode ?? '',
     description: initial?.description ?? '',
     unit: initial?.unit ?? '',
     quantity: initial ? String(initial.quantity) : '',
@@ -34,6 +37,7 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
   const [busy, setBusy] = useState<'' | 'save' | 'delete'>('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [unitOpen, setUnitOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const set = (k: keyof ItemForm) => (v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -49,6 +53,7 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
     try {
       await onSave({
         serialNo: form.serialNo.trim(),
+        itemCode: form.itemCode.trim(),
         description: form.description.trim(),
         unit: form.unit.trim(),
         quantity: parseNumber(form.quantity) ?? 0,
@@ -90,6 +95,7 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
   // Same column order and names as the BOQ sheet; totals are worked out as you type.
   const cells: Array<ReturnType<typeof input> | { label: string; width: number; value: string; testID: string }> = [
     input('serialNo', 'SR. NO.', 'bi-serial', 70),
+    input('itemCode', 'Item code', 'bi-item-code', 100),
     input('description', 'Description', 'bi-desc', 300),
     input('quantity', 'Qty', 'bi-qty', 90, true),
     input('unit', 'Unit', 'bi-unit', 80),
@@ -103,6 +109,15 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
         ]
       : [input('rate', 'SITC rate (₹)', 'bi-rate', 130, true), { label: 'Total', width: 125, value: amt(form.rate), testID: 'bi-total' }]),
     input('remarks', 'Remarks', 'bi-remarks', 200),
+    // Editing a line shows its tracked quantities; they come from approvals and site records, not from this form.
+    ...(initial?.approvalStatus ? [
+      { label: 'Original BOQ qty', width: 110, value: qtyText(initial.originalQty), testID: 'bi-original-qty' },
+      { label: 'MD-approved qty', width: 110, value: qtyText(initial.boqApprovedQty), testID: 'bi-approved-qty' },
+      { label: 'Variation qty', width: 100, value: qtyText(initial.variationQty), testID: 'bi-variation-qty' },
+      { label: 'Execution qty', width: 100, value: qtyText(initial.executedQty), testID: 'bi-executed-qty' },
+      { label: 'Remaining qty', width: 100, value: qtyText(initial.remainingQty), testID: 'bi-remaining-qty' },
+      { label: 'Approval status', width: 150, value: LINE_APPROVAL_LABEL[initial.approvalStatus], testID: 'bi-approval-status' },
+    ] : []),
   ];
   const shownErrors = cells.flatMap((c) => ('k' in c && errors[c.k] ? [{ ...c, message: errors[c.k] as string }] : []));
 
@@ -167,13 +182,17 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
         <Button title={initial ? 'Save item' : 'Add item'} onPress={save} loading={busy === 'save'} testID="bi-save" />
         <Button title="Cancel" variant="ghost" onPress={onCancel} />
         {onDelete && !confirmDelete ? <Button title="Delete" variant="ghost" onPress={() => setConfirmDelete(true)} testID="bi-delete" /> : null}
+        {initial ? <Button title={historyOpen ? 'Hide line history' : 'Line history'} variant="ghost" onPress={() => setHistoryOpen((o) => !o)} testID="bi-history" /> : null}
         {onDelete && confirmDelete ? (
           <Button title="Yes, delete this item" onPress={remove} loading={busy === 'delete'} style={styles.danger} testID="bi-confirm-delete" />
         ) : null}
       </View>
+      {historyOpen && initial ? <BoqLineHistory itemId={initial.id} /> : null}
     </View>
   );
 }
+
+const qtyText = (v: number | null | undefined) => (v === null || v === undefined ? '—' : formatNumber(v));
 
 const styles = StyleSheet.create({
   box: { borderWidth: 1, borderColor: colors.primary, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md, backgroundColor: '#F8FAFF' },
