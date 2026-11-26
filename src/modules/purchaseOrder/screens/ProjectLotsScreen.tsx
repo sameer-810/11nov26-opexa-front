@@ -13,6 +13,7 @@ import { ChoiceChips } from '../../../shared/ui/ChoiceChips';
 import { colors, radius, spacing } from '../../../shared/designSystem';
 import { receivingApi } from '../../receiving/api/receivingApi';
 import { LOT_LABEL, LOT_TONE, type Lot } from '../../receiving/types';
+import { StoreIssuesPanel } from '../../inventory/components/StoreIssuesPanel';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProjectLots'>;
 
@@ -38,6 +39,7 @@ export function ProjectLotsScreen({ navigation, route }: Props) {
   return (
     <AppScreen title="Deliveries (lots)" subtitle={pending ? `${pending} on the way - check them in when they arrive` : 'Every delivery sent to this site'} onBack={() => navigation.navigate('ProjectDetail', { id })} testID="project-lots-screen">
       {error ? <ErrorState message={error} onRetry={load} /> : null}
+      <StoreIssuesPanel projectId={id} />
       {!lots && !error ? <ActivityIndicator /> : null}
       {lots && lots.length > 0 ? (
         <ChoiceChips label="Show" value={filter} onChange={setFilter} testID="lots-filter" options={[{ value: 'all', label: 'All' }, { value: 'pending', label: `On the way (${pending})` }, { value: 'done', label: 'Checked in' }]} />

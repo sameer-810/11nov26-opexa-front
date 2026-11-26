@@ -1,5 +1,5 @@
 import { api, apiBlob } from '../../../shared/api/apiClient';
-import type { Adjustment, DamagedInput, Issue, LedgerRow, Material, MaterialInput, Party, StockCount, StockLevel, StockRow, Tool, ToolHistory, ToolMaintenance, Transfer, Warehouse, WarehouseInput } from '../types';
+import type { Adjustment, DamagedInput, Issue, LedgerRow, Material, MaterialInput, Party, Receiver, Resolution, StockCount, StockLevel, StockRow, Tool, ToolHistory, ToolMaintenance, Transfer, Warehouse, WarehouseInput } from '../types';
 
 const qs = (q: Record<string, string | undefined>) => {
   const p = new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][]).toString();
@@ -24,7 +24,10 @@ export const inventoryApi = {
   reconciliation: () => api<{ ok: boolean; checked: number; mismatches: unknown[]; negatives: unknown[] }>('/inventory/reconciliation'),
   transfers: (q: { status?: string; projectId?: string } = {}) => api<Transfer[]>(`/inventory/transfers${qs(q)}`),
   createTransfer: (body: { fromWarehouseId: string; to: Loc; reason?: string; lines: LineIn[] }) => api<Transfer>('/inventory/transfers', { method: 'POST', body }),
-  dispatch: (id: string, body: { vehicleNo?: string } = {}) => api<Transfer>(`/inventory/transfers/${id}/dispatch`, { method: 'POST', body }),
+  receivers: (id: string) => api<Receiver[]>(`/inventory/transfers/${id}/receivers`),
+  confirm: (id: string, body: { note?: string; lines: { lineId: string; accepted: number; damaged: number; short: number }[] }) => api<Transfer>(`/inventory/transfers/${id}/confirm`, { method: 'POST', body }),
+  resolve: (id: string, body: { remarks: string; lines: { lineId: string; action: Resolution }[] }) => api<Transfer>(`/inventory/transfers/${id}/resolve`, { method: 'POST', body }),
+  dispatch: (id: string, body: { vehicleNo?: string; receiverId?: string } = {}) => api<Transfer>(`/inventory/transfers/${id}/dispatch`, { method: 'POST', body }),
   receive: (id: string, lines: { lineId: string; qty: number }[]) => api<Transfer>(`/inventory/transfers/${id}/receive`, { method: 'POST', body: { lines } }),
   closeTransfer: (id: string, reason: string) => api<Transfer>(`/inventory/transfers/${id}/close`, { method: 'POST', body: { reason } }),
   issues: (q: { projectId?: string; status?: string } = {}) => api<Issue[]>(`/inventory/issues${qs(q)}`),

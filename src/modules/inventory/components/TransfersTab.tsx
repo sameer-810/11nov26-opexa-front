@@ -10,9 +10,10 @@ import { TextField } from '../../../shared/ui/TextField';
 import { projectApi } from '../../project/api/projectApi';
 import { inventoryApi } from '../api/inventoryApi';
 import type { Transfer } from '../types';
+import { HandoverActions } from './HandoverActions';
 import { s, useAction, useData } from '../ui';
 
-const TONE: Record<string, 'success' | 'warning' | 'info' | 'neutral' | 'danger'> = { pending_approval: 'warning', approved: 'info', dispatched: 'info', partially_received: 'warning', received: 'success', closed: 'neutral', cancelled: 'neutral', rejected: 'danger' };
+const TONE: Record<string, 'success' | 'warning' | 'info' | 'neutral' | 'danger'> = { pending_approval: 'warning', approved: 'info', dispatched: 'info', partially_received: 'warning', received: 'success', discrepancy: 'danger', closed: 'neutral', cancelled: 'neutral', rejected: 'danger' };
 
 // Store -> site and store -> store transfers: raise, dispatch with gate pass, receive (partly), close short.
 export function TransfersTab() {
@@ -65,18 +66,19 @@ export function TransfersTab() {
         <View key={t.id} style={s.card} testID={`transfer-${t.number}`}>
           <View style={s.row}><Text style={s.number}>{t.number}</Text><StatusChip label={t.status.replace(/_/g, ' ')} tone={TONE[t.status] ?? 'neutral'} /></View>
           <Text style={s.title}>{data.warehouses.find((w) => w.id === t.fromWarehouseId)?.name} → {name(t)}</Text>
-          <Text style={s.muted}>{formatDate(t.createdAt)}{t.gatePassNo ? ` · gate pass ${t.gatePassNo}` : ''}{t.vehicleNo ? ` · ${t.vehicleNo}` : ''}</Text>
+          <Text style={s.muted}>{formatDate(t.createdAt)}{t.issueNo ? ` · ${t.issueNo}` : ''}{t.gatePassNo ? ` · gate pass ${t.gatePassNo}` : ''}{t.vehicleNo ? ` · ${t.vehicleNo}` : ''}</Text>
           {t.lines.map((l) => (
             <View key={l.id} style={s.row}>
               <Text style={[s.muted, s.cell]}>{l.name}: {formatNumber(l.qty)} {l.unit} · sent {formatNumber(l.qtyDispatched)} · received {formatNumber(l.qtyReceived)}{l.qtyShort ? ` · short ${formatNumber(l.qtyShort)}` : ''}{l.inTransit ? ` · in transit ${formatNumber(l.inTransit)}` : ''}</Text>
-              {['dispatched', 'partially_received'].includes(t.status) && l.inTransit > 0 ? <TextField label="Received now" value={receiving[l.id] ?? ''} onChangeText={(v) => setReceiving((r) => ({ ...r, [l.id]: v }))} keyboardType="decimal-pad" testID={`tr-rcv-${t.number}-${l.name}`} /> : null}
+              {!t.receiverId && ['dispatched', 'partially_received'].includes(t.status) && l.inTransit > 0 ? <TextField label="Received now" value={receiving[l.id] ?? ''} onChangeText={(v) => setReceiving((r) => ({ ...r, [l.id]: v }))} keyboardType="decimal-pad" testID={`tr-rcv-${t.number}-${l.name}`} /> : null}
             </View>
           ))}
           <View style={s.row}>
             {t.status === 'approved' ? <Button title="Dispatch (gate pass)" onPress={() => run(`d-${t.id}`, () => inventoryApi.dispatch(t.id))} loading={busy === `d-${t.id}`} testID={`tr-dispatch-${t.number}`} /> : null}
-            {['dispatched', 'partially_received'].includes(t.status) ? <Button title="Confirm receipt" onPress={() => run(`r-${t.id}`, () => inventoryApi.receive(t.id, t.lines.map((l) => ({ lineId: l.id, qty: parseNumber(receiving[l.id] ?? '') ?? 0 })).filter((x) => x.qty > 0)))} loading={busy === `r-${t.id}`} testID={`tr-receive-${t.number}`} /> : null}
-            {['approved', 'pending_approval', 'dispatched', 'partially_received'].includes(t.status) ? <Button title={t.status === 'approved' || t.status === 'pending_approval' ? 'Cancel' : 'Close with shortage'} variant="ghost" onPress={() => run(`c-${t.id}`, () => inventoryApi.closeTransfer(t.id, 'Closed from the store screen'))} /> : null}
+            {!t.receiverId && ['dispatched', 'partially_received'].includes(t.status) ? <Button title="Confirm receipt" onPress={() => run(`r-${t.id}`, () => inventoryApi.receive(t.id, t.lines.map((l) => ({ lineId: l.id, qty: parseNumber(receiving[l.id] ?? '') ?? 0 })).filter((x) => x.qty > 0)))} loading={busy === `r-${t.id}`} testID={`tr-receive-${t.number}`} /> : null}
+            {['approved', 'pending_approval'].includes(t.status) || (!t.receiverId && ['dispatched', 'partially_received'].includes(t.status)) ? <Button title={t.status === 'approved' || t.status === 'pending_approval' ? 'Cancel' : 'Close with shortage'} variant="ghost" onPress={() => run(`c-${t.id}`, () => inventoryApi.closeTransfer(t.id, 'Closed from the store screen'))} /> : null}
           </View>
+          <HandoverActions t={t} onDone={() => void reload()} />
         </View>
       ))}
     </View>
