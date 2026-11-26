@@ -30,7 +30,8 @@ export function Sidebar({ route, go }: Props) {
           <Text style={styles.org} numberOfLines={1}>{organization?.name ?? 'HVAC projects'}</Text>
         </View>
       </View>
-      <ScrollView style={styles.flex} contentContainerStyle={styles.list}>
+      {/* Scrolls with the wheel or touchpad when the menu is taller than the window; no scrollbar shown. */}
+      <ScrollView style={styles.flex} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {NAV_ITEMS.filter((i) => i.show(user)).map((i) => (
           <Item key={i.route} label={i.label} icon={i.icon} active={current === i.route} onPress={() => go(i.route)} testID={`nav-${i.route}`} />
         ))}
@@ -44,7 +45,7 @@ export function Sidebar({ route, go }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  bar: { width: 236, padding: 14, gap: 8 },
+  bar: { width: 236, flex: 1, padding: 14, gap: 8 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 6, paddingBottom: 14 },
   logo: { width: 38, height: 38, borderRadius: 12, backgroundColor: glass.indigo, alignItems: 'center', justifyContent: 'center', boxShadow: '0px 6px 16px rgba(91,91,239,0.35)' },
   brandName: { fontSize: 20, fontWeight: '800', color: glass.ink },

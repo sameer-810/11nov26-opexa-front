@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { OfflineBar } from './OfflineBar';
-import { colors, maxContentWidth, spacing } from '../designSystem';
+import { colors, spacing } from '../designSystem';
 
 type Props = { title: string; subtitle?: string; onBack?: () => void; right?: ReactNode; children: ReactNode; testID?: string; hideOfflineBar?: boolean };
 
@@ -30,7 +30,7 @@ export function AppScreen({ title, subtitle, onBack, right, children, testID, hi
 }
 
 const styles = StyleSheet.create({
-  page: { width: '100%', maxWidth: maxContentWidth, alignSelf: 'center', padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  page: { width: '100%', padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl }, // pages use the full width beside the sidebar
   back: { color: colors.primary, fontSize: 15, fontWeight: '600' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   flex: { flexShrink: 1 },

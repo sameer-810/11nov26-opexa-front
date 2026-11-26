@@ -126,7 +126,7 @@ export function ApprovalsScreen({ navigation }: Props) {
                 <TextField label="Comment (required to reject or send back)" value={comment} onChangeText={setComment} testID="approval-comment" />
                 <View style={styles.row}>
                   <Button title="Approve" onPress={() => act(item.id, 'approve')} loading={acting === `${item.id}:approve`} testID={`approve-${item.id}`} />
-                  <Button title="Send back" variant="outline" onPress={() => act(item.id, 'send_back')} loading={acting === `${item.id}:send_back`} />
+                  <Button title="Request changes" variant="outline" onPress={() => act(item.id, 'send_back')} loading={acting === `${item.id}:send_back`} testID={`send-back-${item.id}`} />
                   <Button title="Reject" variant="ghost" onPress={() => act(item.id, 'reject')} loading={acting === `${item.id}:reject`} testID={`reject-${item.id}`} />
                 </View>
                 <ForwardApproval approvalId={item.id} onDone={() => { setOpen(null); void load(); }} />

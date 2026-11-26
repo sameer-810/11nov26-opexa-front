@@ -75,7 +75,7 @@ export function WebShell({ route, go, children }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, flexDirection: 'row' },
   flex: { flex: 1 },
-  side: { padding: 16, paddingRight: 0 },
+  side: { padding: 16, paddingRight: 0, alignSelf: 'stretch' }, // full window height; the menu scrolls inside
   main: { flex: 1 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 24, paddingTop: 16, zIndex: 10 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14 },
