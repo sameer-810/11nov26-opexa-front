@@ -91,5 +91,12 @@ export type AssignableUser = { id: string; name: string; email: string; role: st
 export const STATUS_LABEL: Record<ProjectStatus, string> = { active: 'Active', closing: 'Closing', closed: 'Closed' };
 
 // Phase 2 access: a site of a project (the main site is the project's own address and GPS point).
-export type ProjectSite = { id: string; projectId: string; code: string; name: string; address: string; location: { lat: number; lng: number } | null; geofenceRadiusM: number; isMain: boolean; isActive: boolean };
+export type ProjectSite = { id: string; projectId: string; code: string; name: string; address: string; location: { lat: number; lng: number } | null; geofenceRadiusM: number; isMain: boolean; isActive: boolean; engineerId?: string | null };
+// A site with its primary engineer (and who held it before), the people who can work on it and what was done to it.
+export type SiteDetail = ProjectSite & {
+  engineer: { id: string; name: string } | null;
+  engineerHistory: { userId: string | null; name: string; from: string; to: string | null; assignedBy: string; note: string }[];
+  team: { id: string; name: string; role: string; allSites: boolean }[];
+  activity: { at: string; action: string; by: string; remarks: string; changes: { field: string; old: unknown; new: unknown }[] }[];
+};
 export type SiteInput = { name: string; address?: string; location?: { lat: number; lng: number } | null; geofenceRadiusM?: number };

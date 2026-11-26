@@ -13,6 +13,7 @@ import { ErrorBanner } from '../../../shared/ui/Banner';
 import { ErrorState } from '../../../shared/ui/ErrorState';
 import { s, useAction, useData } from '../../inventory/ui';
 import { projectApi } from '../api/projectApi';
+import { SitePanel } from '../components/SitePanel';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProjectSites'>;
 
@@ -23,6 +24,7 @@ export function ProjectSitesScreen({ navigation, route }: Props) {
   const manage = can(user, PERMS.PROJECT_MANAGE);
   const fetcher = useCallback(() => projectApi.sites(id), [id]);
   const { data, error, reload } = useData(fetcher);
+  const [open, setOpen] = useState<string | null>(null);
   const [f, setF] = useState({ name: '', address: '', lat: '', lng: '', radius: '' });
   const { busy, problem, run } = useAction(() => { setF({ name: '', address: '', lat: '', lng: '', radius: '' }); void reload(); });
   const set = (k: keyof typeof f) => (v: string) => setF((x) => ({ ...x, [k]: v }));
@@ -50,9 +52,13 @@ export function ProjectSitesScreen({ navigation, route }: Props) {
               <StatusChip label={site.isMain ? 'Main site' : site.isActive ? 'Open' : 'Closed'} tone={site.isActive ? (site.isMain ? 'info' : 'success') : 'neutral'} />
             </View>
             <Text style={s.muted}>{site.address || 'No address'}{site.location ? ` · GPS ${site.location.lat.toFixed(5)}, ${site.location.lng.toFixed(5)}` : ''} · attendance within {site.geofenceRadiusM} m</Text>
-            {manage && !site.isMain ? (
-              <Button title={site.isActive ? 'Close site' : 'Reopen site'} variant="ghost" onPress={() => run(`t-${site.id}`, () => projectApi.updateSite(id, site.id, { isActive: !site.isActive }))} loading={busy === `t-${site.id}`} testID={`site-toggle-${site.code}`} />
-            ) : null}
+            <View style={s.row}>
+              <Button title={open === site.id ? 'Hide team & history' : 'Team & history'} variant="ghost" onPress={() => setOpen(open === site.id ? null : site.id)} testID={`site-open-${site.code}`} />
+              {manage && !site.isMain ? (
+                <Button title={site.isActive ? 'Close site' : 'Reopen site'} variant="ghost" onPress={() => run(`t-${site.id}`, () => projectApi.updateSite(id, site.id, { isActive: !site.isActive }))} loading={busy === `t-${site.id}`} testID={`site-toggle-${site.code}`} />
+              ) : null}
+            </View>
+            {open === site.id ? <SitePanel projectId={id} siteId={site.id} manage={manage} onChanged={() => void reload()} /> : null}
           </View>
         ))}
       </View>
