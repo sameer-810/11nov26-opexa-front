@@ -16,6 +16,9 @@ import { ProjectFormScreen } from '../modules/project/screens/ProjectFormScreen'
 import { ProjectDetailScreen } from '../modules/project/screens/ProjectDetailScreen';
 import { ProjectTeamScreen } from '../modules/project/screens/ProjectTeamScreen';
 import { ProjectSitesScreen } from '../modules/project/screens/ProjectSitesScreen';
+import { SiteDetailScreen } from '../modules/project/screens/SiteDetailScreen';
+import { SitesScreen } from '../modules/project/screens/SitesScreen';
+import { BoqsScreen } from '../modules/project/screens/BoqsScreen';
 import { BoqImportScreen } from '../modules/project/screens/BoqImportScreen';
 import { canEditBoq } from '../shared/permissions';
 import { RequisitionsScreen } from '../modules/requisition/screens/RequisitionsScreen';
@@ -142,6 +145,9 @@ export function RootNavigator({ showLanding = Platform.OS === 'web', transparent
         {manageProjects && <Stack.Screen name="EditProject" component={ProjectFormScreen} options={{ title: 'Opexa - Edit project' }} />}
         {manageProjects && <Stack.Screen name="ProjectTeam" component={ProjectTeamScreen} options={{ title: 'Opexa - Project team' }} />}
         <Stack.Screen name="ProjectSites" component={ProjectSitesScreen} options={{ title: 'Opexa - Sites' }} />
+        <Stack.Screen name="SiteDetail" component={SiteDetailScreen} options={{ title: 'Opexa - Site' }} />
+        <Stack.Screen name="Sites" component={SitesScreen} options={{ title: 'Opexa - Sites' }} />
+        <Stack.Screen name="Boqs" component={BoqsScreen} options={{ title: 'Opexa - BOQ' }} />
         {editBoq && <Stack.Screen name="BoqImport" component={BoqImportScreen} options={{ title: 'Opexa - Import BOQ' }} />}
         <Stack.Screen name="Requisitions" component={RequisitionsScreen} options={{ title: 'Opexa - Material requests' }} />
         {can(user, PERMS.REQUISITION_CREATE) && <Stack.Screen name="NewRequisition" component={NewRequisitionScreen} options={{ title: 'Opexa - New material request' }} />}

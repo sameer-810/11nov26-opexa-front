@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/types';
@@ -45,10 +45,12 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [siteCount, setSiteCount] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setError('');
     setViewError('');
+    projectApi.sites(id).then((list) => setSiteCount(list.length)).catch(() => setSiteCount(null));
     projectApi.boqView(id).then(setView).catch(() => {
       setView(null);
       setViewError('Execution and approved quantities could not be loaded.');
@@ -119,6 +121,7 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
         <Fact label="Client PO" value={project.clientPoNumber || '—'} />
         <Fact label="Site location" value={project.location ? `${project.location.lat.toFixed(5)}, ${project.location.lng.toFixed(5)} (${project.geofenceRadiusM} m)` : 'Not set'} testID="fact-location" />
         <Fact label="Project manager" value={project.projectManager?.name ?? 'Not set'} testID="fact-pm" />
+        <Fact label="Sites" value={siteCount == null ? '—' : `${siteCount} site${siteCount === 1 ? '' : 's'} · open`} onPress={() => navigation.navigate('ProjectSites', { id })} testID="fact-sites" />
         <Fact label="Team" value={`${project.memberIds.length} member${project.memberIds.length === 1 ? '' : 's'}`} />
         <Fact label="Schedule" value={project.milestones?.total ? `${project.milestones.progressPct}% (${project.milestones.done} of ${project.milestones.total} milestones)${project.milestones.delayed ? `, ${project.milestones.delayed} delayed` : ''}` : 'No milestones'} testID="fact-schedule" />
         <Fact label="BOQ value" value={formatMoney(project.boqValue)} testID="fact-boq-value" />
@@ -209,13 +212,14 @@ export function ProjectDetailScreen({ navigation, route }: Props) {
   );
 }
 
-function Fact({ label, value, testID }: { label: string; value: string; testID?: string }) {
-  return (
-    <View style={styles.fact}>
+function Fact({ label, value, testID, onPress }: { label: string; value: string; testID?: string; onPress?: () => void }) {
+  const body = (
+    <>
       <Text style={styles.factLabel}>{label}</Text>
-      <Text style={styles.factValue} testID={testID}>{value}</Text>
-    </View>
+      <Text style={[styles.factValue, onPress && { color: colors.primary }]} testID={testID}>{value}</Text>
+    </>
   );
+  return onPress ? <Pressable style={styles.fact} onPress={onPress} accessibilityRole="link">{body}</Pressable> : <View style={styles.fact}>{body}</View>;
 }
 
 const styles = StyleSheet.create({

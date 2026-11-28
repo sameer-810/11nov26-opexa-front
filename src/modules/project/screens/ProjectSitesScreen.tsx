@@ -14,6 +14,7 @@ import { ErrorState } from '../../../shared/ui/ErrorState';
 import { s, useAction, useData } from '../../inventory/ui';
 import { projectApi } from '../api/projectApi';
 import { SitePanel } from '../components/SitePanel';
+import { LocationPicker } from '../../../shared/geo/LocationPicker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProjectSites'>;
 
@@ -53,6 +54,7 @@ export function ProjectSitesScreen({ navigation, route }: Props) {
             </View>
             <Text style={s.muted}>{site.address || 'No address'}{site.location ? ` · GPS ${site.location.lat.toFixed(5)}, ${site.location.lng.toFixed(5)}` : ''} · attendance within {site.geofenceRadiusM} m</Text>
             <View style={s.row}>
+              <Button title="Open site" variant="outline" onPress={() => navigation.navigate('SiteDetail', { projectId: id, siteId: site.id })} testID={`site-details-${site.code}`} />
               <Button title={open === site.id ? 'Hide team & history' : 'Team & history'} variant="ghost" onPress={() => setOpen(open === site.id ? null : site.id)} testID={`site-open-${site.code}`} />
               {manage && !site.isMain ? (
                 <Button title={site.isActive ? 'Close site' : 'Reopen site'} variant="ghost" onPress={() => run(`t-${site.id}`, () => projectApi.updateSite(id, site.id, { isActive: !site.isActive }))} loading={busy === `t-${site.id}`} testID={`site-toggle-${site.code}`} />
@@ -72,6 +74,7 @@ export function ProjectSitesScreen({ navigation, route }: Props) {
             <View style={s.cell}><TextField label="GPS longitude (optional)" value={f.lng} onChangeText={set('lng')} keyboardType="decimal-pad" testID="site-lng" /></View>
             <View style={s.cell}><TextField label="Attendance radius, m (optional)" value={f.radius} onChangeText={set('radius')} keyboardType="number-pad" testID="site-radius" /></View>
           </View>
+          <LocationPicker address={f.address} lat={f.lat} lng={f.lng} onChange={(lat, lng) => setF((x) => ({ ...x, lat, lng }))} testID="site-loc" />
           <Button title="Add site" onPress={add} loading={busy === 'add'} disabled={f.name.trim().length < 2} testID="site-add" />
         </View>
       ) : null}

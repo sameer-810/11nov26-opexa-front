@@ -18,9 +18,10 @@ export const requisitionApi = {
   balance: (projectId: string) => api<BalanceRow[]>(`/projects/${projectId}/boq-balance`),
   create: (projectId: string, body: NewRequisition) => api<Requisition>(`/projects/${projectId}/requisitions`, { method: 'POST', body }),
   resubmit: (id: string, body: NewRequisition) => api<Requisition>(`/requisitions/${id}`, { method: 'PUT', body }),
-  list: (q: { projectId?: string; overBoq?: boolean } = {}) => {
+  list: (q: { projectId?: string; siteId?: string; overBoq?: boolean } = {}) => {
     const params = new URLSearchParams();
     if (q.projectId) params.set('projectId', q.projectId);
+    if (q.siteId) params.set('siteId', q.siteId);
     if (q.overBoq) params.set('overBoq', 'true');
     const s = params.toString();
     return api<Requisition[]>(`/requisitions${s ? `?${s}` : ''}`);

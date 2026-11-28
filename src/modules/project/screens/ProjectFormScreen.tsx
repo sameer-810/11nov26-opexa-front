@@ -15,6 +15,7 @@ import { projectApi } from '../api/projectApi';
 import { EstimateSummaryFields, emptyEstimate, estimateBody, type EstimateDraft } from '../components/EstimateSummaryFields';
 import { BOQ_FORMAT_LABEL, STATUS_LABEL, type AssignableUser, type BoqFormat, type ProjectStatus } from '../types';
 import { validateProjectForm, type ProjectForm, type ProjectFormErrors } from '../project.validation';
+import { LocationPicker } from '../../../shared/geo/LocationPicker';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NewProject' | 'EditProject'>;
 
@@ -170,6 +171,7 @@ export function ProjectFormScreen({ navigation, route }: Props) {
           </View>
         </View>
         <Button title="Use my current location" variant="outline" onPress={useMyLocation} loading={locating} testID="pf-locate" />
+        <LocationPicker address={form.siteAddress} lat={form.lat} lng={form.lng} onChange={(lat, lng) => { setForm((f) => ({ ...f, lat, lng })); setErrors((e) => ({ ...e, lat: undefined, lng: undefined })); }} testID="pf-loc" />
         <TextField label="Check-in distance (metres)" testID="pf-radius" value={form.geofenceRadiusM} onChangeText={set('geofenceRadiusM')} error={errors.geofenceRadiusM} keyboardType="number-pad" />
         <Button title={id ? 'Save changes' : 'Create project'} onPress={submit} loading={busy} testID="pf-submit" />
       </View>

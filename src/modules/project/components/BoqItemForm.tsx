@@ -37,6 +37,10 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
   const [busy, setBusy] = useState<'' | 'save' | 'delete'>('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [unitOpen, setUnitOpen] = useState(false);
+  // Where the Unit cell sits (inside the sideways-scrolling table), so its list opens right under it.
+  const [unitCell, setUnitCell] = useState({ x: 0, y: 0, w: 0, h: 0 });
+  const [rowY, setRowY] = useState(0);
+  const [scrollX, setScrollX] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const set = (k: keyof ItemForm) => (v: string) => {
@@ -125,12 +129,13 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
     <View style={styles.box} testID="boq-item-form">
       <Text style={styles.title}>{initial ? `Edit item ${initial.serialNo}` : 'Add BOQ item'}</Text>
       {error ? <ErrorBanner message={error} testID="boq-item-error" /> : null}
-      <ScrollView horizontal>
+      <View style={styles.tableWrap}>
+      <ScrollView horizontal onScroll={(e) => setScrollX(e.nativeEvent.contentOffset.x)} scrollEventThrottle={16}>
         <View style={styles.table}>
           <View style={[styles.row, styles.head]}>
             {cells.map((c) => <Text key={c.label} style={[styles.th, { width: c.width }]}>{c.label}</Text>)}
           </View>
-          <View style={styles.row}>
+          <View style={styles.row} onLayout={(e) => setRowY(e.nativeEvent.layout.y)}>
             {cells.map((c) => ('k' in c ? (c.k === 'unit' ? (
               <Pressable
                 key={c.label}
@@ -139,6 +144,7 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
                 accessibilityLabel={`Unit: ${form.unit || 'not chosen'}`}
                 accessibilityState={{ expanded: unitOpen }}
                 onPress={() => setUnitOpen((o) => !o)}
+                onLayout={(e) => { const l = e.nativeEvent.layout; setUnitCell({ x: l.x, y: l.y, w: l.width, h: l.height }); }}
                 style={[styles.input, styles.select, { width: c.width }, errors.unit ? styles.inputError : null]}
               >
                 <Text style={form.unit ? styles.selectText : styles.placeholder}>{form.unit || 'Choose'}</Text>
@@ -162,7 +168,7 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
         </View>
       </ScrollView>
       {unitOpen ? (
-        <View style={styles.menu} accessibilityRole="menu" testID="bi-unit-menu">
+        <View style={[styles.menu, { top: rowY + unitCell.y + unitCell.h + 1, left: unitCell.x - scrollX, minWidth: Math.max(unitCell.w, 110) }]} accessibilityRole="menu" testID="bi-unit-menu">
           {unitOptions.map((u) => (
             <Pressable
               key={u}
@@ -177,6 +183,7 @@ export function BoqItemForm({ initial, format = 'sitc', suggestedSerial, onSave,
           ))}
         </View>
       ) : null}
+      </View>
       {shownErrors.map((e) => <Text key={e.label} style={styles.error} testID={`${e.testID}-error`}>{e.label}: {e.message}</Text>)}
       <View style={styles.actions}>
         <Button title={initial ? 'Save item' : 'Add item'} onPress={save} loading={busy === 'save'} testID="bi-save" />
@@ -209,8 +216,10 @@ const styles = StyleSheet.create({
   select: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   selectText: { fontSize: 14, color: colors.text },
   placeholder: { fontSize: 14, color: '#94A3B8' },
-  menu: { alignSelf: 'flex-start', minWidth: 160, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surface, paddingVertical: 4 },
-  option: { paddingHorizontal: spacing.md, paddingVertical: 8 },
+  // Floats over the content below (like a native select) instead of pushing it down.
+  tableWrap: { position: 'relative', zIndex: 20 },
+  menu: { position: 'absolute', zIndex: 30, borderWidth: 1, borderColor: colors.border, borderRadius: 6, backgroundColor: colors.surface, paddingVertical: 2, boxShadow: '0px 6px 16px rgba(15,23,42,0.16)' },
+  option: { paddingHorizontal: 10, paddingVertical: 5 },
   optionOn: { backgroundColor: colors.surfaceAlt },
   actions: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   danger: { backgroundColor: colors.danger },

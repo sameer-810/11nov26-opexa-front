@@ -1,5 +1,5 @@
 import { api, apiBlob } from '../../../shared/api/apiClient';
-import type { AssignableUser, ProjectSite, SiteDetail, SiteInput, BoqColumn, BoqFormat, BoqItem, BoqItemInput, BoqView, ImportResult, MilestoneInput, MilestoneList, Project, ProjectInput } from '../types';
+import type { AssignableUser, ProjectSite, SiteDetail, SiteRow, SiteUsage, SiteInput, BoqColumn, BoqFormat, BoqItem, BoqItemInput, BoqView, ImportResult, MilestoneInput, MilestoneList, Project, ProjectInput } from '../types';
 
 export const projectApi = {
   list: () => api<Project[]>('/projects'),
@@ -13,6 +13,8 @@ export const projectApi = {
   addSite: (id: string, body: SiteInput) => api<ProjectSite>(`/projects/${id}/sites`, { method: 'POST', body }),
   updateSite: (id: string, siteId: string, body: Partial<SiteInput> & { isActive?: boolean }) => api<ProjectSite>(`/projects/${id}/sites/${siteId}`, { method: 'PATCH', body }),
   site: (id: string, siteId: string) => api<SiteDetail>(`/projects/${id}/sites/${siteId}`),
+  siteUsage: (id: string, siteId: string) => api<SiteUsage[]>(`/projects/${id}/sites/${siteId}/usage`),
+  allSites: () => api<SiteRow[]>('/sites'),
   siteEngineers: (id: string) => api<{ id: string; name: string }[]>(`/projects/${id}/site-engineers`),
   setSiteEngineer: (id: string, siteId: string, body: { userId: string | null; note?: string }) => api<SiteDetail>(`/projects/${id}/sites/${siteId}/engineer`, { method: 'PUT', body }),
 

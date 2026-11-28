@@ -36,6 +36,8 @@ const PATHS = {
   upload: 'M12 3v12 M7 8l5-5 5 5 M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4',
   store: 'M3 9l2-5h14l2 5 M4 9v11h16V9 M9 20v-6h6v6',
   layers: 'M12 3 2 8l10 5 10-5z M2 13l10 5 10-5',
+  pin: 'M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  table: 'M3 5h18v14H3z M3 10h18 M3 15h18 M9 5v14',
 } as const;
 
 export type IconName = keyof typeof PATHS;

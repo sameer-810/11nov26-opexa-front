@@ -100,6 +100,10 @@ export const STATUS_LABEL: Record<ProjectStatus, string> = { active: 'Active', c
 
 // Phase 2 access: a site of a project (the main site is the project's own address and GPS point).
 export type ProjectSite = { id: string; projectId: string; code: string; name: string; address: string; location: { lat: number; lng: number } | null; geofenceRadiusM: number; isMain: boolean; isActive: boolean; engineerId?: string | null };
+// Sites page: a site with its project, primary engineer and open material requests.
+export type SiteRow = ProjectSite & { projectCode: string; projectName: string; projectStatus: string; engineer: { id: string; name: string } | null; openRequests: number };
+// One site's use of the project BOQ, per line.
+export type SiteUsage = { workOrderItemId: string; requested: number; received: number; installed: number };
 // A site with its primary engineer (and who held it before), the people who can work on it and what was done to it.
 export type SiteDetail = ProjectSite & {
   engineer: { id: string; name: string } | null;

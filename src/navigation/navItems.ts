@@ -12,21 +12,27 @@ const any = (u: User | null, perms: string[]) => perms.some((p) => can(u, p));
 const always = () => true;
 // Who records or follows material received on requests (must match RootNavigator).
 export const CHALLAN_VIEWERS = [PERMS.RECEIVING_RECORD, PERMS.STORE_MANAGE, PERMS.PROJECT_MANAGE, PERMS.PURCHASE_MANAGE];
+// People who raise, approve, buy, store, receive or report on project material (material requests, BOQ).
+const MATERIAL_USERS = [PERMS.REQUISITION_CREATE, PERMS.APPROVAL_ACT, PERMS.PURCHASE_MANAGE, PERMS.PROJECT_MANAGE, PERMS.STORE_MANAGE, PERMS.RECEIVING_RECORD, PERMS.REPORTS_VIEW, PERMS.PROJECT_VIEW];
+const SITE_USERS = [PERMS.PROJECT_MANAGE, PERMS.PROJECT_VIEW, PERMS.REQUISITION_CREATE, PERMS.RECEIVING_RECORD, PERMS.REPORTS_VIEW];
+const SERVICE_USERS = [PERMS.SERVICE_MANAGE, PERMS.SERVICE_VIEW, PERMS.PROJECT_MANAGE, PERMS.PROJECT_VIEW, PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT];
 
 // Sidebar entries. `show` must match the screen registration in RootNavigator.
 export const NAV_ITEMS: NavItem[] = [
   { route: 'Dashboard', label: 'Dashboard', icon: 'home', show: always },
   { route: 'Projects', label: 'Projects', icon: 'folder', show: always, also: ['ProjectDetail', 'NewProject', 'EditProject', 'ProjectTeam', 'BoqImport', 'ProjectLots', 'LotDetail', 'MaterialStatus', 'Usage', 'ProjectBilling', 'ProjectFinance', 'ProjectDocuments', 'ProjectQuantities', 'ProjectMilestones', 'ProjectActivity'] },
-  { route: 'Requisitions', label: 'Material requests', icon: 'clipboard', show: always, also: ['NewRequisition', 'RequisitionDetail', 'MaterialReceived'] },
+  { route: 'Boqs', label: 'BOQ', icon: 'table', show: (u) => any(u, MATERIAL_USERS) },
+  { route: 'Sites', label: 'Sites', icon: 'pin', show: (u) => any(u, SITE_USERS), also: ['ProjectSites', 'SiteDetail'] },
+  { route: 'Requisitions', label: 'Material requests', icon: 'clipboard', show: (u) => any(u, MATERIAL_USERS), also: ['NewRequisition', 'RequisitionDetail', 'MaterialReceived'] },
   { route: 'Challans', label: 'Delivery challans', icon: 'receipt', show: (u) => any(u, CHALLAN_VIEWERS), also: ['ChallanDetail'] },
   { route: 'Approvals', label: 'Approvals', icon: 'check', show: canSeeApprovals, also: ['ApprovalSettings', 'Delegations'] },
   { route: 'Procurement', label: 'Procurement', icon: 'cart', show: (u) => can(u, PERMS.PURCHASE_MANAGE), also: ['Rfqs', 'NewRfq', 'RfqDetail', 'RfqComparison', 'SelectionDetail', 'FollowUps', 'PendingQuantities', 'PurchaseOrders', 'PurchaseOrderDetail', 'NewPurchaseOrder', 'Vendors', 'VendorDetail', 'VendorRanking'] },
   { route: 'Store', label: 'Store', icon: 'box', show: (u) => any(u, [PERMS.STORE_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.PROJECT_MANAGE]) },
   { route: 'Invoices', label: 'Invoices', icon: 'receipt', show: (u) => any(u, [PERMS.INVOICE_CREATE, PERMS.INVOICE_EDIT]), also: ['InvoiceForm', 'InvoiceDetail'] },
   { route: 'Subcontract', label: 'Subcontractors', icon: 'hardhat', show: (u) => any(u, [PERMS.PROJECT_MANAGE, PERMS.PURCHASE_MANAGE, PERMS.SUPPLIER_INVOICE_VERIFY, PERMS.RECEIVING_RECORD, PERMS.REPORTS_VIEW]) },
-  { route: 'Service', label: 'Service & AMC', icon: 'tool', show: always, also: ['TicketDetail', 'NewTicket', 'ServiceAssets', 'HandoverAmc', 'Customers'] },
+  { route: 'Service', label: 'Service & AMC', icon: 'tool', show: (u) => any(u, SERVICE_USERS), also: ['TicketDetail', 'NewTicket', 'ServiceAssets', 'HandoverAmc', 'Customers'] },
   { route: 'Sales', label: 'Sales', icon: 'trend', show: (u) => can(u, PERMS.SALES_MANAGE), also: ['NewLead', 'LeadDetail', 'QuoteForm'] },
-  { route: 'MyExpenses', label: 'My expenses', icon: 'wallet', show: always, also: ['NewExpense', 'ExpenseForm', 'ExpenseCategories'] },
+  { route: 'MyExpenses', label: 'My expenses', icon: 'wallet', show: (u) => Boolean(u) && u?.role !== 'contractor', also: ['NewExpense', 'ExpenseForm', 'ExpenseCategories'] },
   { route: 'ClientReceipts', label: 'Receivables', icon: 'rupee', show: (u) => canSeeReceivables(u), also: ['ClientLedger', 'Notes'] },
   { route: 'Payables', label: 'Supplier payables', icon: 'rupee', show: canSeePayables, also: ['SupplierPayments', 'SupplierPaymentForm', 'SupplierPaymentDetail', 'SupplierLedger'] },
   { route: 'ExpensesToPay', label: 'Expenses to pay', icon: 'rupee', show: canPayExpenses },
